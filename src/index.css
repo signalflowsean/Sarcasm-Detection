@@ -1,0 +1,154 @@
+@layer reset, base, layouts, components, utilities;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    /* Get rid of all font sizes and heights */
+  }
+
+  html {
+    color-scheme: dark light;
+    /* Default dark */
+    hanging-punctuation: first last;
+    /* Not supported in Chrome */
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  /* Media responsive */
+  img,
+  picture,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  p {
+    max-width: 75ch;
+    text-wrap: pretty;
+    /* Prevents orphans on lines */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  a {
+    color: var(--clr-primary);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :has(:target) {
+      scroll-behavior: smooth;
+      scroll-padding-top: 3rem;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    color-scheme: light dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    --clr-primary: #fff;
+    --clr-secondary: #000;
+    --clr-terciary: #202020;
+
+    --min-col-width: 25rem;
+
+    --border-radius-primary: 1rem;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --clr-primary: #000;
+      --clr-secondary: #fff;
+    }
+  }
+}
+
+@layer layouts {
+  section {
+    outline: 1rem solid green;
+  }
+
+  main {
+    min-height: 100svh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    background-color: var(--clr-secondary);
+
+    @media (width < 75rem) {
+      grid-template-columns: 1fr;
+
+      section:first-child {
+        display: none;
+      }
+    }
+  }
+}
+
+@layer components {
+  .meter__wrapper {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    padding-block: 2rem;
+  }
+
+  .meter {
+    height: min(100svh, 100%);
+    display: grid;
+
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr;
+    
+    aspect-ratio: 3 / 4;
+
+    background-color: var(--clr-terciary);
+    border-radius: var(--border-radius-primary);
+    box-shadow:
+      25px 25px 75px rgba(0, 0, 0, 0.25),
+      10px 10px 70px rgba(0, 0, 0, 0.25),
+      inset -5px -5px 15px rgba(0, 0, 0, 0.25),
+      inset 5px 5px 15px rgba(0, 0, 0, 0.25);
+  }
+
+  .meter__display {
+    display: grid;
+    grid-template-columns: subgrid;
+
+    margin: 2rem;
+    border-radius: var(--border-radius-primary);
+    background-color: white;
+  }
+}
