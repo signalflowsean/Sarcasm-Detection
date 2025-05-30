@@ -118,37 +118,63 @@
 }
 
 @layer components {
-  .meter__wrapper {
-    display: flex;
-    justify-content: center;
-    height: 100%;
-    padding-block: 2rem;
-  }
-
   .meter {
-    height: min(100svh, 100%);
-    display: grid;
-
-    grid-template-rows: 1fr 1fr;
-    grid-template-columns: 1fr;
-    
+    --transparency: 0.1;
     aspect-ratio: 3 / 4;
+
+    width: auto;
+    height: calc(100% - 2rem);
+
+    display: flex;
+    flex-direction: column;
+
+    margin: 1rem auto;
 
     background-color: var(--clr-terciary);
     border-radius: var(--border-radius-primary);
-    box-shadow:
-      25px 25px 75px rgba(0, 0, 0, 0.25),
-      10px 10px 70px rgba(0, 0, 0, 0.25),
-      inset -5px -5px 15px rgba(0, 0, 0, 0.25),
-      inset 5px 5px 15px rgba(0, 0, 0, 0.25);
+    /* box-shadow:
+      25px 25px 75px rgba(from var(--clr-secondary) r g b var(--transparency)),
+      10px 10px 70px rgba(from var(--clr-secondary) r g b var(--transparency)),
+      inset -5px -5px 15px rgba(from var(--clr-secondary) r g b var(--transparency)),
+      inset 5px 5px 15px rgba(from var(--clr-secondary) r g b var(--transparency)); */
+  }
+
+  .meter > * {
+    flex: 1 1 0;
   }
 
   .meter__display {
-    display: grid;
-    grid-template-columns: subgrid;
+    --margin: 8%;
 
-    margin: 2rem;
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+
+    margin-block-start: var(--margin);
+    margin-inline: var(--margin);
     border-radius: var(--border-radius-primary);
-    background-color: white;
+    background-color: var(--clr-primary);
+  }
+
+  .meter__display__boundary {
+    align-self: center;
+    justify-self: center;
+
+    grid-row: 1 / span 3;
+    width: 1rem;
+    height: 100%;
+
+    background-color: lightgray;
+  }
+
+  .meter__display__boundary:first-child {
+    grid-column-start: 1;
+    rotate: -20deg;
+  }
+
+  .meter__display__boundary:last-child {
+    grid-column-start: 3;
+    rotate: 20deg;
   }
 }
