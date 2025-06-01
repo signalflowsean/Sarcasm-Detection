@@ -5,6 +5,7 @@
   *::before,
   *::after {
     box-sizing: border-box;
+    /* outline: green 1px solid; */
   }
 
   * {
@@ -34,12 +35,7 @@
     max-width: 100%;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
   }
 
@@ -49,15 +45,7 @@
     /* Prevents orphans on lines */
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p,
-  span,
-  a {
+  h1, h2, h3, h4, h5, h6, p, span, a {
     color: var(--clr-primary);
   }
 
@@ -82,8 +70,9 @@
     --clr-secondary: #000;
     --clr-terciary: #202020;
 
-    --min-col-width: 25rem;
+    --clr-meter-display-boundary: #d3d3d3;
 
+    --min-col-width: 25rem;
     --border-radius-primary: 1rem;
   }
 
@@ -96,57 +85,49 @@
 }
 
 @layer layouts {
-  section {
-    outline: 1rem solid green;
-  }
-
   main {
     min-height: 100svh;
     display: grid;
+    place-items: center;
     grid-template-columns: 1fr 1fr;
     gap: 5rem;
     background-color: var(--clr-secondary);
+  }
 
-    @media (width < 75rem) {
+  @media (width < 50rem) {
+    main {
       grid-template-columns: 1fr;
+    }
 
-      section:first-child {
-        display: none;
-      }
+    section:first-child {
+      display: none;
     }
   }
 }
 
 @layer components {
   .meter {
-    --transparency: 0.1;
+    --padding: 2rem;
     aspect-ratio: 3 / 4;
 
-    width: auto;
-    height: calc(100% - 2rem);
+    width: min(100% - var(--padding), (100svh - var(--padding)) * 0.75);
 
     display: flex;
     flex-direction: column;
 
-    margin: 1rem auto;
-
     background-color: var(--clr-terciary);
     border-radius: var(--border-radius-primary);
-    /* box-shadow:
-      25px 25px 75px rgba(from var(--clr-secondary) r g b var(--transparency)),
-      10px 10px 70px rgba(from var(--clr-secondary) r g b var(--transparency)),
-      inset -5px -5px 15px rgba(from var(--clr-secondary) r g b var(--transparency)),
-      inset 5px 5px 15px rgba(from var(--clr-secondary) r g b var(--transparency)); */
-  }
 
-  .meter > * {
-    flex: 1 1 0;
+    > * {
+      flex: 1 1 0;
+    }
   }
 
   .meter__display {
     --margin: 8%;
 
     display: grid;
+    overflow: hidden;
 
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
@@ -165,7 +146,7 @@
     width: 1rem;
     height: 100%;
 
-    background-color: lightgray;
+    background-color: var(--clr-meter-display-boundary);
   }
 
   .meter__display__boundary:first-child {
