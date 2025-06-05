@@ -108,15 +108,19 @@
 @layer components {
   .meter {
     --padding: 2rem;
-    aspect-ratio: 3 / 4;
+    --aspect-ratio: calc(3 / 4);
 
-    width: min(100% - var(--padding), (100svh - var(--padding)) * 0.75);
+    aspect-ratio: var(--aspect-ratio);
+    width: min(100% - var(--padding), (100svh - var(--padding)) * var(--aspect-ratio));
 
     display: flex;
     flex-direction: column;
 
     background-color: var(--clr-terciary);
     border-radius: var(--border-radius-primary);
+
+    /* box-shadow: 0 0 1rem rgba(0, 0, 0, 0.2); */
+    box-shadow: inset 0 0 3rem rgba(255, 255, 255, 0.2);
 
     > * {
       flex: 1 1 0;
@@ -139,6 +143,11 @@
   }
 
   .meter__display__boundary {
+    /* custom properties exposed to Meter component */
+    --column-start: 1;
+    --boundary-rotate: 20deg;
+
+    grid-column-start: var(--column-start);
     align-self: center;
     justify-self: center;
 
@@ -147,15 +156,39 @@
     height: 100%;
 
     background-color: var(--clr-meter-display-boundary);
+    rotate: var(--boundary-rotate);
   }
 
-  .meter__display__boundary:first-child {
-    grid-column-start: 1;
-    rotate: -20deg;
+  .meter__display__level {
+    --arc-length: 120deg;
+    --arc-start: -60deg;
+    --arc-thickness: 20px;
+  
+    grid-column: 1 / 4;
+    grid-row-start: 1;
+    
+    width: 100%;
+    aspect-ratio: 1;
+    padding: var(--arc-thickness);
+    border-radius: 50%;
+    background: #c0d860;
+
+    /* https://css-shape.com/arc/ */
+    mask:
+      linear-gradient(#0000 0 0) content-box intersect,
+      conic-gradient(#000 var(--arc-length),#0000 0);
+
+    /* https://css-tricks.com/better-css-shapes-using-shape-part-2-more-on-arcs/  */
+
+    rotate: var(--arc-start);
   }
 
-  .meter__display__boundary:last-child {
-    grid-column-start: 3;
-    rotate: 20deg;
+  @supports (clip-path: shape(from 0 0, line to 100% 0, line to 100% 100%, line to 0 100%)) {
+    .meter__display__level {
+      background: red;
+      /* mask: none; */
+      /* TODO */
+    }
   }
+
 }
