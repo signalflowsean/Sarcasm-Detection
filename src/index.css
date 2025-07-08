@@ -134,7 +134,7 @@
     overflow: hidden;
 
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
 
     margin-block-start: var(--margin);
     margin-inline: var(--margin);
@@ -143,52 +143,55 @@
   }
 
   .meter__display__boundary {
-    /* custom properties exposed to Meter component */
-    --column-start: 1;
-    --boundary-rotate: 20deg;
-
-    grid-column-start: var(--column-start);
-    align-self: center;
-    justify-self: center;
-
-    grid-row: 1 / span 3;
-    width: 1rem;
+    width: 100%;
     height: 100%;
+    background-color: red;
+    z-index: 2;
+  }
 
-    background-color: var(--clr-meter-display-boundary);
-    rotate: var(--boundary-rotate);
+  .meter__display__boundary--1 {
+    grid-column: 1 / 2;
+    grid-row: 1 / 5;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  .meter__display__boundary--2 {
+    grid-column: 3 / 4;
+    grid-row: 1 / 5;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
   }
 
   .meter__display__level {
-    --arc-length: 120deg;
-    --arc-start: -60deg;
-    --arc-thickness: 20px;
+    --b: 10px; /* arc thickness */
   
-    grid-column: 1 / 4;
-    grid-row-start: 1;
-    
+    grid-column: 1 / -1;
+    grid-row: 2 / 3;
+  
     width: 100%;
-    aspect-ratio: 1;
-    padding: var(--arc-thickness);
-    border-radius: 50%;
-    background: #c0d860;
-
-    /* https://css-shape.com/arc/ */
-    mask:
-      linear-gradient(#0000 0 0) content-box intersect,
-      conic-gradient(#000 var(--arc-length),#0000 0);
-
-    /* https://css-tricks.com/better-css-shapes-using-shape-part-2-more-on-arcs/  */
-
-    rotate: var(--arc-start);
+    height: 100%;
+    /* clip-path: ellipse(50% 100% at bottom center); */
+    background: red;
+      /* Create arc using mask with radial gradient */
+    /* mask: radial-gradient(circle at bottom center, transparent 50%, black 50%); */
+    clip-path: ellipse(50% 100% at bottom center);
+    position: relative;
+    /* clip-path: ellipse(calc(50% - var(--b)) calc(100% - var(--b)) at bottom center); */
   }
 
-  @supports (clip-path: shape(from 0 0, line to 100% 0, line to 100% 100%, line to 0 100%)) {
-    .meter__display__level {
-      background: red;
-      /* mask: none; */
-      /* TODO */
-    }
+  .meter__display__level::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    
+    background: white;
+    
+    clip-path: ellipse(calc(50% - var(--b)) calc(100% - var(--b)) at bottom center);
+    z-index: 2; 
   }
 
+  .meter__display__level:last-child {
+    background: #f0a830;
+    grid-row: 3 / 3;
+  }
 }
