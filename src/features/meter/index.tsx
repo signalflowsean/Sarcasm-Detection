@@ -9,6 +9,8 @@ const MeterSection = () => {
         <Boundary varient="right" />
         <Level varient="prosodic" />
         <Level varient="lexical" />
+        <NeedleHolder />
+        <Needle />
       </div>
       <div className="meter__controls"></div>
     </div>
@@ -65,5 +67,13 @@ const Tick = ({ size, rotation, label }: TickProps) => {
     />
   )
 }
+
+const NeedleHolder = () => (
+  <div className="meter__needle__holder" />
+)
+
+const Needle = () => (
+  <div className="meter__needle" />
+)
 
 export default MeterSection

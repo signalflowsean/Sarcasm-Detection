@@ -74,7 +74,6 @@
 @layer base {
   :root {
     font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-    color-scheme: light dark;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -91,6 +90,14 @@
 
     --min-col-width: 25rem;
     --border-radius-primary: 1rem;
+
+    --meter-level-thickness: 0.625em;
+    --meter-tick-width: 0.15em;
+    --meter-display-margin: 8%;
+    --meter-padding: 2rem;
+    --meter-aspect-ratio: calc(3 / 4);
+
+    color-scheme: light dark;
   }
 
   @media (prefers-color-scheme: light) {
@@ -124,11 +131,8 @@
 
 @layer components {
   .meter {
-    --padding: 2rem;
-    --aspect-ratio: calc(3 / 4);
-
-    aspect-ratio: var(--aspect-ratio);
-    width: min(100% - var(--padding), (100svh - var(--padding)) * var(--aspect-ratio));
+    aspect-ratio: var(--meter-aspect-ratio);
+    width: min(100% - var(--meter-padding), (100svh - var(--meter-padding)) * var(--meter-aspect-ratio));
 
     display: flex;
     flex-direction: column;
@@ -136,7 +140,6 @@
     background-color: var(--clr-terciary);
     border-radius: var(--border-radius-primary);
 
-    /* box-shadow: 0 0 1rem rgba(0, 0, 0, 0.2); */
     box-shadow: inset 0 0 3rem rgba(255, 255, 255, 0.2);
 
     >* {
@@ -145,18 +148,15 @@
   }
 
   .meter__display {
-    --margin: 8%;
-
     display: grid;
-    overflow: hidden;
-
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(4, 1fr);
 
-    margin-block-start: var(--margin);
-    margin-inline: var(--margin);
+    margin-block-start: var(--meter-display-margin);
+    margin-inline: var(--meter-display-margin);
     border-radius: var(--border-radius-primary);
     background-color: var(--clr-primary);
+    overflow: hidden;
   }
 
   .meter__display__boundary {
@@ -178,33 +178,22 @@
   }
 
   .meter__display__level {
-    --level-thickness: 0.625em;
-    --gradient-radius: 67%;
-
     grid-column: 1 / -1;
 
     width: 100%;
     height: 100%;
 
-    /* position: relative; */
+    background: var(--level-color);
     clip-path: ellipse(50% 100% at bottom center);
-
-    /* mask: radial-gradient(ellipse at bottom center, transparent var(--gradient-radius), black var(--gradient-radius)); */
-
-    /* mask:
-      radial-gradient(ellipse at bottom center, transparent var(--gradient-radius), black var(--gradient-radius)),
-      radial-gradient(ellipse at bottom center, transparent calc(var(--gradient-radius) - (var(--level-thickness) * 2)), black calc(var(--gradient-radius) - (var(--level-thickness) * 2))); */
-
-    /* mask-composite: exclude; */
   }
 
   .meter__display__level--prosodic {
-    background: var(--level-clr-primary);
+    --level-color: var(--level-clr-primary);
     grid-row: 2 / 3;
   }
 
   .meter__display__level--lexical {
-    background: var(--level-clr-secondary);
+    --level-color: var(--level-clr-secondary);
     grid-row: 3 / 4;
   }
 
@@ -213,11 +202,11 @@
 
     width: 100%;
     height: 100%;
+
     display: flex;
     justify-content: space-between;
-
     background: white;
-    clip-path: ellipse(calc(50% - var(--level-thickness)) calc(100% - var(--level-thickness)) at bottom center);
+    clip-path: ellipse(calc(50% - var(--meter-level-thickness)) calc(100% - var(--meter-level-thickness)) at bottom center);
   }
 
   .meter__display__ticks__wrapper::after {
@@ -227,15 +216,62 @@
     height: 100%;
 
     background: var(--clr-primary);
-    clip-path: ellipse(calc(50% - var(--level-thickness) * 2) calc(100% - var(--level-thickness) * 2) at bottom center);
+    clip-path: ellipse(calc(50% - var(--meter-level-thickness) * 2) calc(100% - var(--meter-level-thickness) * 2) at bottom center);
   }
 
   .meter__tick {
-    --tick-width: 0.15em;
     top: 0;
     left: 0;
-    width: var(--tick-width);
+    width: var(--meter-tick-width);
     height: 100%;
     background: color-mix(in srgb, var(--clr-secondary) 60%, white 40%);
+  }
+
+  .meter__needle__holder {
+    position: relative;
+    bottom: -5px;
+    grid-column: 2 / 3;
+    grid-row: 4 / 5;
+
+    width: 100%;
+    height: 100%;
+    background: purple;
+
+    clip-path: circle(40% at bottom center);
+    z-index: 3;
+  }
+
+  .meter__needle {
+    grid-column: 2 / 3;
+    grid-row: 1 / 5;
+
+    width: 20px;
+    height: 95%;
+
+    margin-block-start: auto;
+    margin-inline: auto;
+    background: #444;
+    transform-origin: 50% 100%;
+    rotate: 25deg;
+    z-index: 2;
+
+    /* Arrow shape */
+    clip-path: polygon(50% 0%,
+        /* tip */
+        40% 15%,
+        /* left side of arrow head */
+        45% 15%,
+        /* left side of shaft start */
+        45% 100%,
+        /* left bottom */
+        55% 100%,
+        /* right bottom */
+        55% 15%,
+        /* right side of shaft start */
+        60% 15%
+        /* right side of arrow head */
+      );
+
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
   }
 }
