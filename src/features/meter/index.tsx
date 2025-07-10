@@ -1,21 +1,5 @@
-type Tick = {
-  size: "small" | "large";
-  label?: string; // Optional label for the tick
-};
-
-const TICKS: Tick[] = [
-  { size: "large" },
-  { size: "small" },
-  { size: "large" },
-  { size: "small" },
-  { size: "large" },
-  { size: "small" },
-  { size: "large" },
-  { size: "small" },
-  { size: "large" },
-  { size: "small" },
-  { size: "large" },
-];
+import { TICKS } from "./utils";
+import type { Tick } from "./types";
 
 const MeterSection = () => {
   return (
@@ -28,68 +12,58 @@ const MeterSection = () => {
       </div>
       <div className="meter__controls"></div>
     </div>
-  );
-};
+  )
+}
 
 type BoundaryProps = {
   varient: "left" | "right";
-};
+}
 
-const Boundary = ({ varient }: BoundaryProps) => {
-  return (
-    <div
-      className={`meter__display__boundary meter__display__boundary--${varient}`}
-    />
-  );
-};
+const Boundary = ({ varient }: BoundaryProps) => (
+  <div
+    className={`meter__display__boundary meter__display__boundary--${varient}`}
+  />
+)
 
 type LevelProps = {
   varient: "prosodic" | "lexical";
-};
+}
 
-const Level = ({ varient }: LevelProps) => {
-  return (
-    <div className={`meter__display__level meter__display__level--${varient}`} >
-      <div className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${varient}`}>
-        <Ticks ticks={TICKS} variant={varient} />
-      </div>
+const Level = ({ varient }: LevelProps) => (
+  <div className={`meter__display__level meter__display__level--${varient}`}>
+    <div
+      className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${varient}`}
+    >
+      <Ticks ticks={TICKS} />
     </div>
-
-  );
-};
+  </div>
+)
 
 type TicksProps = {
   ticks: Tick[];
-  variant: "prosodic" | "lexical";
-};
+}
 
-const Ticks = ({ ticks, variant }: TicksProps) => {
-  return (
-    <>
-      {ticks.map((tick, index) => (
-        <Tick
-          key={`${variant}-tick-${index}`}
-          size={tick.size}
-          label={tick.label}
-        />
-      ))}
-    </>
-  );
-};
+const Ticks = ({ ticks }: TicksProps) =>
+  <>
+    {ticks.map((tick) => (
+      <Tick
+        key={tick.uuid}
+        size={tick.size}
+        rotation={tick.rotation}
+        label={tick.label} // Optional label for tooltip
+      />
+    ))}
+  </>
 
-// Updated Tick component to handle optional label
-type TickProps = {
-  size: "small" | "large";
-  label?: string;
-};
-
-const Tick = ({ size, label }: TickProps) => {
+type TickProps = Omit<Tick, 'uuid'>;
+const Tick = ({ size, rotation, label }: TickProps) => {
   return (
     <div
       className={`meter__tick meter__tick--${size}`}
+      style={{ transform: `rotate(${rotation}deg)` }}
       title={label} // Optional tooltip
     />
-  );
-};
+  )
+}
 
-export default MeterSection;
+export default MeterSection
