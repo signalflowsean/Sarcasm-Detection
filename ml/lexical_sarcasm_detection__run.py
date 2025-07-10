@@ -1,17 +1,25 @@
-# Load the complete model with vectorizer
+import json
 from tensorflow import keras
 
-vocab_size = 10000
-truncating_type = 'post'
-padding_type = 'post'
-max_length = 100
+# Load model
+model = keras.models.load_model('sarcasm_model.keras')
 
-# DONT USE THIS RIGHT NOW - BROKEN 
-complete_model = keras.models.load_model('sarcasm_model.keras')
+# Recreate vectorizer
+with open('vectorizer_config.json', 'r') as f:
+    vectorizer_config = json.load(f)
 
-# Use directly with raw text - no preprocessing needed!
-sentences = ["granny starting to fear spiders in the garden might be real", "the dog has really soft fur and is very friendly"]
-predictions = complete_model.predict(sentences)
+with open('vocabulary.json', 'r') as f:
+    vocab = json.load(f)
+
+# Recreate and set vocabulary
+vectorize_layer = keras.layers.TextVectorization.from_config(vectorizer_config)
+vectorize_layer.set_vocabulary(vocab)
+
+# Now use for predictions
+sentences = ["granny starting to fear spiders in the garden might be real"]
+sequences = vectorize_layer(sentences)
+padded = keras.utils.pad_sequences(sequences, maxlen=100, padding='post', truncating='post')
+predictions = model.predict(padded)
 
 print("Predictions:")
 for i, pred in enumerate(predictions):

@@ -60,7 +60,20 @@ model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
 
 num_epochs = 30
 history = model.fit(training_padded, training_labels, epochs=num_epochs, validation_data=(testing_padded, testing_labels), verbose=2)
-model.save('sarcasm_model.keras')  
+
+# Save vectorizer configuration
+vectorizer_config = vectorize_layer.get_config()
+with open('vectorizer_config.json', 'w') as f:
+    json.dump(vectorizer_config, f)
+
+# Save the vocabulary
+vocab = vectorize_layer.get_vocabulary()
+with open('vocabulary.json', 'w') as f:
+    json.dump(vocab, f)
+
+model.save('sarcasm_model.keras')
+
+
 
 def plot_graphs(history, string):
   plt.plot(history.history[string])
