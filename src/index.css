@@ -83,10 +83,11 @@
     --clr-secondary: #000;
     --clr-terciary: #202020;
 
-    --level-clr-primary: red;
-    --level-clr-secondary: orange;
-
     --clr-meter-display-boundary: #d3d3d3;
+    --level-clr-primary: #ff0000;
+    --level-clr-secondary: #ffa500;
+    --needle-holder-clr: #808080;
+    --needle-clr: #444;
 
     --min-col-width: 25rem;
     --border-radius-primary: 1rem;
@@ -235,9 +236,11 @@
 
     width: 100%;
     height: 100%;
-    background: purple;
 
+    background: var(--needle-holder-clr);
     clip-path: circle(40% at bottom center);
+    filter: blur(6px);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
     z-index: 3;
   }
 
@@ -245,32 +248,15 @@
     grid-column: 2 / 3;
     grid-row: 1 / 5;
 
-    width: 20px;
+    width: 3px;
     height: 95%;
 
     margin-block-start: auto;
     margin-inline: auto;
-    background: #444;
+    background: var(--needle-clr);
     transform-origin: 50% 100%;
-    rotate: 25deg;
+    rotate: 27deg;
     z-index: 2;
-
-    /* Arrow shape */
-    clip-path: polygon(50% 0%,
-        /* tip */
-        40% 15%,
-        /* left side of arrow head */
-        45% 15%,
-        /* left side of shaft start */
-        45% 100%,
-        /* left bottom */
-        55% 100%,
-        /* right bottom */
-        55% 15%,
-        /* right side of shaft start */
-        60% 15%
-        /* right side of arrow head */
-      );
 
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
   }
