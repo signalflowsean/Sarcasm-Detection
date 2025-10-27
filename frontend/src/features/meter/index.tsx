@@ -1,10 +1,12 @@
 import { TICKS } from "./utils";
 import type { Tick } from "./types";
+import RotarySwitch from './components/RotarySwitch'
 
 const MeterSection = () => {
   return (
     <div className="meter">
       <div className="meter__display">
+        {/* TODO: Put boundaries in a meter__display__boundaries__wrapper */}
         <Boundary varient="left" />
         <Boundary varient="right" />
         <Level varient="prosodic" />
@@ -12,7 +14,9 @@ const MeterSection = () => {
         <NeedleHolder />
         <Needle />
       </div>
-      <div className="meter__controls"></div>
+      <div className="meter__controls">
+        <RotarySwitch />
+      </div>
     </div>
   )
 }
