@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { useEvent } from '../../../utils/useEvent'
+import React, { useEffect, useRef, useState, useEffectEvent } from 'react'
 import { useWhichInput } from '../use-which-input'
 import { DefaultIcon } from './icons'
 import { normalizeDegrees, circularDistance, angleFromPoints } from '../utils'
@@ -9,13 +8,13 @@ type CSSVarProps = React.CSSProperties & Record<`--${string}`, string | number>
 const RotarySwitch: React.FC = () => {
   const { positions, index, setIndex, next, prev } = useWhichInput()
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const ref = useRef<HTMLButtonElement | null>(null)
+  const ref = useRef<HTMLDivElement | null>(null)
 
   const activeIndex = dragIndex ?? index
   const angleNow = normalizeDegrees(positions[activeIndex]?.degrees ?? 0)
   const knobVars: CSSVarProps = { '--angle-deg': `${angleNow}deg` }
 
-  const handleKey = useEvent((e: KeyboardEvent) => {
+  const handleKey = useEffectEvent((e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
       prev()
@@ -40,7 +39,7 @@ const RotarySwitch: React.FC = () => {
     return () => controller.abort()
   }, [handleKey])
 
-  const updateByEvent = useEvent((e: PointerEvent) => {
+  const updateByEvent = useEffectEvent((e: PointerEvent) => {
     const el = ref.current
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -58,19 +57,19 @@ const RotarySwitch: React.FC = () => {
     setDragIndex(bestIdx)
   })
 
-  const onPointerDown = useEvent((e: PointerEvent) => {
+  const onPointerDown = useEffectEvent((e: PointerEvent) => {
     const el = ref.current
     if (!el) return
     el.setPointerCapture(e.pointerId)
     updateByEvent(e)
   })
 
-  const onPointerMove = useEvent((e: PointerEvent) => {
+  const onPointerMove = useEffectEvent((e: PointerEvent) => {
     const el = ref.current
     if (el && el.hasPointerCapture(e.pointerId)) updateByEvent(e)
   })
 
-  const onPointerUp = useEvent((e: PointerEvent) => {
+  const onPointerUp = useEffectEvent((e: PointerEvent) => {
     const el = ref.current
     if (dragIndex !== null) {
       if (dragIndex !== index) setIndex(dragIndex)
@@ -94,10 +93,11 @@ const RotarySwitch: React.FC = () => {
   const ariaValueText = positions[index]?.name ?? ''
 
   return (
-    <button
+    // TODO: make this input type="range"
+    <div
+      tabIndex={0}
       ref={ref}
       className="rotary"
-      type="button"
       role="slider"
       aria-label="Input source selector"
       aria-valuemin={0}
@@ -123,7 +123,7 @@ const RotarySwitch: React.FC = () => {
         </span>
       ))}
       {/* <span className="rotary__label" aria-live="polite">{ariaValueText}</span> */}
-    </button>
+    </div>
   )
 }
 
