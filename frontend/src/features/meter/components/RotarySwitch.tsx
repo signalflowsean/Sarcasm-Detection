@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useEffectEvent } from 'react'
-import { useWhichInput } from '../use-which-input'
+import { useWhichInput } from '../useWhichInput'
 import { DefaultIcon } from './icons'
 import { normalizeDegrees, circularDistance, angleFromPoints } from '../utils'
 
@@ -93,7 +93,6 @@ const RotarySwitch: React.FC = () => {
   const ariaValueText = positions[index]?.name ?? ''
 
   return (
-    // TODO: make this input type="range"
     <div
       tabIndex={0}
       ref={ref}
@@ -128,5 +127,3 @@ const RotarySwitch: React.FC = () => {
 }
 
 export default RotarySwitch
-
-

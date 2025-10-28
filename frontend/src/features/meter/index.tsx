@@ -7,10 +7,10 @@ const MeterSection = () => {
     <div className="meter">
       <div className="meter__display">
         {/* TODO: Put boundaries in a meter__display__boundaries__wrapper */}
-        <Boundary varient="left" />
-        <Boundary varient="right" />
-        <Level varient="prosodic" />
-        <Level varient="lexical" />
+        <Boundary variant="left" />
+        <Boundary variant="right" />
+        <Level variant="prosodic" />
+        <Level variant="lexical" />
         <NeedleHolder />
         <Needle />
       </div>
@@ -22,23 +22,23 @@ const MeterSection = () => {
 }
 
 type BoundaryProps = {
-  varient: "left" | "right";
+  variant: "left" | "right";
 }
 
-const Boundary = ({ varient }: BoundaryProps) => (
+const Boundary = ({ variant }: BoundaryProps) => (
   <div
-    className={`meter__display__boundary meter__display__boundary--${varient}`}
+    className={`meter__display__boundary meter__display__boundary--${variant}`}
   />
 )
 
 type LevelProps = {
-  varient: "prosodic" | "lexical";
+  variant: "prosodic" | "lexical";
 }
 
-const Level = ({ varient }: LevelProps) => (
-  <div className={`meter__display__level meter__display__level--${varient}`}>
+const Level = ({ variant }: LevelProps) => (
+  <div className={`meter__display__level meter__display__level--${variant}`}>
     <div
-      className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${varient}`}
+      className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${variant}`}
     >
       <Ticks ticks={TICKS} />
     </div>

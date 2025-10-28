@@ -17,5 +17,3 @@ export function useWhichInput(): WhichInputContext {
   if (!context) throw new Error('useWhichInput must be used within a WhichInputProvider')
   return context
 }
-
-

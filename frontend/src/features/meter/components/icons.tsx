@@ -39,5 +39,3 @@ export const DefaultIcon: React.FC<{ value: string }> = ({ value }) => {
   if (value === 'text') return <KeyboardIcon />
   return <span aria-hidden>{value.slice(0, 1).toUpperCase()}</span>
 }
-
-
