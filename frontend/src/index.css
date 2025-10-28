@@ -160,6 +160,11 @@
     overflow: hidden;
   }
 
+  .meter__controls {
+    display: grid;
+    place-items: center;
+  }
+
   .meter__display__boundary {
     width: 100%;
     height: 100%;
@@ -259,5 +264,115 @@
     z-index: 2;
 
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Rotary switch */
+  .rotary {
+    /* Responsive dial sizing */
+    --size: clamp(10rem, 40vw, 17rem);
+    --radius: calc(var(--size) * 0.42);
+    --icon-size: clamp(0.9rem, calc(var(--size) * 0.1), 1.6rem);
+    --accent: #3b82f6;
+
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--size);
+    height: var(--size);
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .rotary:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .rotary__plate {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,.15), rgba(0,0,0,.2));
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.35);
+  }
+
+  .rotary__knob {
+    width: calc(var(--size) * 0.55);
+    height: calc(var(--size) * 0.55);
+    border-radius: 50%;
+    background: linear-gradient(145deg, #444, #2a2a2a);
+    box-shadow: 0 4px 12px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.1);
+    transform: rotate(var(--angle-deg));
+    transition: transform 160ms ease-out, box-shadow 120ms ease, filter 120ms ease;
+  }
+  /* Icons rendered around the dial at configured angles */
+  .rotary__icon {
+    position: absolute;
+    top: calc(53% - var(--icon-size) / 2);
+    left: calc(50% - var(--icon-size) / 2);
+    --radial-adjust: 0px;
+    /* Fallback placement using rotate + translate */
+    transform: rotate(var(--deg)) translateY(calc(-1 * (var(--radius) + var(--radial-adjust)))) rotate(calc(-1 * var(--deg)));
+    transform-origin: center;
+    color: var(--clr-primary);
+    opacity: 0.8;
+    transition: opacity 120ms ease, transform 160ms ease;
+  }
+
+  /* Prefer precise placement using trig functions when supported */
+  @supports (transform: translate(calc(sin(0deg) * 1px), calc(cos(0deg) * 1px))) {
+    .rotary__icon {
+      transform: translate(
+        calc(sin(var(--deg)) * (var(--radius) + var(--radial-adjust))),
+        calc(-1 * cos(var(--deg)) * (var(--radius) + var(--radial-adjust)))
+      ); /* stays upright without extra rotation */
+    }
+  }
+
+  /* Per-icon optical centering tweaks */
+  .rotary__icon--audio { --radial-adjust: -6px; }
+  .rotary__icon--text { --radial-adjust: -6px; }
+
+  .rotary__icon.is-active { opacity: 1; }
+
+  .rotary__icon__glyph {
+    display: inline-grid;
+    place-items: center;
+    width: var(--icon-size);
+    height: var(--icon-size);
+  }
+
+  /* Ensure inline SVGs scale with container */
+  .rotary__icon__glyph svg { width: 100%; height: 100%; }
+
+  /* Selected indicator line that points toward the dial center */
+  .rotary__knob::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 3px;
+    height: calc(50% - 2px); /* reaches toward center */
+    border-radius: 2px;
+    background: linear-gradient(to bottom, #fafafa, #d0d0d0);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 2px 2px rgba(0,0,0,.25);
+  }
+
+  .rotary:hover .rotary__knob {
+    filter: brightness(1.06);
+    box-shadow: 0 6px 14px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.2);
+  }
+
+  .rotary__label {
+    position: absolute;
+    bottom: calc(var(--size) * -0.12);
+    font-size: clamp(0.8rem, calc(var(--size) * 0.06), 1rem);
+    font-weight: 600;
+    color: var(--clr-primary);
+    text-shadow: 0 1px 1px rgba(0,0,0,.6);
+    pointer-events: none;
   }
 }
