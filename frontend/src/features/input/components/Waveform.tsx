@@ -12,6 +12,7 @@ type Props = {
 const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label = 'Waveform', showPlayhead, playheadPercent = 0, isSeekEnabled, onSeekPercent }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const isScrubbingRef = useRef(false)
   const seekAtClientX = (clientX: number) => {
     if (!isSeekEnabled || !onSeekPercent) return
     const el = containerRef.current
@@ -23,6 +24,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!isSeekEnabled) return
+    isScrubbingRef.current = true
     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     seekAtClientX(e.clientX)
   }
@@ -30,20 +32,21 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isSeekEnabled) return
     const current = e.currentTarget as HTMLElement & { hasPointerCapture?: (pointerId: number) => boolean }
-    if (current.hasPointerCapture?.(e.pointerId)) {
+    if (isScrubbingRef.current || current.hasPointerCapture?.(e.pointerId)) {
       seekAtClientX(e.clientX)
     }
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!isSeekEnabled) return
+    isScrubbingRef.current = false
     ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
   }
 
   return (
     <div
       ref={containerRef}
-      className="audio-recorder__waveform"
+      className={`audio-recorder__waveform${isSeekEnabled ? ' is-seekable' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

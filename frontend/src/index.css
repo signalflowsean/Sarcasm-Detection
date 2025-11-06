@@ -208,6 +208,7 @@
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
     overflow: hidden;
   }
+  .audio-recorder__waveform.is-seekable { cursor: ew-resize; }
   .audio-recorder__waveform canvas { width: 100%; height: 10rem; display: block; }
 
   .audio-recorder__playhead {
