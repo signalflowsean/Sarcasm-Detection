@@ -1,4 +1,5 @@
 import { forwardRef, useRef } from 'react'
+import { clamp01 } from '../utils'
 
 type Props = {
   label?: string
@@ -11,7 +12,6 @@ type Props = {
 const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label = 'Waveform', showPlayhead, playheadPercent = 0, isSeekEnabled, onSeekPercent }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
   const seekAtClientX = (clientX: number) => {
     if (!isSeekEnabled || !onSeekPercent) return
     const el = containerRef.current

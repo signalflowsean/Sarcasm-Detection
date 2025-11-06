@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 // portal usage is encapsulated in MobileRecorderOverlay
 import { sendLexicalText, sendProsodicAudio } from './apiService'
-import { formatDuration } from './utils'
+import { formatDuration, clamp01 } from './utils'
 import { useBodyScrollLock, useMediaQuery, useRafInterval } from './hooks'
 import RecorderContent from './components/RecorderContent'
 import MobileRecorderOverlay from './components/MobileRecorderOverlay'
@@ -292,14 +292,25 @@ const AudioRecorder = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaStreamRef.current = stream
-      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
-      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+      // Choose a supported audio mime type in order of preference
+      const preferredTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4', // last-resort for some Safari versions
+      ]
+      const chosenType = preferredTypes.find((t) => {
+        try { return MediaRecorder.isTypeSupported(t) } catch { return false }
+      }) || null
+      const mr = new MediaRecorder(stream, chosenType ? { mimeType: chosenType } : undefined)
       audioChunksRef.current = []
       mr.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data)
       }
       mr.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || 'audio/webm' })
+        const blobType = mr.mimeType || chosenType || ''
+        const blob = new Blob(audioChunksRef.current, { type: blobType })
         const url = URL.createObjectURL(blob)
         setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
@@ -502,10 +513,6 @@ const AudioRecorder = () => {
     el.currentTime = newTime
     setPlaybackMs(newTime * 1000)
   }, [audioDurationMs])
-
-  const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-
-  // Focus trap handled by MobileModal component now
 
   // Inline vs modal rendering
   if (isMobile) {

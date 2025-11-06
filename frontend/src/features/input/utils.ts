@@ -7,6 +7,8 @@ export const formatDuration = (ms: number): string => {
   return `${m}:${s}`
 }
 
+export const clamp01 = (n: number): number => Math.min(1, Math.max(0, n))
+
 
 
 

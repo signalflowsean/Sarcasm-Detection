@@ -1,5 +1,5 @@
-import { createPortal } from 'react-dom'
 import MobileModal from './MobileModal'
+import Portal from './Portal'
 
 type Props = {
   open: boolean
@@ -14,7 +14,7 @@ const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
   
   return (
     <>
-      <BodyPortal>
+      <Portal>
         <button
           type="button"
           className={launcherClass}
@@ -23,20 +23,18 @@ const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
         >
           🎤
         </button>
-      </BodyPortal>
+      </Portal>
       <OverlayModal open={open} onClose={onClose}>{children}</OverlayModal>
     </>
   )
 }
 
-const BodyPortal = ({ children }: { children: React.ReactNode }) => createPortal(children, document.body)
-
 const OverlayModal = ({ open: isOpen, onClose: handleClose, children: modalChildren }: { open: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null
   return (
-    <BodyPortal>
+    <Portal>
       <MobileModal open={isOpen} onClose={handleClose}>{modalChildren}</MobileModal>
-    </BodyPortal>
+    </Portal>
   )
 }
 

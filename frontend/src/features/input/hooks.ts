@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+type LegacyMediaQueryList = MediaQueryList & {
+  addListener?: (listener: (e: MediaQueryListEvent) => void) => void
+  removeListener?: (listener: (e: MediaQueryListEvent) => void) => void
+}
+
 export const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState<boolean>(() => typeof window !== 'undefined' ? window.matchMedia(query).matches : false)
   useEffect(() => {
     const mql = window.matchMedia(query)
     const onChange = (e: MediaQueryListEvent) => setMatches(e.matches)
-    const mqlAny = mql as unknown as {
-      addEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void
-      removeEventListener?: (type: string, listener: (e: MediaQueryListEvent) => void) => void
-      addListener?: (listener: (e: MediaQueryListEvent) => void) => void
-      removeListener?: (listener: (e: MediaQueryListEvent) => void) => void
+    // Prefer standard EventTarget API (widely supported since ~2020); fallback for older Safari
+    if (typeof (mql as MediaQueryList).addEventListener === 'function') {
+      mql.addEventListener('change', onChange)
+    } else {
+      ;(mql as LegacyMediaQueryList).addListener?.(onChange)
     }
-    if (mqlAny.addEventListener) mqlAny.addEventListener('change', onChange)
-    else mqlAny.addListener?.(onChange)
     setMatches(mql.matches)
     return () => {
-      if (mqlAny.removeEventListener) mqlAny.removeEventListener('change', onChange)
-      else mqlAny.removeListener?.(onChange)
+      if (typeof (mql as MediaQueryList).removeEventListener === 'function') {
+        mql.removeEventListener('change', onChange)
+      } else {
+        ;(mql as LegacyMediaQueryList).removeListener?.(onChange)
+      }
     }
   }, [query])
   return matches
