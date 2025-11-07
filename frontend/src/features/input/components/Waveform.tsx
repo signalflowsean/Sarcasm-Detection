@@ -7,9 +7,11 @@ type Props = {
   playheadPercent?: number // 0..1
   isSeekEnabled?: boolean
   onSeekPercent?: (percent: number) => void
+  showEmpty?: boolean
+  emptyMessage?: string
 }
 
-const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label = 'Waveform', showPlayhead, playheadPercent = 0, isSeekEnabled, onSeekPercent }, ref) {
+const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label = 'Waveform', showPlayhead, playheadPercent = 0, isSeekEnabled, onSeekPercent, showEmpty, emptyMessage }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const isScrubbingRef = useRef(false)
@@ -24,23 +26,52 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!isSeekEnabled) return
+    e.stopPropagation() // prevent modal from intercepting
     isScrubbingRef.current = true
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch { /* ignore if not supported */ }
     seekAtClientX(e.clientX)
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!isSeekEnabled) return
-    const current = e.currentTarget as HTMLElement & { hasPointerCapture?: (pointerId: number) => boolean }
-    if (isScrubbingRef.current || current.hasPointerCapture?.(e.pointerId)) {
-      seekAtClientX(e.clientX)
-    }
+    if (!isSeekEnabled || !isScrubbingRef.current) return
+    e.stopPropagation()
+    seekAtClientX(e.clientX)
   }
 
   const onPointerUp = (e: React.PointerEvent) => {
     if (!isSeekEnabled) return
+    e.stopPropagation()
     isScrubbingRef.current = false
-    ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch { /* ignore if not supported */ }
+  }
+
+  // Touch fallback for browsers with inconsistent PointerEvent behavior
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!isSeekEnabled) return
+    e.stopPropagation()
+    isScrubbingRef.current = true
+    const t = e.touches[0]
+    if (t) seekAtClientX(t.clientX)
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isSeekEnabled || !isScrubbingRef.current) return
+    e.stopPropagation()
+    const t = e.touches[0]
+    if (t) seekAtClientX(t.clientX)
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!isSeekEnabled) return
+    e.stopPropagation()
+    isScrubbingRef.current = false
+  }
+  const onTouchCancel = (e: React.TouchEvent) => {
+    if (!isSeekEnabled) return
+    e.stopPropagation()
+    isScrubbingRef.current = false
   }
 
   return (
@@ -51,6 +82,10 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
     >
       <canvas ref={ref} width={600} height={120} aria-label={label} />
       {showPlayhead && (
@@ -59,6 +94,11 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
           style={{ left: `${Math.min(100, Math.max(0, playheadPercent * 100))}%` }}
           aria-hidden="true"
         />
+      )}
+      {showEmpty && (
+        <div className="audio-recorder__waveform__empty" aria-hidden="true">
+          {emptyMessage || 'Press Down on Microphone to Record'}
+        </div>
       )}
     </div>
   )

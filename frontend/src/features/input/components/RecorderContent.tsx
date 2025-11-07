@@ -59,8 +59,8 @@ const RecorderContent = ({
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
-        <MicButton ref={micRef} isRecording={isRecording} onClick={onMicClick} onKeyDown={onMicKeyDown} />
-        <Status isRecording={isRecording} duration={durationLabel} />
+        <MicButton ref={micRef} isRecording={isRecording} disabled={isPlaying} onClick={onMicClick} onKeyDown={onMicKeyDown} />
+        <Status isRecording={isRecording} isPlaying={isPlaying} hasAudio={!!audioSrc} duration={durationLabel} />
       </div>
 
       <Waveform
@@ -69,6 +69,8 @@ const RecorderContent = ({
         playheadPercent={playheadPercent}
         isSeekEnabled={isSeekEnabled}
         onSeekPercent={onSeekPercent}
+        showEmpty={!isRecording && !audioSrc}
+        emptyMessage={"Press Down on Microphone to Record"}
       />
 
       <Transcript supported={speechSupported} transcript={transcript} interim={interimTranscript} />

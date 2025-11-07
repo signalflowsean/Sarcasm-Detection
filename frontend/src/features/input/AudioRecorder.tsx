@@ -289,6 +289,25 @@ const AudioRecorder = () => {
   // Recording lifecycle
   const startRecording = useCallback(async () => {
     if (state.isRecording) return
+    
+    // Clear previous recording if it exists
+    if (state.audioUrl) {
+      URL.revokeObjectURL(state.audioUrl)
+    }
+    setState((s) => ({
+      ...s,
+      audioBlob: null,
+      audioUrl: null,
+      transcript: '',
+      interimTranscript: '',
+      error: null,
+    }))
+    setPlaybackMs(0)
+    setAudioDurationMs(0)
+    lastWaveformRef.current = null
+    peaksRef.current = null
+    clearCanvas()
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaStreamRef.current = stream
@@ -363,7 +382,7 @@ const AudioRecorder = () => {
       const message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
       setState((s) => ({ ...s, error: message }))
     }
-  }, [startSpeechRecognition, state.isRecording])
+  }, [startSpeechRecognition, state.isRecording, state.audioUrl])
 
   const stopRecording = useCallback(() => {
     if (!state.isRecording) return
@@ -381,6 +400,11 @@ const AudioRecorder = () => {
   }, [state.isRecording, stopSpeechRecognition])
 
   const discardRecording = useCallback(() => {
+    const el = audioRef.current
+    if (el) {
+      try { el.pause() } catch { /* noop */ }
+      el.currentTime = 0
+    }
     stopRecording()
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
     setState((s) => ({
@@ -471,6 +495,12 @@ const AudioRecorder = () => {
       setAudioDurationMs(Number.isFinite(el.duration) ? el.duration * 1000 : 0)
     }
     const onSeeked = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
+    
+    // Check if metadata is already loaded (e.g., when switching to modal view)
+    if (el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0) {
+      setAudioDurationMs(el.duration * 1000)
+    }
+    
     el.addEventListener('ended', onEnded)
     el.addEventListener('play', onPlay)
     el.addEventListener('pause', onPause)
@@ -485,7 +515,7 @@ const AudioRecorder = () => {
       el.removeEventListener('loadedmetadata', onLoadedMetadata)
       el.removeEventListener('seeked', onSeeked)
     }
-  }, [])
+  }, [state.audioUrl])
 
   // Smooth clock updates during playback using rAF between timeupdate ticks
   useEffect(() => {
@@ -516,8 +546,18 @@ const AudioRecorder = () => {
 
   // Inline vs modal rendering
   if (isMobile) {
+    const handleModalOpen = () => {
+      discardRecording()
+      setModalOpen(true)
+    }
+    
+    const handleModalClose = () => {
+      discardRecording()
+      setModalOpen(false)
+    }
+    
     return (
-      <MobileRecorderOverlay open={modalOpen} onOpen={() => setModalOpen(true)} onClose={() => setModalOpen(false)}>
+      <MobileRecorderOverlay open={modalOpen} onOpen={handleModalOpen} onClose={handleModalClose}>
         <RecorderContent
           isRecording={state.isRecording}
           durationLabel={state.isRecording ? formatDuration(state.durationMs) : formatDuration(playbackMs)}

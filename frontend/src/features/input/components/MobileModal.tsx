@@ -38,7 +38,7 @@ const MobileModal = ({ open, onClose, children }: Props) => {
         trapFocus(e)
       }}
     >
-      <div className="audio-recorder__backdrop" onClick={onClose} />
+      <div className="audio-recorder__backdrop" onClick={onClose} onPointerDown={(e) => e.stopPropagation()} />
       <div className="audio-recorder__modal__content" ref={modalRef}>
         <div className="audio-recorder__modal__header">
           <h2>Recorder</h2>

@@ -2,11 +2,12 @@ import { forwardRef } from 'react'
 
 type Props = {
   isRecording: boolean
+  disabled?: boolean
   onClick: () => void
   onKeyDown: (e: React.KeyboardEvent) => void
 }
 
-const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRecording, onClick, onKeyDown }, ref) {
+const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRecording, disabled, onClick, onKeyDown }, ref) {
   return (
     <button
       ref={ref}
@@ -14,6 +15,7 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRe
       className={`audio-recorder__mic ${isRecording ? 'is-recording' : ''}`}
       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
       aria-pressed={isRecording}
+      disabled={disabled}
       onClick={onClick}
       onKeyDown={onKeyDown}
     >

@@ -164,6 +164,14 @@
   .audio-recorder__mic:hover { box-shadow: 0 8px 22px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12); }
   .audio-recorder__mic:active { transform: scale(0.98); }
   .audio-recorder__mic:focus-visible { outline: 3px solid #3b82f6; outline-offset: 4px; }
+  .audio-recorder__mic:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    filter: grayscale(20%);
+    box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .audio-recorder__mic:disabled:hover { box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); }
+  .audio-recorder__mic:disabled:active { transform: none; }
 
   .audio-recorder__mic.is-recording::after {
     content: '';
@@ -193,6 +201,10 @@
     box-shadow: 0 0 6px rgba(127,29,29,.4);
     transition: background 160ms ease, box-shadow 160ms ease;
   }
+  .audio-recorder__mic:disabled .audio-recorder__mic__power {
+    background: #374151;
+    box-shadow: none;
+  }
   .audio-recorder__mic.is-recording .audio-recorder__mic__power {
     background: #ef4444; /* on */
     box-shadow: 0 0 10px rgba(239,68,68,.9);
@@ -207,9 +219,23 @@
     padding: 0.5rem;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
     overflow: hidden;
+    touch-action: none; /* enable scrubbing on touch devices inside modal */
+    min-height: 11rem; /* 10rem canvas + 1rem padding (0.5rem top + 0.5rem bottom) */
   }
   .audio-recorder__waveform.is-seekable { cursor: ew-resize; }
-  .audio-recorder__waveform canvas { width: 100%; height: 10rem; display: block; }
+  .audio-recorder__waveform canvas { width: 100%; height: 10rem; display: block; touch-action: none; pointer-events: none; }
+
+  .audio-recorder__waveform__empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(255,255,255,.75);
+    font-size: 0.95rem;
+    text-align: center;
+    pointer-events: none;
+    backdrop-filter: none;
+  }
 
   .audio-recorder__playhead {
     position: absolute;
@@ -267,22 +293,28 @@
     position: fixed;
     inset: 0;
     z-index: 50;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
   .audio-recorder__backdrop {
     position: absolute;
     inset: 0;
     background: rgba(0,0,0,.5);
     backdrop-filter: blur(2px);
+    z-index: 1;
   }
   .audio-recorder__modal__content {
     position: relative;
+    z-index: 2;
     margin: 0 auto;
-    inset: 0;
+    width: 100%;
     height: 100%;
     max-width: 48rem;
     background: var(--clr-secondary);
     padding: 1rem;
     overflow: auto;
+    overscroll-behavior: contain; /* keep touch interactions local (helps scrubbing) */
   }
   .audio-recorder__modal__header {
     display: flex;
