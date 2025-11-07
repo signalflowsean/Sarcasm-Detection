@@ -69,6 +69,25 @@ const AudioRecorder = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lastWaveformRef = useRef<Uint8Array | null>(null)
   const peaksRef = useRef<{ min: Float32Array; max: Float32Array } | null>(null)
+  const sharedAudioContextRef = useRef<Nullable<AudioContext>>(null)
+  const audioUrlRef = useRef<Nullable<string>>(null)
+  
+  // Track audioUrl in ref for cleanup
+  useEffect(() => {
+    audioUrlRef.current = state.audioUrl
+  }, [state.audioUrl])
+  
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current)
+      }
+      if (sharedAudioContextRef.current) {
+        sharedAudioContextRef.current.close()
+      }
+    }
+  }, [])
 
   const drawPathFromArray = (array: Uint8Array) => {
     const canvas = canvasRef.current
@@ -196,11 +215,22 @@ const AudioRecorder = () => {
       const rect = canvas.getBoundingClientRect()
       canvas.width = Math.max(1, Math.floor(rect.width * dpr))
       canvas.height = Math.max(1, Math.floor(rect.height * dpr))
+      
+      // Redraw waveform after resizing
+      if (state.isRecording) {
+        drawWaveform()
+      } else if (peaksRef.current) {
+        drawPeaks(peaksRef.current.min, peaksRef.current.max)
+      } else if (lastWaveformRef.current) {
+        drawPathFromArray(lastWaveformRef.current)
+      } else {
+        clearCanvas()
+      }
     }
     resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
-  }, [])
+  }, [state.isRecording])
 
   const setupWaveform = async (stream: MediaStream) => {
     const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
@@ -239,7 +269,7 @@ const AudioRecorder = () => {
     recognition.interimResults = true
     recognition.continuous = true
     recognition.maxAlternatives = 1
-    recognition.lang = 'en-US'
+    recognition.lang = navigator.language || 'en-US'
     recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
       let interim = ''
       let final = ''
@@ -250,7 +280,10 @@ const AudioRecorder = () => {
       }
       setState((s) => ({ ...s, interimTranscript: interim, transcript: s.transcript + final }))
     }
-    recognition.onerror = () => { /* noop */ }
+    recognition.onerror = (err) => {
+      console.error('Speech recognition error:', err)
+      setState((s) => ({ ...s, error: s.error || 'Speech recognition failed' }))
+    }
     recognition.onend = () => {
       if (isRecordingRef.current) {
         try { recognition.start() } catch { /* noop */ }
@@ -274,10 +307,16 @@ const AudioRecorder = () => {
   }, [])
 
   // Timer
+  const lastUpdateRef = useRef<number>(0)
   const startTimer = () => {
     startTimeRef.current = performance.now()
+    lastUpdateRef.current = performance.now()
     const tick = () => {
-      setState((s) => ({ ...s, durationMs: Math.max(0, performance.now() - startTimeRef.current) }))
+      const now = performance.now()
+      if (now - lastUpdateRef.current >= 100) { // update every 100ms
+        setState((s) => ({ ...s, durationMs: Math.max(0, now - startTimeRef.current) }))
+        lastUpdateRef.current = now
+      }
       timerRafRef.current = requestAnimationFrame(tick)
     }
     timerRafRef.current = requestAnimationFrame(tick)
@@ -334,14 +373,23 @@ const AudioRecorder = () => {
         setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
         // Decode and compute peaks for a persistent waveform in playback
+        const cancelTokenRef = { cancelled: false }
         ;(async () => {
           try {
             const arrayBuf = await blob.arrayBuffer()
-            const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
-            const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
-            const ac = new ACtor()
-            const audioBuffer = await ac.decodeAudioData(arrayBuf.slice(0))
-            try { ac.close() } catch { /* noop */ }
+            if (cancelTokenRef.cancelled) return
+            
+            // Reuse shared AudioContext for decoding
+            if (!sharedAudioContextRef.current) {
+              const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+              const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
+              sharedAudioContextRef.current = new ACtor()
+            }
+            const ac = sharedAudioContextRef.current
+            const audioBuffer = await ac.decodeAudioData(arrayBuf)
+            
+            if (cancelTokenRef.cancelled) return
+            
             const channels = audioBuffer.numberOfChannels
             const length = audioBuffer.length
             const data = new Float32Array(length)
@@ -367,10 +415,19 @@ const AudioRecorder = () => {
               min[i] = blockMin
               max[i] = blockMax
             }
+            
+            if (cancelTokenRef.cancelled) return
+            
             peaksRef.current = { min, max }
             drawPeaks(min, max)
-          } catch { /* ignore decoding errors */ }
+          } catch (err) {
+            console.error("Failed to decode audio for waveform visualization:", err)
+          }
         })()
+        
+        return () => {
+          cancelTokenRef.cancelled = true
+        }
       }
       mediaRecorderRef.current = mr
       await setupWaveform(stream)
@@ -447,6 +504,8 @@ const AudioRecorder = () => {
         sendProsodicAudio(state.audioBlob),
         state.transcript.trim() ? sendLexicalText(state.transcript.trim()) : Promise.resolve({ id: 'no-text' }),
       ])
+      // Auto-discard recording after successful send
+      discardRecording()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
       setState((s) => ({ ...s, error: message }))
@@ -454,7 +513,7 @@ const AudioRecorder = () => {
     } finally {
       setState((s) => ({ ...s, isSending: false }))
     }
-  }, [state.audioBlob, state.transcript])
+  }, [state.audioBlob, state.transcript, discardRecording])
 
   // Preview
   const audioRef = useRef<HTMLAudioElement>(null)

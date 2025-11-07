@@ -16,12 +16,12 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
 
   const isScrubbingRef = useRef(false)
   const seekAtClientX = (clientX: number) => {
-    if (!isSeekEnabled || !onSeekPercent) return
+    if (!isSeekEnabled) return
     const el = containerRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
     const percent = clamp01((clientX - rect.left) / rect.width)
-    onSeekPercent(percent)
+    onSeekPercent?.(percent)
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -87,7 +87,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchCancel}
     >
-      <canvas ref={ref} width={600} height={120} aria-label={label} />
+      <canvas ref={ref} aria-label={label} />
       {showPlayhead && (
         <div
           className="audio-recorder__playhead"
@@ -97,7 +97,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
       )}
       {showEmpty && (
         <div className="audio-recorder__waveform__empty" aria-hidden="true">
-          {emptyMessage || 'Press Down on Microphone to Record'}
+          {emptyMessage || 'Click microphone to start recording'}
         </div>
       )}
     </div>

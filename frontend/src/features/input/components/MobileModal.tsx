@@ -8,13 +8,23 @@ type Props = PropsWithChildren<{
 
 const MobileModal = ({ open, onClose, children }: Props) => {
   const modalRef = useRef<HTMLDivElement>(null)
+  const focusablesRef = useRef<HTMLElement[]>([])
+  
   const trapFocus = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab') return
     const root = modalRef.current
     if (!root) return
-    const focusables = root.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
+    
+    // Cache focusables for better performance
+    if (focusablesRef.current.length === 0) {
+      focusablesRef.current = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"]):not(:disabled)'
+        )
+      ).filter(el => !el.hasAttribute('aria-hidden'))
+    }
+    
+    const focusables = focusablesRef.current
     if (focusables.length === 0) return
     const first = focusables[0]
     const last = focusables[focusables.length - 1]
@@ -38,12 +48,12 @@ const MobileModal = ({ open, onClose, children }: Props) => {
         trapFocus(e)
       }}
     >
-      <div className="audio-recorder__backdrop" onClick={onClose} onPointerDown={(e) => e.stopPropagation()} />
+      <div className="audio-recorder__backdrop" onPointerDown={(e) => e.stopPropagation()} />
       <div className="audio-recorder__modal__content" ref={modalRef}>
         <div className="audio-recorder__modal__header">
           <h2>Recorder</h2>
           <button type="button" className="audio-btn" onClick={onClose} aria-label="Close recorder">
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
         {children}
