@@ -184,11 +184,20 @@
 
   @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(239,68,68,.45), 0 0 0 6px rgba(239,68,68,.22); }
-    70% { box-shadow: 0 0 0 6px rgba(239,68,68,.0), 0 0 0 12px rgba(239,68,68,.0); }
-    100% { box-shadow: 0 0 0 0 rgba(239,68,68,.0), 0 0 0 0 rgba(239,68,68,.0); }
+    70% { box-shadow: 0 0 0 6px rgba(239,68,68,0), 0 0 0 12px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0), 0 0 0 0 rgba(239,68,68,0); }
   }
 
-  .audio-recorder__mic__glyph { font-size: calc(var(--size) * 0.45); }
+  @media (prefers-reduced-motion: reduce) {
+    .audio-recorder__mic.is-recording::after {
+      animation: none;
+    }
+  }
+
+  .audio-recorder__mic__glyph { 
+    width: calc(var(--size) * 0.45); 
+    height: calc(var(--size) * 0.45);
+  }
 
   .audio-recorder__mic__power {
     position: absolute;
@@ -284,6 +293,8 @@
     color: var(--clr-primary);
     box-shadow: 0 10px 24px rgba(0,0,0,.45);
     cursor: pointer;
+    display: grid;
+    place-items: center;
   }
   .audio-recorder__launcher:hover { filter: brightness(1.1); }
   .audio-recorder__launcher:focus-visible { outline: 3px solid #3b82f6; outline-offset: 3px; }
@@ -303,6 +314,14 @@
     background: rgba(0,0,0,.5);
     backdrop-filter: blur(2px);
     z-index: 1;
+  }
+  
+  /* Remove GPU-intensive backdrop-filter for reduced motion preference or low-end devices */
+  @media (prefers-reduced-motion: reduce) {
+    .audio-recorder__backdrop {
+      backdrop-filter: none;
+      background: rgba(0,0,0,.65); /* Slightly darker to compensate for missing blur */
+    }
   }
   .audio-recorder__modal__content {
     position: relative;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type LegacyMediaQueryList = MediaQueryList & {
   addListener?: (listener: (e: MediaQueryListEvent) => void) => void
@@ -29,30 +29,50 @@ export const useMediaQuery = (query: string) => {
 }
 
 export const useBodyScrollLock = (locked: boolean) => {
+  const originalOverflowRef = useRef<string | null>(null)
+  
   useEffect(() => {
-    const original = document.body.style.overflow
+    // Capture the original overflow value only once
+    if (originalOverflowRef.current === null) {
+      originalOverflowRef.current = document.body.style.overflow
+    }
+    
     if (locked) {
       document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = originalOverflowRef.current
     }
+    
     return () => {
-      document.body.style.overflow = original
+      // Restore original value on unmount
+      if (originalOverflowRef.current !== null) {
+        document.body.style.overflow = originalOverflowRef.current
+      }
     }
   }, [locked])
 }
 
 export const useRafInterval = (fn: () => void, active: boolean) => {
   const rafId = useRef<number | null>(null)
-  const loop = useCallback(() => {
-    fn()
-    rafId.current = requestAnimationFrame(loop)
+  const fnRef = useRef(fn)
+  
+  useEffect(() => {
+    fnRef.current = fn
   }, [fn])
+  
   useEffect(() => {
     if (!active) return
+    
+    const loop = () => {
+      fnRef.current()
+      rafId.current = requestAnimationFrame(loop)
+    }
+    
     rafId.current = requestAnimationFrame(loop)
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current)
     }
-  }, [active, loop])
+  }, [active])
 }
 
 

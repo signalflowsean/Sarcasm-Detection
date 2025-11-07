@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 // portal usage is encapsulated in MobileRecorderOverlay
 import { sendLexicalText, sendProsodicAudio } from './apiService'
 import { formatDuration, clamp01 } from './utils'
@@ -59,7 +59,7 @@ const AudioRecorder = () => {
   const mediaStreamRef = useRef<Nullable<MediaStream>>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
   const startTimeRef = useRef<number>(0)
-  const timerRafRef = useRef<number | null>(null)
+  const timerIntervalRef = useRef<number | null>(null)
   const isRecordingRef = useRef<boolean>(false)
 
   // Waveform
@@ -69,6 +69,8 @@ const AudioRecorder = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lastWaveformRef = useRef<Uint8Array | null>(null)
   const peaksRef = useRef<{ min: Float32Array; max: Float32Array } | null>(null)
+  const peaksComputationIdRef = useRef<number>(0)
+  const decodingAudioContextRef = useRef<Nullable<AudioContext>>(null)
 
   const drawPathFromArray = (array: Uint8Array) => {
     const canvas = canvasRef.current
@@ -196,10 +198,36 @@ const AudioRecorder = () => {
       const rect = canvas.getBoundingClientRect()
       canvas.width = Math.max(1, Math.floor(rect.width * dpr))
       canvas.height = Math.max(1, Math.floor(rect.height * dpr))
+      // Redraw waveform after resize (canvas content is cleared when dimensions change)
+      // Skip if recording - the RAF loop will handle it
+      if (!state.isRecording) {
+        if (peaksRef.current) drawPeaks(peaksRef.current.min, peaksRef.current.max)
+        else if (lastWaveformRef.current) drawPathFromArray(lastWaveformRef.current)
+        else clearCanvas()
+      }
     }
     resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
+  }, [state.isRecording])
+
+  // Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    const currentUrl = state.audioUrl
+    return () => {
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl)
+      }
+    }
+  }, [state.audioUrl])
+
+  // Cleanup decoding AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      if (decodingAudioContextRef.current && decodingAudioContextRef.current.state !== 'closed') {
+        decodingAudioContextRef.current.close()
+      }
+    }
   }, [])
 
   const setupWaveform = async (stream: MediaStream) => {
@@ -227,11 +255,21 @@ const AudioRecorder = () => {
     dataArrayRef.current = null
   }
 
+  // Shared AudioContext for decoding to avoid hitting browser limits
+  const getDecodingAudioContext = () => {
+    if (!decodingAudioContextRef.current || decodingAudioContextRef.current.state === 'closed') {
+      const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+      const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
+      decodingAudioContextRef.current = new ACtor()
+    }
+    return decodingAudioContextRef.current
+  }
+
   // Speech recognition
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
-  const speechSupported = useMemo(() => !!getSpeechRecognitionCtor(), [])
+  const speechSupported = !!getSpeechRecognitionCtor()
 
-  const startSpeechRecognition = useCallback(() => {
+  const startSpeechRecognition = () => {
     if (!speechSupported) return
     const Ctor = getSpeechRecognitionCtor()
     if (!Ctor) return
@@ -239,7 +277,8 @@ const AudioRecorder = () => {
     recognition.interimResults = true
     recognition.continuous = true
     recognition.maxAlternatives = 1
-    recognition.lang = 'en-US'
+    // Use browser's language setting with fallback to en-US
+    recognition.lang = navigator.language || 'en-US'
     recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
       let interim = ''
       let final = ''
@@ -250,7 +289,23 @@ const AudioRecorder = () => {
       }
       setState((s) => ({ ...s, interimTranscript: interim, transcript: s.transcript + final }))
     }
-    recognition.onerror = () => { /* noop */ }
+    recognition.onerror = (event: unknown) => {
+      const errorEvent = event as { error?: string; message?: string }
+      const errorType = errorEvent.error || 'unknown'
+      
+      // Only show user-facing errors for critical issues
+      if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+        setState((s) => ({ ...s, error: 'Microphone permission denied for speech recognition' }))
+      } else if (errorType === 'network') {
+        setState((s) => ({ ...s, error: 'Network error: Speech recognition unavailable' }))
+      } else if (errorType === 'no-speech') {
+        // This is common and not critical, just log it
+        console.warn('Speech recognition: No speech detected')
+      } else if (errorType !== 'aborted') {
+        // Log other errors but don't show to user (might be transient)
+        console.warn('Speech recognition error:', errorType)
+      }
+    }
     recognition.onend = () => {
       if (isRecordingRef.current) {
         try { recognition.start() } catch { /* noop */ }
@@ -262,38 +317,45 @@ const AudioRecorder = () => {
     try {
       recognition.start()
     } catch { /* noop */ }
-  }, [speechSupported])
+  }
 
-  const stopSpeechRecognition = useCallback(() => {
+  const stopSpeechRecognition = () => {
     const rec = recognitionRef.current
     if (!rec) return
     try {
       rec.stop()
     } catch { /* noop */ }
     recognitionRef.current = null
-  }, [])
+  }
 
-  // Timer
+  // Timer - updates every 100ms to avoid excessive re-renders
   const startTimer = () => {
     startTimeRef.current = performance.now()
     const tick = () => {
       setState((s) => ({ ...s, durationMs: Math.max(0, performance.now() - startTimeRef.current) }))
-      timerRafRef.current = requestAnimationFrame(tick)
     }
-    timerRafRef.current = requestAnimationFrame(tick)
+    // Update immediately, then every 100ms
+    tick()
+    timerIntervalRef.current = window.setInterval(tick, 100)
   }
   const stopTimer = () => {
-    if (timerRafRef.current != null) cancelAnimationFrame(timerRafRef.current)
+    if (timerIntervalRef.current != null) {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
   }
 
   // Recording lifecycle
-  const startRecording = useCallback(async () => {
+  const startRecording = async () => {
     if (state.isRecording) return
     
     // Clear previous recording if it exists
     if (state.audioUrl) {
       URL.revokeObjectURL(state.audioUrl)
     }
+    // Invalidate any in-flight peaks computation
+    peaksComputationIdRef.current += 1
+    
     setState((s) => ({
       ...s,
       audioBlob: null,
@@ -333,15 +395,26 @@ const AudioRecorder = () => {
         const url = URL.createObjectURL(blob)
         setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
+        
+        // Increment computation ID to invalidate any in-flight peaks computation
+        peaksComputationIdRef.current += 1
+        const currentComputationId = peaksComputationIdRef.current
+        
         // Decode and compute peaks for a persistent waveform in playback
         ;(async () => {
           try {
             const arrayBuf = await blob.arrayBuffer()
-            const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
-            const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
-            const ac = new ACtor()
-            const audioBuffer = await ac.decodeAudioData(arrayBuf.slice(0))
-            try { ac.close() } catch { /* noop */ }
+            
+            // Check if this computation is still valid
+            if (currentComputationId !== peaksComputationIdRef.current) return
+            
+            // Reuse shared AudioContext to avoid hitting browser limits
+            const ac = getDecodingAudioContext()
+            const audioBuffer = await ac.decodeAudioData(arrayBuf)
+            
+            // Check again after async operations
+            if (currentComputationId !== peaksComputationIdRef.current) return
+            
             const channels = audioBuffer.numberOfChannels
             const length = audioBuffer.length
             const data = new Float32Array(length)
@@ -367,9 +440,17 @@ const AudioRecorder = () => {
               min[i] = blockMin
               max[i] = blockMax
             }
+            
+            // Final check before updating refs and drawing
+            if (currentComputationId !== peaksComputationIdRef.current) return
+            
             peaksRef.current = { min, max }
             drawPeaks(min, max)
-          } catch { /* ignore decoding errors */ }
+          } catch (err) {
+            // Log but don't show user-facing error - peaks are optional for enhanced waveform
+            // The recording/playback still works without them
+            console.error('Failed to compute waveform peaks:', err)
+          }
         })()
       }
       mediaRecorderRef.current = mr
@@ -382,9 +463,9 @@ const AudioRecorder = () => {
       const message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
       setState((s) => ({ ...s, error: message }))
     }
-  }, [startSpeechRecognition, state.isRecording, state.audioUrl])
+  }
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = () => {
     if (!state.isRecording) return
     const mr = mediaRecorderRef.current
     if (mr && mr.state !== 'inactive') mr.stop()
@@ -397,15 +478,19 @@ const AudioRecorder = () => {
     stopTimer()
     stopSpeechRecognition()
     setState((s) => ({ ...s, isRecording: false }))
-  }, [state.isRecording, stopSpeechRecognition])
+  }
 
-  const discardRecording = useCallback(() => {
+  const discardRecording = () => {
     const el = audioRef.current
     if (el) {
       try { el.pause() } catch { /* noop */ }
       el.currentTime = 0
     }
     stopRecording()
+    
+    // Invalidate any in-flight peaks computation
+    peaksComputationIdRef.current += 1
+    
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
     setState((s) => ({
       ...s,
@@ -420,15 +505,15 @@ const AudioRecorder = () => {
     lastWaveformRef.current = null
     peaksRef.current = null
     clearCanvas()
-  }, [state.audioUrl, stopRecording])
+  }
 
   // Toggle recording handlers
   const micBtnRef = useRef<HTMLButtonElement>(null)
-  const onMicClick = useCallback(() => {
+  const onMicClick = () => {
     if (state.isRecording) stopRecording()
     else startRecording()
-  }, [startRecording, state.isRecording, stopRecording])
-  const onMicKeyDown = useCallback((e: React.KeyboardEvent) => {
+  }
+  const onMicKeyDown = (e: React.KeyboardEvent) => {
     if (e.code === 'Space' || e.code === 'Enter') {
       onMicClick()
       e.preventDefault()
@@ -436,10 +521,10 @@ const AudioRecorder = () => {
       discardRecording()
       e.preventDefault()
     }
-  }, [discardRecording, onMicClick])
+  }
 
   // Send
-  const onSend = useCallback(async () => {
+  const onSend = async () => {
     if (!state.audioBlob) return
     setState((s) => ({ ...s, isSending: true, error: null }))
     try {
@@ -447,21 +532,22 @@ const AudioRecorder = () => {
         sendProsodicAudio(state.audioBlob),
         state.transcript.trim() ? sendLexicalText(state.transcript.trim()) : Promise.resolve({ id: 'no-text' }),
       ])
+      // Successfully sent - discard the recording to allow a new one
+      discardRecording()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
       setState((s) => ({ ...s, error: message }))
-      return
     } finally {
       setState((s) => ({ ...s, isSending: false }))
     }
-  }, [state.audioBlob, state.transcript])
+  }
 
   // Preview
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
   const [audioDurationMs, setAudioDurationMs] = useState(0)
-  const togglePlay = useCallback(() => {
+  const togglePlay = () => {
     const el = audioRef.current
     if (!el) return
     if (el.paused) {
@@ -482,7 +568,7 @@ const AudioRecorder = () => {
     } else {
       el.pause()
     }
-  }, [])
+  }
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -535,14 +621,14 @@ const AudioRecorder = () => {
     }
   }, [isPlaying])
 
-  const onSeekPercent = useCallback((percent: number) => {
+  const onSeekPercent = (percent: number) => {
     const el = audioRef.current
     if (!el) return
     if (!(audioDurationMs > 0)) return
     const newTime = clamp01(percent) * (audioDurationMs / 1000)
     el.currentTime = newTime
     setPlaybackMs(newTime * 1000)
-  }, [audioDurationMs])
+  }
 
   // Inline vs modal rendering
   if (isMobile) {

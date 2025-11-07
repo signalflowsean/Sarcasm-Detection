@@ -12,7 +12,7 @@ type Props = {
 const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onSend, canSend, sending }: Props) => {
   let sendLabel = 'Send to Detector'
   if (!canSend) {
-    sendLabel = 'Press Down on Microphone to Record'
+    sendLabel = 'Record audio first'
   } else if (sending) {
     sendLabel = 'Sending…'
   }
@@ -36,7 +36,21 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
         disabled={!canDiscard}
         aria-label="Discard recording"
       >
-        🗑
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          width="20"
+          height="20"
+        >
+          <path d="M3 6h18" />
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        </svg>
       </button>
       <button
         type="button"
