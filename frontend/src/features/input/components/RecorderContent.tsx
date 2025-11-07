@@ -70,7 +70,7 @@ const RecorderContent = ({
         isSeekEnabled={isSeekEnabled}
         onSeekPercent={onSeekPercent}
         showEmpty={!isRecording && !audioSrc}
-        emptyMessage={"Press Down on Microphone to Record"}
+        emptyMessage="Click microphone to start recording"
       />
 
       <Transcript supported={speechSupported} transcript={transcript} interim={interimTranscript} />
