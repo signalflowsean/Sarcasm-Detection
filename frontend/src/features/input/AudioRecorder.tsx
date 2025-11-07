@@ -69,6 +69,8 @@ const AudioRecorder = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lastWaveformRef = useRef<Uint8Array | null>(null)
   const peaksRef = useRef<{ min: Float32Array; max: Float32Array } | null>(null)
+  const peakComputationCancelledRef = useRef<boolean>(false)
+  const sharedAudioContextRef = useRef<Nullable<AudioContext>>(null)
 
   const drawPathFromArray = (array: Uint8Array) => {
     const canvas = canvasRef.current
@@ -196,11 +198,37 @@ const AudioRecorder = () => {
       const rect = canvas.getBoundingClientRect()
       canvas.width = Math.max(1, Math.floor(rect.width * dpr))
       canvas.height = Math.max(1, Math.floor(rect.height * dpr))
+      // Redraw waveform after resizing
+      if (state.isRecording) {
+        drawWaveform()
+      } else if (peaksRef.current) {
+        drawPeaks(peaksRef.current.min, peaksRef.current.max)
+      } else if (lastWaveformRef.current) {
+        drawPathFromArray(lastWaveformRef.current)
+      } else {
+        clearCanvas()
+      }
     }
     resize()
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
-  }, [])
+  }, [state.isRecording])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel any ongoing peak computation
+      peakComputationCancelledRef.current = true
+      // Revoke object URL to prevent memory leak
+      if (state.audioUrl) {
+        URL.revokeObjectURL(state.audioUrl)
+      }
+      // Close shared AudioContext
+      if (sharedAudioContextRef.current) {
+        try { sharedAudioContextRef.current.close() } catch { /* noop */ }
+      }
+    }
+  }, [state.audioUrl])
 
   const setupWaveform = async (stream: MediaStream) => {
     const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
@@ -239,7 +267,7 @@ const AudioRecorder = () => {
     recognition.interimResults = true
     recognition.continuous = true
     recognition.maxAlternatives = 1
-    recognition.lang = 'en-US'
+    recognition.lang = navigator.language || 'en-US'
     recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
       let interim = ''
       let final = ''
@@ -250,7 +278,11 @@ const AudioRecorder = () => {
       }
       setState((s) => ({ ...s, interimTranscript: interim, transcript: s.transcript + final }))
     }
-    recognition.onerror = () => { /* noop */ }
+    recognition.onerror = (event: unknown) => {
+      // Log speech recognition errors for debugging
+      console.warn('Speech recognition error:', event)
+      // Don't set state.error as speech recognition is optional and failures shouldn't block recording
+    }
     recognition.onend = () => {
       if (isRecordingRef.current) {
         try { recognition.start() } catch { /* noop */ }
@@ -274,10 +306,16 @@ const AudioRecorder = () => {
   }, [])
 
   // Timer
+  const lastUpdateRef = useRef<number>(0)
   const startTimer = () => {
     startTimeRef.current = performance.now()
+    lastUpdateRef.current = performance.now()
     const tick = () => {
-      setState((s) => ({ ...s, durationMs: Math.max(0, performance.now() - startTimeRef.current) }))
+      const now = performance.now()
+      if (now - lastUpdateRef.current >= 100) { // update every 100ms
+        setState((s) => ({ ...s, durationMs: Math.max(0, now - startTimeRef.current) }))
+        lastUpdateRef.current = now
+      }
       timerRafRef.current = requestAnimationFrame(tick)
     }
     timerRafRef.current = requestAnimationFrame(tick)
@@ -334,14 +372,22 @@ const AudioRecorder = () => {
         setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
         // Decode and compute peaks for a persistent waveform in playback
+        peakComputationCancelledRef.current = false
         ;(async () => {
           try {
             const arrayBuf = await blob.arrayBuffer()
+            if (peakComputationCancelledRef.current) return
+            
+            // Reuse shared AudioContext to avoid hitting browser limits
             const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
             const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
-            const ac = new ACtor()
-            const audioBuffer = await ac.decodeAudioData(arrayBuf.slice(0))
-            try { ac.close() } catch { /* noop */ }
+            if (!sharedAudioContextRef.current) {
+              sharedAudioContextRef.current = new ACtor()
+            }
+            const ac = sharedAudioContextRef.current
+            const audioBuffer = await ac.decodeAudioData(arrayBuf)
+            if (peakComputationCancelledRef.current) return
+            
             const channels = audioBuffer.numberOfChannels
             const length = audioBuffer.length
             const data = new Float32Array(length)
@@ -350,6 +396,8 @@ const AudioRecorder = () => {
               const chData = audioBuffer.getChannelData(ch)
               for (let i = 0; i < length; i++) data[i] += chData[i] / channels
             }
+            if (peakComputationCancelledRef.current) return
+            
             const bins = Math.max(512, Math.min(2048, Math.floor((canvasRef.current?.width || 1024) / 2)))
             const blockSize = Math.max(1, Math.floor(length / bins))
             const min = new Float32Array(bins)
@@ -367,9 +415,13 @@ const AudioRecorder = () => {
               min[i] = blockMin
               max[i] = blockMax
             }
+            if (peakComputationCancelledRef.current) return
+            
             peaksRef.current = { min, max }
             drawPeaks(min, max)
-          } catch { /* ignore decoding errors */ }
+          } catch (err) {
+            console.error('Failed to decode audio for waveform visualization:', err)
+          }
         })()
       }
       mediaRecorderRef.current = mr
@@ -406,6 +458,8 @@ const AudioRecorder = () => {
       el.currentTime = 0
     }
     stopRecording()
+    // Cancel any ongoing peak computation
+    peakComputationCancelledRef.current = true
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
     setState((s) => ({
       ...s,
@@ -447,6 +501,8 @@ const AudioRecorder = () => {
         sendProsodicAudio(state.audioBlob),
         state.transcript.trim() ? sendLexicalText(state.transcript.trim()) : Promise.resolve({ id: 'no-text' }),
       ])
+      // Successfully sent, discard the recording to allow a new one
+      discardRecording()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
       setState((s) => ({ ...s, error: message }))
@@ -454,7 +510,7 @@ const AudioRecorder = () => {
     } finally {
       setState((s) => ({ ...s, isSending: false }))
     }
-  }, [state.audioBlob, state.transcript])
+  }, [state.audioBlob, state.transcript, discardRecording])
 
   // Preview
   const audioRef = useRef<HTMLAudioElement>(null)

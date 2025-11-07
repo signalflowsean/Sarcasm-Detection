@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 type Props = PropsWithChildren<{
   open: boolean
@@ -8,13 +8,23 @@ type Props = PropsWithChildren<{
 
 const MobileModal = ({ open, onClose, children }: Props) => {
   const modalRef = useRef<HTMLDivElement>(null)
+  const focusablesRef = useRef<HTMLElement[]>([])
+  
+  // Cache focusable elements when modal opens
+  useEffect(() => {
+    if (open && modalRef.current) {
+      const focusables = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"]):not(:disabled)'
+        )
+      )
+      focusablesRef.current = focusables
+    }
+  }, [open, children])
+  
   const trapFocus = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab') return
-    const root = modalRef.current
-    if (!root) return
-    const focusables = root.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
+    const focusables = focusablesRef.current
     if (focusables.length === 0) return
     const first = focusables[0]
     const last = focusables[focusables.length - 1]
@@ -38,7 +48,7 @@ const MobileModal = ({ open, onClose, children }: Props) => {
         trapFocus(e)
       }}
     >
-      <div className="audio-recorder__backdrop" onClick={onClose} onPointerDown={(e) => e.stopPropagation()} />
+      <div className="audio-recorder__backdrop" />
       <div className="audio-recorder__modal__content" ref={modalRef}>
         <div className="audio-recorder__modal__header">
           <h2>Recorder</h2>

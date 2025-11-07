@@ -12,7 +12,7 @@ type Props = {
 const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onSend, canSend, sending }: Props) => {
   let sendLabel = 'Send to Detector'
   if (!canSend) {
-    sendLabel = 'Press Down on Microphone to Record'
+    sendLabel = 'Record audio first'
   } else if (sending) {
     sendLabel = 'Sending…'
   }

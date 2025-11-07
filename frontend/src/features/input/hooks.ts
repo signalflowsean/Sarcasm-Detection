@@ -29,23 +29,34 @@ export const useMediaQuery = (query: string) => {
 }
 
 export const useBodyScrollLock = (locked: boolean) => {
+  const originalOverflow = useRef<string | null>(null)
   useEffect(() => {
-    const original = document.body.style.overflow
     if (locked) {
+      if (originalOverflow.current === null) {
+        originalOverflow.current = document.body.style.overflow
+      }
       document.body.style.overflow = 'hidden'
+    } else if (originalOverflow.current !== null) {
+      document.body.style.overflow = originalOverflow.current
+      originalOverflow.current = null
     }
     return () => {
-      document.body.style.overflow = original
+      if (originalOverflow.current !== null) {
+        document.body.style.overflow = originalOverflow.current
+        originalOverflow.current = null
+      }
     }
   }, [locked])
 }
 
 export const useRafInterval = (fn: () => void, active: boolean) => {
   const rafId = useRef<number | null>(null)
+  const fnRef = useRef(fn)
+  fnRef.current = fn
   const loop = useCallback(() => {
-    fn()
+    fnRef.current()
     rafId.current = requestAnimationFrame(loop)
-  }, [fn])
+  }, [])
   useEffect(() => {
     if (!active) return
     rafId.current = requestAnimationFrame(loop)
