@@ -131,6 +131,216 @@
 }
 
 @layer components {
+  /* Audio Recorder */
+  .audio-recorder {
+    padding-inline-start: 1rem;
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .audio-recorder__mic-wrapper {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: center;
+  }
+
+  .audio-recorder__mic {
+    --size: clamp(3rem, 10vw, 5rem);
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 35% 35%, #2e2e2e, #1a1a1a);
+    box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08);
+    color: var(--clr-primary);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 120ms ease, box-shadow 160ms ease;
+  }
+
+  .audio-recorder__mic:hover { box-shadow: 0 8px 22px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12); }
+  .audio-recorder__mic:active { transform: scale(0.98); }
+  .audio-recorder__mic:focus-visible { outline: 3px solid #3b82f6; outline-offset: 4px; }
+  .audio-recorder__mic:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    filter: grayscale(20%);
+    box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .audio-recorder__mic:disabled:hover { box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06); }
+  .audio-recorder__mic:disabled:active { transform: none; }
+
+  .audio-recorder__mic.is-recording::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(239,68,68,.35), 0 0 0 8px rgba(239,68,68,.18);
+    animation: pulse 1.2s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239,68,68,.45), 0 0 0 6px rgba(239,68,68,.22); }
+    70% { box-shadow: 0 0 0 6px rgba(239,68,68,0), 0 0 0 12px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0), 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .audio-recorder__mic.is-recording::after {
+      animation: none;
+    }
+  }
+
+  .audio-recorder__mic__glyph { 
+    width: calc(var(--size) * 0.45); 
+    height: calc(var(--size) * 0.45);
+  }
+
+  .audio-recorder__mic__power {
+    position: absolute;
+    top: 10%;
+    right: 18%;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #7f1d1d; /* off */
+    box-shadow: 0 0 6px rgba(127,29,29,.4);
+    transition: background 160ms ease, box-shadow 160ms ease;
+  }
+  .audio-recorder__mic:disabled .audio-recorder__mic__power {
+    background: #374151;
+    box-shadow: none;
+  }
+  .audio-recorder__mic.is-recording .audio-recorder__mic__power {
+    background: #ef4444; /* on */
+    box-shadow: 0 0 10px rgba(239,68,68,.9);
+  }
+
+  .audio-recorder__status { font-variant-numeric: tabular-nums; }
+
+  .audio-recorder__waveform {
+    position: relative;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
+    padding: 0.5rem;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    overflow: hidden;
+    touch-action: none; /* enable scrubbing on touch devices inside modal */
+    min-height: 11rem; /* 10rem canvas + 1rem padding (0.5rem top + 0.5rem bottom) */
+  }
+  .audio-recorder__waveform.is-seekable { cursor: ew-resize; }
+  .audio-recorder__waveform canvas { width: 100%; height: 10rem; display: block; touch-action: none; pointer-events: none; }
+
+  .audio-recorder__waveform__empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(255,255,255,.75);
+    font-size: 0.95rem;
+    text-align: center;
+    pointer-events: none;
+    backdrop-filter: none;
+  }
+
+  .audio-recorder__playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #3b82f6;
+    box-shadow: 0 0 6px rgba(59,130,246,.6);
+    transform: translateX(-1px);
+    pointer-events: none;
+  }
+
+  .audio-recorder__transcript p { opacity: 0.9; }
+
+  .audio-recorder__controls { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+  .audio-btn {
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(255,255,255,.15);
+    background: #2a2a2a;
+    color: var(--clr-primary);
+    cursor: pointer;
+    transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  }
+  .audio-btn:hover { background: #333; }
+  .audio-btn:active { transform: translateY(1px); }
+  .audio-btn:focus-visible { outline: 3px solid #3b82f6; outline-offset: 3px; }
+  .audio-btn:disabled { cursor: not-allowed; opacity: 0.6; }
+  .audio-btn--primary { background: #1f2937; border-color: rgba(59,130,246,.45); }
+  .audio-btn--primary:hover { background: #263247; }
+  .audio-btn--danger { background: #3a1f1f; border-color: rgba(239,68,68,.45); }
+  .audio-btn--danger:hover { background: #4a2626; }
+
+  .audio-recorder__error { color: #fca5a5; }
+
+  /* Mobile modal */
+  .audio-recorder__launcher {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 999px;
+    border: none;
+    background: #1f2937;
+    color: var(--clr-primary);
+    box-shadow: 0 10px 24px rgba(0,0,0,.45);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .audio-recorder__launcher:hover { filter: brightness(1.1); }
+  .audio-recorder__launcher:focus-visible { outline: 3px solid #3b82f6; outline-offset: 3px; }
+  .audio-recorder__launcher.is-hidden { display: none; }
+
+  .audio-recorder__modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .audio-recorder__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(2px);
+    z-index: 1;
+  }
+  
+  /* Remove GPU-intensive backdrop-filter for reduced motion preference or low-end devices */
+  @media (prefers-reduced-motion: reduce) {
+    .audio-recorder__backdrop {
+      backdrop-filter: none;
+      background: rgba(0,0,0,.65); /* Slightly darker to compensate for missing blur */
+    }
+  }
+  .audio-recorder__modal__content {
+    position: relative;
+    z-index: 2;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    max-width: 48rem;
+    background: var(--clr-secondary);
+    padding: 1rem;
+    overflow: auto;
+    overscroll-behavior: contain; /* keep touch interactions local (helps scrubbing) */
+  }
+  .audio-recorder__modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
   .meter {
     aspect-ratio: var(--meter-aspect-ratio);
     width: min(100% - var(--meter-padding), (100svh - var(--meter-padding)) * var(--meter-aspect-ratio));
