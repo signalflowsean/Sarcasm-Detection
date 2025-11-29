@@ -25,12 +25,21 @@ export function RouteSync() {
       lastPathRef.current = location.pathname
       
       const targetValue = PATH_TO_VALUE[location.pathname]
-      if (targetValue && targetValue !== value) {
+      
+      // Handle unhandled routes by redirecting to default path
+      if (targetValue === undefined) {
+        const defaultPath = VALUE_TO_PATH[value] || '/getting-started'
+        lastPathRef.current = defaultPath
+        navigate(defaultPath, { replace: true })
+        return
+      }
+      
+      if (targetValue !== value) {
         lastValueRef.current = targetValue
         setValue(targetValue)
       }
     }
-  }, [location.pathname, setValue, value])
+  }, [location.pathname, setValue, value, navigate])
 
   // Sync rotary switch -> route (when user turns the knob)
   useEffect(() => {

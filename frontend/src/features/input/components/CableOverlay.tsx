@@ -94,6 +94,7 @@ const CableOverlay = () => {
   useEffect(() => {
     let animationFrameId: number | undefined
     let extraAnimationFrameId: number | undefined
+    let isMounted = true
 
     // Initial calculation using requestAnimationFrame to ensure layout is settled
     const tryRecompute = () => {
@@ -117,6 +118,11 @@ const CableOverlay = () => {
 
     // Throttled resize handler to improve performance
     const onResize = () => {
+      // Prevent new timeouts after unmount begins
+      if (!isMounted) {
+        return
+      }
+
       if (resizeTimeoutRef.current !== null) {
         clearTimeout(resizeTimeoutRef.current)
       }
@@ -156,6 +162,9 @@ const CableOverlay = () => {
     }
 
     return () => {
+      // Set flag immediately to prevent new timeouts during cleanup
+      isMounted = false
+      
       if (typeof animationFrameId === 'number') {
         cancelAnimationFrame(animationFrameId)
       }

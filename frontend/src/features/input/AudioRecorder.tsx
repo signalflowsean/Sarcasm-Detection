@@ -345,6 +345,7 @@ const AudioRecorder = () => {
   }
 
   // Recording lifecycle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const startRecording = async () => {
     if (state.isRecording) return
     
@@ -465,6 +466,7 @@ const AudioRecorder = () => {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stopRecording = () => {
     if (!state.isRecording) return
     const mr = mediaRecorderRef.current
@@ -480,6 +482,7 @@ const AudioRecorder = () => {
     setState((s) => ({ ...s, isRecording: false }))
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const discardRecording = () => {
     const el = audioRef.current
     if (el) {
@@ -514,10 +517,12 @@ const AudioRecorder = () => {
     else startRecording()
   }
   const onMicKeyDown = (e: React.KeyboardEvent) => {
-    if (e.code === 'Space' || e.code === 'Enter') {
+    // Only handle Enter (Space is reserved for playback toggle)
+    if (e.code === 'Enter') {
       onMicClick()
       e.preventDefault()
-    } else if (e.code === 'Escape') {
+    } else if (e.code === 'Escape' && !state.isRecording) {
+      // Only discard when not recording
       discardRecording()
       e.preventDefault()
     }
@@ -636,6 +641,9 @@ const AudioRecorder = () => {
       // Only handle "R" key
       if (e.code !== 'KeyR') return
       
+      // Don't handle if any modifier keys are pressed (Cmd+R should refresh page)
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
@@ -655,18 +663,18 @@ const AudioRecorder = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.isRecording, isPlaying, startRecording, stopRecording])
 
-  // Global keyboard handler for Delete key to discard recording
+  // Global keyboard handler for Delete/Backspace key to discard recording
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle Delete key
-      if (e.code !== 'Delete') return
+      // Handle both Delete and Backspace (Backspace is the "delete" key on Mac)
+      if (e.code !== 'Delete' && e.code !== 'Backspace') return
       
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
-      // Only discard if there's audio to discard or currently recording
-      if (state.audioBlob || state.isRecording) {
+      // Only discard if there's audio to discard AND not currently recording
+      if (state.audioBlob && !state.isRecording) {
         e.preventDefault()
         discardRecording()
       }
@@ -707,9 +715,6 @@ const AudioRecorder = () => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
-      // Don't handle if the mic button has focus (let it handle space for recording)
-      if (target.tagName === 'BUTTON' && micBtnRef.current && target === micBtnRef.current) return
-      
       // Only toggle playback if there's audio to play (not for recording)
       if (state.audioUrl && !state.isRecording) {
         e.preventDefault() // Prevent page scroll
@@ -736,7 +741,7 @@ const AudioRecorder = () => {
         interimTranscript={state.interimTranscript}
         isPlaying={isPlaying}
         canPlay={!!state.audioUrl}
-        canDiscard={!!state.audioBlob || state.isRecording}
+        canDiscard={!!state.audioBlob && !state.isRecording}
         canSend={!!state.audioBlob}
         sending={state.isSending}
         showPlayhead={!state.isRecording && !!state.audioUrl}
