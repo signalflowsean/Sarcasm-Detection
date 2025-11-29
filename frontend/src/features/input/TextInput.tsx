@@ -8,6 +8,10 @@ const TextInput = () => {
   const [error, setError] = useState<string | null>(null)
   const [hasEverTyped, setHasEverTyped] = useState(false)
 
+  // Detect platform for keyboard shortcut display
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+  const modifierKey = isMac ? '⌘' : 'Ctrl'
+
   const handleSend = async () => {
     const payload = text.trim()
     if (!payload) return
@@ -49,11 +53,18 @@ const TextInput = () => {
       <div className="text-input__controls">
         <button
           type="button"
-          className="text-input__send-btn"
+          className={`text-input__send-btn ${text.trim() && !isSending ? 'text-input__send-btn--with-shortcut' : ''}`}
           onClick={handleSend}
           disabled={!text.trim() || isSending}
         >
-          {isSending ? 'Sending...' : 'Send to Detector'}
+          <span className="text-input__send-btn__label">
+            {isSending ? 'Sending...' : 'Send to Detector'}
+          </span>
+          {text.trim() && !isSending && (
+            <kbd className="text-input__send-btn__shortcut" aria-label={`Keyboard shortcut: ${modifierKey} + Enter`}>
+              {modifierKey}+↵
+            </kbd>
+          )}
         </button>
       </div>
       {error && <div className="text-input__error" role="alert">{error}</div>}

@@ -630,6 +630,73 @@ const AudioRecorder = () => {
     setPlaybackMs(newTime * 1000)
   }
 
+  // Global keyboard handler for "R" key to toggle recording
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle "R" key
+      if (e.code !== 'KeyR') return
+      
+      // Don't interfere if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      
+      // Don't toggle if playing audio
+      if (isPlaying) return
+      
+      e.preventDefault()
+      if (state.isRecording) {
+        stopRecording()
+      } else {
+        startRecording()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.isRecording, isPlaying, startRecording, stopRecording])
+
+  // Global keyboard handler for Delete key to discard recording
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle Delete key
+      if (e.code !== 'Delete') return
+      
+      // Don't interfere if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      
+      // Only discard if there's audio to discard or currently recording
+      if (state.audioBlob || state.isRecording) {
+        e.preventDefault()
+        discardRecording()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.audioBlob, state.isRecording, discardRecording])
+
+  // Global keyboard handler for Cmd/Ctrl+Enter to send
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle Cmd/Ctrl+Enter
+      if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
+      
+      // Don't interfere if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      
+      // Only send if there's audio to send and not already sending
+      if (state.audioBlob && !state.isSending) {
+        e.preventDefault()
+        onSend()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.audioBlob, state.isSending, onSend])
+
   // Global keyboard handler for space bar to toggle playback
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

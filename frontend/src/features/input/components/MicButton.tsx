@@ -35,6 +35,11 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRe
         <line x1="12" x2="12" y1="19" y2="22" />
       </svg>
       <span className="audio-recorder__mic__power" aria-hidden="true" />
+      {!disabled && (
+        <kbd className="audio-recorder__mic__shortcut" aria-label="Keyboard shortcut: R">
+          R
+        </kbd>
+      )}
     </button>
   )
 })

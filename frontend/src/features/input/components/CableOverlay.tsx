@@ -92,15 +92,28 @@ const CableOverlay = () => {
   }
 
   useEffect(() => {
-    // Initial calculation with delay to ensure layout is settled
-    const timer = setTimeout(() => {
-      recompute()
-    }, 100)
+    let animationFrameId: number | undefined
+    let extraAnimationFrameId: number | undefined
 
-    // Additional delayed recalculation to catch any late layout changes
-    const extraTimer = setTimeout(() => {
-      recompute()
-    }, 300)
+    // Initial calculation using requestAnimationFrame to ensure layout is settled
+    const tryRecompute = () => {
+      const meterEl = document.querySelector('.meter')
+      const inputContainer = document.querySelector('.input-container')
+      
+      if (meterEl && inputContainer) {
+        recompute()
+        
+        // Schedule an additional recalculation to catch any late layout changes
+        extraAnimationFrameId = requestAnimationFrame(() => {
+          recompute()
+        })
+      } else {
+        // If elements aren't ready, try again on next frame
+        animationFrameId = requestAnimationFrame(tryRecompute)
+      }
+    }
+    
+    animationFrameId = requestAnimationFrame(tryRecompute)
 
     // Throttled resize handler to improve performance
     const onResize = () => {
@@ -143,8 +156,12 @@ const CableOverlay = () => {
     }
 
     return () => {
-      clearTimeout(timer)
-      clearTimeout(extraTimer)
+      if (typeof animationFrameId === 'number') {
+        cancelAnimationFrame(animationFrameId)
+      }
+      if (typeof extraAnimationFrameId === 'number') {
+        cancelAnimationFrame(extraAnimationFrameId)
+      }
       window.removeEventListener('resize', onResize)
       resizeObserver.disconnect()
       mutationObserver.disconnect()
