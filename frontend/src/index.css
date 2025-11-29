@@ -321,7 +321,8 @@
   .audio-recorder__controls { 
     display: flex; 
     gap: 1rem; 
-    justify-content: center; 
+    justify-content: center;
+    /* TODO: haven't decided on this */
     /* flex-wrap: wrap; */
     width: 100%;
   }
