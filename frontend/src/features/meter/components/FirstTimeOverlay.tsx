@@ -49,7 +49,7 @@ const FirstTimeOverlay = () => {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
       handleDismiss()
     }
   }
