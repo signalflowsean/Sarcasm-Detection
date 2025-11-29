@@ -76,7 +76,6 @@ const CableOverlay = () => {
     // SECTION 3: Final curve to meter jack - smooth gradual arc with MORE curvature
     // Control points positioned farther from endpoints to create a rounder, more curved arc
     const verticalDistanceToMeter = endY - lineEndY
-    const horizontalDistanceToMeter = Math.abs(endX - lineEndX)
     
     // Position control points much farther out (50%) for a nicely rounded curve
     const c3x = lineEndX
