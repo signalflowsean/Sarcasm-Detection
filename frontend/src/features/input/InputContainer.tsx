@@ -22,9 +22,12 @@ const InputContainer = () => {
 
     // Use View Transitions API if available
     if (!isMobile) {
-      document.startViewTransition?.(() => {
+      const transition = document.startViewTransition?.(() => {
         setDisplayValue(value)
-      })
+      });
+      if (!transition) {
+        setDisplayValue(value);
+      }
     } else {
       // Fallback without transition
       setDisplayValue(value)
