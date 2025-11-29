@@ -232,21 +232,18 @@
   }
 
   .audio-recorder__mic__shortcut {
+    /* Component-specific positioning and sizing */
     position: absolute;
     bottom: 8%;
     right: 8%;
-    font-family: system-ui, -apple-system, sans-serif;
     font-size: clamp(0.65rem, 1.2vw, 0.75rem);
-    font-weight: 600;
     padding: 0.2rem 0.4rem;
     border-radius: 0.2rem;
+    
+    /* Component-specific appearance variations */
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 
-      0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 1px 2px rgba(0, 0, 0, 0.3);
     color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 0.02em;
     pointer-events: none;
   }
 
@@ -371,19 +368,16 @@
   }
   
   .audio-btn__shortcut {
-    font-family: system-ui, -apple-system, sans-serif;
+    /* Component-specific sizing */
     font-size: 0.75rem;
-    font-weight: 600;
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
+    
+    /* Component-specific appearance variations */
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-      0 1px 0 rgba(255, 255, 255, 0.1),
-      inset 0 1px 2px rgba(0, 0, 0, 0.3);
     color: rgba(255, 255, 255, 0.85);
     text-transform: capitalize;
-    letter-spacing: 0.02em;
   }
   
   .audio-btn:disabled .audio-btn__shortcut {
@@ -1139,18 +1133,15 @@
 }
 
 .text-input__send-btn__shortcut {
-  font-family: system-ui, -apple-system, sans-serif;
+  /* Component-specific sizing */
   font-size: 0.75rem;
-  font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
+  
+  /* Component-specific appearance variations */
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 
-    0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 1px 2px rgba(0, 0, 0, 0.3);
   color: rgba(255, 255, 255, 0.85);
-  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -1653,4 +1644,27 @@ body:has(.audio-recorder__modal) .detector-jack {
 .audio-recorder__modal.audio-recorder__modal .getting-started__cta {
   font-size: clamp(1.35rem, 3.5vw, 1.7rem);
   line-height: 1.7;
+}
+
+/* ================================================
+   Utilities Layer
+   ================================================ */
+
+@layer utilities {
+  
+  /* Shared keyboard shortcut styling
+     Used by: .audio-recorder__mic__shortcut, .audio-btn__shortcut, .text-input__send-btn__shortcut
+     Component-specific variations are applied in their respective classes */
+  .kbd-shortcut,
+  .audio-recorder__mic__shortcut,
+  .audio-btn__shortcut,
+  .text-input__send-btn__shortcut {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    box-shadow: 
+      0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 1px 2px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.02em;
+  }
+  
 }
