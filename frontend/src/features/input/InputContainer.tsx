@@ -8,7 +8,7 @@ import MobileInputOverlay from './components/MobileInputOverlay'
 
 const InputContainer = () => {
   const { value } = useWhichInput()
-  const isMobile = useMediaQuery('(max-width: 1299px)')
+  const isMobile = useMediaQuery('(max-width: 1023px)')
   const [displayValue, setDisplayValue] = useState(value)
   const isInitialMount = useRef(true)
 
