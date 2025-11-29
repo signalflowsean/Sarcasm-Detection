@@ -82,5 +82,3 @@ const MobileInputOverlay = ({ children }: Props) => {
 }
 
 export default MobileInputOverlay
-
-
