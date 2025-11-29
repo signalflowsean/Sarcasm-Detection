@@ -14,23 +14,32 @@ const FirstTimeOverlay = () => {
       setShowOverlay(true)
       
       // Position overlay based on rotary knob location
-      setTimeout(() => {
-        const knob = document.querySelector('.rotary__knob') as HTMLElement
+      let animationFrameId: number;
+      const tryPositionOverlay = () => {
+        const knob = document.querySelector('.rotary__knob') as HTMLElement;
         if (knob) {
-          const rect = knob.getBoundingClientRect()
+          const rect = knob.getBoundingClientRect();
           // Position to the right of the knob - arrow will start here
-          const rightX = rect.right + 80
-          const centerY = rect.top + rect.height / 2
-          
+          const rightX = rect.right + 80;
+          const centerY = rect.top + rect.height / 2;
           // Use viewport-relative positioning
           setPosition({
             left: `${rightX}px`,
             top: `${centerY}px`
-          })
+          });
+        } else {
+          animationFrameId = requestAnimationFrame(tryPositionOverlay);
         }
-      }, 100)
+      };
+      tryPositionOverlay();
     }
-  }, [])
+    // Cleanup animation frame on unmount
+    return () => {
+      if (typeof animationFrameId === 'number') {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, []);
 
   const handleDismiss = () => {
     localStorage.setItem(STORAGE_KEY, 'true')
