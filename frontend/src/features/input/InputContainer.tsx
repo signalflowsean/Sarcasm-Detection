@@ -41,7 +41,7 @@ const InputContainer = () => {
     return (
       <MobileInputOverlay>
         <section className="input-container">
-          <div className="input-container__port" data-cable-anchor="input" aria-hidden />
+          <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
           {content}
         </section>
       </MobileInputOverlay>

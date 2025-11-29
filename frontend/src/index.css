@@ -419,15 +419,15 @@
     max-width: 48rem;
     background: var(--clr-secondary);
     padding: 1.5rem;
-    padding-top: 5rem; /* Extra top padding to prevent jack from being covered by header */
+    padding-top: 5rem;
     overflow: auto;
     overscroll-behavior: contain; /* keep touch interactions local (helps scrubbing) */
   }
   .audio-recorder__modal__header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2rem; /* Increased to prevent jack from being covered */
+    justify-content: flex-end;
+    margin-bottom: 2rem;
   }
 
   /* Make modal content larger */
@@ -474,6 +474,11 @@
   .audio-recorder__modal .audio-recorder__error {
     font-size: clamp(1rem, 2.2vw, 1.2rem);
     padding: 1rem;
+  }
+
+  /* Hide jack/port in mobile modals */
+  .audio-recorder__modal .input-container__port {
+    display: none;
   }
   .meter {
     position: relative;
@@ -747,7 +752,7 @@
   position: relative;
   z-index: 2;
   padding: 2rem;
-  padding-top: calc(2rem + 16px); /* Add extra top padding to accommodate jack */
+  padding-top: calc(2rem + 16px);
   border: 6px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--border-radius-primary);
   background: rgba(0, 0, 0, 0.2);
@@ -755,14 +760,14 @@
   width: 100%; /* Fill the column naturally */
   transition: border-color 0.3s ease;
   box-sizing: border-box;
-  overflow: visible; /* Allow jack to show outside container */
+  overflow: visible;
 }
 
 /* Title + Input stack to reduce layout shift */
 .stack {
   width: 100%;
   padding: 2.5rem;
-  padding-top: calc(1rem + 20px); /* Extra top padding for jack */
+  padding-top: calc(1rem + 20px);
   height: 100svh; /* full viewport height */
   display: grid;
   grid-template-rows: 1fr 4fr; /* title 1/4, input 3/4 */
@@ -772,7 +777,7 @@
   box-sizing: border-box;
   max-width: 1400px;
   overflow-x: hidden; /* Prevent horizontal scroll */
-  overflow-y: visible; /* Allow jack to show at top */
+  overflow-y: visible;
 }
 
 .stack .input-container {
@@ -781,8 +786,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center; /* center contents vertically */
-  overflow: visible; /* Allow jack to show at top */
-  position: relative; /* For jack positioning */
+  overflow: visible;
+  position: relative;
   margin: 0 auto; /* Center horizontally with fixed width */
 }
 
@@ -1222,6 +1227,10 @@ body:has(.audio-recorder__modal) .detector-jack {
     min-height: 70px;
     resize: none;
   }
+
+  .first-time-overlay__text {
+    font-size: 1.75rem;
+  }
 }
 
 /* ============================================
@@ -1312,20 +1321,19 @@ body:has(.audio-recorder__modal) .detector-jack {
     display: none;
   }
 
-  /* Horizontal cable exiting jack and going off-screen */
+  /* Hide detector jack on mobile */
+  .detector-jack {
+    display: none;
+  }
+
+  /* Hide input container port/jack on mobile */
+  .input-container__port {
+    display: none;
+  }
+
+  /* Hide mobile cable */
   .mobile-cable {
-    display: block;
-    position: absolute;
-    bottom: calc(1rem + 15px - 2px);
-    right: calc(100% - (1rem + 15px));
-    width: 120vw;
-    height: 6px;
-    background: linear-gradient(180deg, #2a2a2a, #444);
-    border-radius: 4px;
-    box-shadow:
-      0 1px 2px rgba(0,0,0,0.5),
-      inset 0 1px 0 rgba(255,255,255,0.08);
-    z-index: 0;
+    display: none;
   }
 }
 
@@ -1374,12 +1382,6 @@ body:has(.audio-recorder__modal) .detector-jack {
 }
 
 /* Desktop layout - larger elements */
-@media (min-width: 1024px) {
-  .first-time-overlay__text {
-    font-size: 1.75rem;
-  }
-}
-
 @keyframes rotateHint {
   0%, 100% {
     transform: rotate(-5deg) scale(1);
