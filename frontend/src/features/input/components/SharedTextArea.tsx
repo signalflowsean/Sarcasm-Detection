@@ -32,9 +32,3 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
 SharedTextArea.displayName = 'SharedTextArea'
 
 export default SharedTextArea
-
-
-
-
-
-
