@@ -708,7 +708,7 @@ const AudioRecorder = () => {
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
       // Don't handle if the mic button has focus (let it handle space for recording)
-      if (target.tagName === 'BUTTON' && target === micBtnRef.current) return
+      if (target.tagName === 'BUTTON' && micBtnRef.current && target === micBtnRef.current) return
       
       // Only toggle playback if there's audio to play (not for recording)
       if (state.audioUrl && !state.isRecording) {
