@@ -145,7 +145,6 @@
   }
 
 
-
   .audio-recorder__mic {
     --size: clamp(4rem, 11vw, 7.5rem);
     position: relative;
