@@ -134,4 +134,3 @@ const FirstTimeOverlay = () => {
 }
 
 export default FirstTimeOverlay
-
