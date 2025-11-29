@@ -607,7 +607,8 @@
   }
   
   /* Also hide jack when modal is open (since jack is position:fixed, it's outside modal) */
-  body:has(.audio-recorder__modal) .input-container__port {
+  /* Fallback for browsers without :has() support: use a class on body */
+  .modal-open .input-container__port {
     display: none;
   }
 
