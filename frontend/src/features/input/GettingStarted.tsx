@@ -26,9 +26,3 @@ const GettingStarted = () => {
 }
 
 export default GettingStarted
-
-
-
-
-
-
