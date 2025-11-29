@@ -63,7 +63,6 @@ const MobileInputOverlay = ({ children }: Props) => {
     )
   })()
 
-  const title = MODE_LABELS[value]?.title || 'Input'
   const label = MODE_LABELS[value]?.action || 'Open input'
 
   let launcherClass = 'audio-recorder__launcher'
@@ -98,7 +97,7 @@ const MobileInputOverlay = ({ children }: Props) => {
       </Portal>
       {open && (
         <Portal target="body">
-          <MobileModal open={open} onClose={() => setOpen(false)} title={title}>
+          <MobileModal open={open} onClose={() => setOpen(false)}>
             {children}
           </MobileModal>
         </Portal>

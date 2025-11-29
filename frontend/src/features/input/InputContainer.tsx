@@ -22,10 +22,16 @@ const InputContainer = () => {
 
     // Use View Transitions API if available
     if (!isMobile) {
-      const transition = document.startViewTransition?.(() => {
-        setDisplayValue(value)
-      });
-      if (!transition) {
+      try {
+        const transition = document.startViewTransition?.(() => {
+          setDisplayValue(value)
+        });
+        if (!transition) {
+          setDisplayValue(value);
+        }
+      } catch (error) {
+        // Fallback if transition fails
+        console.warn('View Transition failed:', error);
         setDisplayValue(value);
       }
     } else {
