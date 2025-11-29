@@ -8,7 +8,15 @@ type Props = PropsWithChildren<{
 
 const MobileModal = ({ open, onClose, children }: Props) => {
   const modalRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const focusablesRef = useRef<HTMLElement[]>([])
+  
+  // Auto-focus the dialog when it opens for keyboard accessibility
+  useEffect(() => {
+    if (open && dialogRef.current) {
+      dialogRef.current.focus()
+    }
+  }, [open])
   
   // Cache focusable elements when modal opens or children change
   useEffect(() => {
@@ -71,9 +79,11 @@ const MobileModal = ({ open, onClose, children }: Props) => {
   if (!open) return null
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       className="audio-recorder__modal"
+      tabIndex={-1}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose()
         trapFocus(e)
