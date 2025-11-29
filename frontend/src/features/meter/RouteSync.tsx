@@ -20,19 +20,22 @@ export function RouteSync() {
 
   // Sync route -> rotary switch (when user navigates via URL/back button)
   useEffect(() => {
-    // Only update if the pathname actually changed (not just a re-render)
-    if (lastPathRef.current !== location.pathname) {
-      lastPathRef.current = location.pathname
-      
-      const targetValue = PATH_TO_VALUE[location.pathname]
-      
-      // Handle unhandled routes by redirecting to default path
-      if (targetValue === undefined) {
+    const targetValue = PATH_TO_VALUE[location.pathname]
+    
+    // Handle unhandled routes by redirecting to default path
+    if (targetValue === undefined) {
+      // Only redirect if we haven't just redirected to avoid loops
+      if (lastPathRef.current !== location.pathname) {
         const defaultPath = VALUE_TO_PATH[value] || '/getting-started'
         lastPathRef.current = defaultPath
         navigate(defaultPath, { replace: true })
-        return
       }
+      return
+    }
+    
+    // Only update if the pathname actually changed (not just a re-render)
+    if (lastPathRef.current !== location.pathname) {
+      lastPathRef.current = location.pathname
       
       if (targetValue !== value) {
         lastValueRef.current = targetValue

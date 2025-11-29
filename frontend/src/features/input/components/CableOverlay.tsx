@@ -128,6 +128,7 @@ const CableOverlay = () => {
       }
 
       resizeTimeoutRef.current = window.setTimeout(() => {
+        if (!isMounted) return
         recomputeCablePath()
         resizeTimeoutRef.current = null
       }, 150)

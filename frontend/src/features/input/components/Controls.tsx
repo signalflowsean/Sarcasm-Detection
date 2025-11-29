@@ -1,3 +1,5 @@
+import { isMacPlatform } from '../utils'
+
 type Props = {
   canPlay: boolean
   isPlaying: boolean
@@ -21,7 +23,7 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
   const playLabel = isPlaying ? 'Pause' : 'Preview Audio'
   
   // Detect platform for keyboard shortcut display
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+  const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
   
   // Flash the send button when audio is ready but not recording/playing/sending

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import SharedTextArea from './components/SharedTextArea'
 import { sendLexicalText } from './apiService'
+import { isMacPlatform } from './utils'
 
 const TextInput = () => {
   const [text, setText] = useState('')
@@ -9,7 +10,7 @@ const TextInput = () => {
   const [hasEverTyped, setHasEverTyped] = useState(false)
 
   // Detect platform for keyboard shortcut display
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+  const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
 
   const handleSend = async () => {

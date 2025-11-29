@@ -5,7 +5,9 @@ const STORAGE_KEY = 'sarcasm-detector-visited'
 const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [position, setPosition] = useState({ left: '50%', top: '45%' })
+  const [arrowPosition, setArrowPosition] = useState({ left: '50%', top: '45%', size: 100 })
   const overlayRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Check if user has visited before
@@ -26,13 +28,24 @@ const FirstTimeOverlay = () => {
         
         if (knob) {
           const rect = knob.getBoundingClientRect();
-          // Position to the right of the knob - arrow will start here
+          // Position text to the right of the knob
           const rightX = rect.right + 80;
           const centerY = rect.top + rect.height / 2;
           // Use viewport-relative positioning
           setPosition({
             left: `${rightX}px`,
             top: `${centerY}px`
+          });
+          
+          // Position arrow centered on the knob
+          const knobCenterX = rect.left + rect.width / 2;
+          const knobCenterY = rect.top + rect.height / 2;
+          // Arrow should be about 1/3 of knob size larger than the knob
+          const arrowSize = rect.width * 1.33;
+          setArrowPosition({
+            left: `${knobCenterX}px`,
+            top: `${knobCenterY}px`,
+            size: arrowSize
           });
         } else if (retryCount < MAX_RETRIES && elapsedTime < MAX_TIME_MS) {
           // Only retry if we haven't exceeded the maximum retries or time
@@ -84,57 +97,23 @@ const FirstTimeOverlay = () => {
       aria-label="Welcome tutorial - Turn the knob to start detecting sarcasm"
       tabIndex={0}
     >
+      {/* Arrow positioned on the knob itself */}
+      {/* TODO: Add arrow */}
+      
+      {/* Text positioned to the right of knob */}
       <div 
         ref={contentRef}
         className="first-time-overlay__content"
         style={{ 
           left: position.left, 
           top: position.top,
-          transform: 'translate(0, -50%)'
+          transform: 'translate(0, -50%)',
+          flexDirection: 'column',
+          alignItems: 'flex-start'
         }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
-        {/* Compact clockwise rotation arrow - about 30 degrees */}
-        <svg 
-          className="first-time-overlay__arrow"
-          viewBox="0 0 200 200" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Arc going clockwise from top, ~50 degrees */}
-          <path
-            d="M 100 40 A 60 60 0 0 1 148 75"
-            fill="none"
-            stroke="#1a1a1a"
-            strokeWidth="10"
-            strokeLinecap="round"
-            className="arrow-path-bg"
-          />
-          <path
-            d="M 100 40 A 60 60 0 0 1 148 75"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="7"
-            strokeLinecap="round"
-            className="arrow-path"
-          />
-          {/* Arrowhead at the end - aligned with arc tangent */}
-          <g className="arrow-head-bg">
-            <path
-              d="M 157 93 L 137 76 L 155 66 Z"
-              fill="#1a1a1a"
-              stroke="#1a1a1a"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            />
-          </g>
-          <g className="arrow-head">
-            <path
-              d="M 157 93 L 137 76 L 155 66 Z"
-              fill="#ffffff"
-            />
-          </g>
-        </svg>
-        
         <p className="first-time-overlay__text">
           Turn the Knob to Start Detecting Sarcasm
         </p>

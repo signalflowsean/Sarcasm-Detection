@@ -1,7 +1,6 @@
 import { TICKS } from "./utils";
 import type { Tick } from "./types";
 import RotarySwitch from './components/RotarySwitch'
-import FirstTimeOverlay from './components/FirstTimeOverlay'
 
 const MeterSection = () => {
   return (
@@ -9,7 +8,8 @@ const MeterSection = () => {
       <h1 className="meter__title">Sarcasm Detector™</h1>
       {/* Portal target for mobile launcher button */}
       <div id="mobile-launcher-portal" className="mobile-launcher-portal" />
-      <FirstTimeOverlay />
+      {/* TODO: I'm not sure if I want this yet */}
+      {/* <FirstTimeOverlay /> */}
       <div className="meter__display">
         {/* TODO: Put boundaries in a meter__display__boundaries__wrapper */}
         <Boundary variant="left" />
