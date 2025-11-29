@@ -10,7 +10,7 @@ export type WhichInputOption = {
 }
 
 export const DEFAULT_POSITIONS: WhichInputOption[] = [
-  { value: 'off', name: 'Off', degrees: 0 },
-  { value: 'audio', name: 'Audio', degrees: 120 },
-  { value: 'text', name: 'Text', degrees: 240 },
+  { value: 'off', name: 'Power', degrees: 0 },
+  { value: 'text', name: 'Text', degrees: 120 },
+  { value: 'audio', name: 'Audio', degrees: 240 },
 ]

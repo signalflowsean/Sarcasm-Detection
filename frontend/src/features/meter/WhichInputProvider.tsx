@@ -8,13 +8,38 @@ type ProviderProps = {
   positions?: WhichInputOption[]
 }
 
+/**
+ * Maps URL paths to rotary switch values for initial load
+ */
+const PATH_TO_VALUE: Record<string, string> = {
+  '/': 'off',
+  '/getting-started': 'off',
+  '/text-input': 'text',
+  '/audio-input': 'audio',
+}
+
+/**
+ * Get initial index based on current URL pathname
+ */
+function getInitialIndex(positions: WhichInputOption[]): number {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const targetValue = PATH_TO_VALUE[pathname]
+  
+  if (targetValue) {
+    const index = positions.findIndex(p => p.value === targetValue)
+    if (index !== -1) return index
+  }
+  
+  return 0
+}
+
 export function WhichInputProvider({ children, positions }: ProviderProps) {
   const normalized = (positions && positions.length > 0 ? positions : DEFAULT_POSITIONS).map(p => ({
     ...p,
     degrees: ((p.degrees % 360) + 360) % 360,
   }))
 
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(() => getInitialIndex(normalized))
   const value = normalized[Math.max(0, Math.min(index, normalized.length - 1))]?.value ?? normalized[0].value
 
   const setValue = (v: string) => {

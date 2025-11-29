@@ -1,15 +1,28 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
 import MeterSection from './features/meter'
-import AudioRecorder from './features/input/AudioRecorder'
+import InputContainer from './features/input/InputContainer'
+import CableOverlay from './features/input/components/CableOverlay'
+import { RouteSync } from './features/meter/RouteSync'
 
 const App = () => {
   return (
-    <main>
-      <section className="primary-spacing">
-        {/* <h1>Sarcasm Detector</h1> */}
-        <AudioRecorder />
-      </section>
-      <MeterSection />
-    </main>
+    <>
+      <RouteSync />
+      <main>
+        <section className="stack">
+          <h1 className="title">Sarcasm Detector™</h1>
+          <Routes>
+            <Route path="/" element={<Navigate to="/getting-started" replace />} />
+            <Route path="/getting-started" element={<InputContainer />} />
+            <Route path="/text-input" element={<InputContainer />} />
+            <Route path="/audio-input" element={<InputContainer />} />
+            <Route path="*" element={<Navigate to="/getting-started" replace />} />
+          </Routes>
+        </section>
+        <MeterSection />
+        <CableOverlay />
+      </main>
+    </>
   )
 }
 

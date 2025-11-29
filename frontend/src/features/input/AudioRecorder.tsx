@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 // portal usage is encapsulated in MobileRecorderOverlay
 import { sendLexicalText, sendProsodicAudio } from './apiService'
 import { formatDuration, clamp01 } from './utils'
-import { useBodyScrollLock, useMediaQuery, useRafInterval } from './hooks'
+import { useRafInterval } from './hooks'
 import RecorderContent from './components/RecorderContent'
-import MobileRecorderOverlay from './components/MobileRecorderOverlay'
 
 type Nullable<T> = T | null
 
@@ -40,9 +39,6 @@ type RecorderState = {
 // extracted hooks are imported from ./hooks
 
 const AudioRecorder = () => {
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const [modalOpen, setModalOpen] = useState(false)
-  useBodyScrollLock(isMobile && modalOpen)
 
   const [state, setState] = useState<RecorderState>({
     isRecording: false,
@@ -54,6 +50,9 @@ const AudioRecorder = () => {
     audioUrl: null,
     error: null,
   })
+
+  // Track if user has ever started recording (to control mic button flash)
+  const [hasEverRecorded, setHasEverRecorded] = useState(false)
 
   const mediaRecorderRef = useRef<Nullable<MediaRecorder>>(null)
   const mediaStreamRef = useRef<Nullable<MediaStream>>(null)
@@ -459,6 +458,7 @@ const AudioRecorder = () => {
       startTimer()
       startSpeechRecognition()
       setState((s) => ({ ...s, isRecording: true, error: null, durationMs: 0, interimTranscript: '' }))
+      setHasEverRecorded(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
       setState((s) => ({ ...s, error: message }))
@@ -547,7 +547,7 @@ const AudioRecorder = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
   const [audioDurationMs, setAudioDurationMs] = useState(0)
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     const el = audioRef.current
     if (!el) return
     if (el.paused) {
@@ -568,7 +568,7 @@ const AudioRecorder = () => {
     } else {
       el.pause()
     }
-  }
+  }, [])
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -630,54 +630,35 @@ const AudioRecorder = () => {
     setPlaybackMs(newTime * 1000)
   }
 
-  // Inline vs modal rendering
-  if (isMobile) {
-    const handleModalOpen = () => {
-      discardRecording()
-      setModalOpen(true)
+  // Global keyboard handler for space bar to toggle playback
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle space bar
+      if (e.code !== 'Space') return
+      
+      // Don't interfere if user is typing in an input or textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      
+      // Don't handle if the mic button has focus (let it handle space for recording)
+      if (target.tagName === 'BUTTON' && target === micBtnRef.current) return
+      
+      // Only toggle playback if there's audio to play (not for recording)
+      if (state.audioUrl && !state.isRecording) {
+        e.preventDefault() // Prevent page scroll
+        togglePlay()
+      }
     }
-    
-    const handleModalClose = () => {
-      discardRecording()
-      setModalOpen(false)
-    }
-    
-    return (
-      <MobileRecorderOverlay open={modalOpen} onOpen={handleModalOpen} onClose={handleModalClose}>
-        <RecorderContent
-          isRecording={state.isRecording}
-          durationLabel={state.isRecording ? formatDuration(state.durationMs) : formatDuration(playbackMs)}
-          micRef={micBtnRef}
-          canvasRef={canvasRef}
-          audioRef={audioRef}
-          audioSrc={state.audioUrl ?? undefined}
-          speechSupported={speechSupported}
-          transcript={state.transcript}
-          interimTranscript={state.interimTranscript}
-          isPlaying={isPlaying}
-          canPlay={!!state.audioUrl}
-          canDiscard={!!state.audioBlob || state.isRecording}
-          canSend={!!state.audioBlob}
-          sending={state.isSending}
-          showPlayhead={!state.isRecording && !!state.audioUrl}
-          playheadPercent={audioDurationMs > 0 ? Math.min(1, Math.max(0, playbackMs / audioDurationMs)) : 0}
-          isSeekEnabled={!state.isRecording && !!state.audioUrl}
-          onSeekPercent={onSeekPercent}
-          onMicClick={onMicClick}
-          onMicKeyDown={onMicKeyDown}
-          onTogglePlay={togglePlay}
-          onDiscard={discardRecording}
-          onSend={onSend}
-        />
-        {state.error && <div className="audio-recorder__error" role="alert">{state.error}</div>}
-      </MobileRecorderOverlay>
-    )
-  }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [state.isRecording, state.audioUrl, togglePlay])
 
   return (
     <>
       <RecorderContent
         isRecording={state.isRecording}
+        shouldFlashMic={!hasEverRecorded && !state.isRecording}
         durationLabel={state.isRecording ? formatDuration(state.durationMs) : formatDuration(playbackMs)}
         micRef={micBtnRef}
         canvasRef={canvasRef}

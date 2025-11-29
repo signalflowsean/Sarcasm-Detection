@@ -1,11 +1,12 @@
 import MicButton from './MicButton'
 import Status from './Status'
 import Waveform from './Waveform'
-import Transcript from './Transcript'
+import SharedTextArea from './SharedTextArea'
 import Controls from './Controls'
 
 type Props = {
   isRecording: boolean
+  shouldFlashMic: boolean
   durationLabel: string
   micRef: React.Ref<HTMLButtonElement>
   canvasRef: React.Ref<HTMLCanvasElement>
@@ -32,6 +33,7 @@ type Props = {
 
 const RecorderContent = ({
   isRecording,
+  shouldFlashMic,
   durationLabel,
   micRef,
   canvasRef,
@@ -59,7 +61,7 @@ const RecorderContent = ({
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
-        <MicButton ref={micRef} isRecording={isRecording} disabled={isPlaying} onClick={onMicClick} onKeyDown={onMicKeyDown} />
+        <MicButton ref={micRef} isRecording={isRecording} shouldFlash={shouldFlashMic} disabled={isPlaying} onClick={onMicClick} onKeyDown={onMicKeyDown} />
         <Status isRecording={isRecording} isPlaying={isPlaying} hasAudio={!!audioSrc} duration={durationLabel} />
       </div>
 
@@ -73,11 +75,18 @@ const RecorderContent = ({
         emptyMessage={"Press Down on Microphone to Record"}
       />
 
-      <Transcript supported={speechSupported} transcript={transcript} interim={interimTranscript} />
+      <SharedTextArea
+        value={(transcript + ' ' + interimTranscript).trim()}
+        placeholder={speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'}
+        disabled={true}
+        className="audio-recorder__transcript"
+        rows={2}
+      />
 
       <Controls
         canPlay={canPlay}
         isPlaying={isPlaying}
+        isRecording={isRecording}
         onTogglePlay={onTogglePlay}
         onDiscard={onDiscard}
         canDiscard={canDiscard}

@@ -7,9 +7,10 @@ type Props = {
   onSend: () => void
   canSend: boolean
   sending: boolean
+  isRecording: boolean
 }
 
-const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onSend, canSend, sending }: Props) => {
+const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onSend, canSend, sending, isRecording }: Props) => {
   let sendLabel = 'Send to Detector'
   if (!canSend) {
     sendLabel = 'Record audio first'
@@ -18,6 +19,9 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
   }
 
   const playLabel = isPlaying ? 'Pause' : 'Preview Audio'
+  
+  // Flash the send button when audio is ready but not recording/playing/sending
+  const shouldFlash = canSend && !isPlaying && !sending && !isRecording
 
   return (
     <div className="audio-recorder__controls">
@@ -54,7 +58,7 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
       </button>
       <button
         type="button"
-        className="audio-btn audio-btn--primary"
+        className={`audio-btn audio-btn--primary ${shouldFlash ? 'audio-btn--flash' : ''}`}
         onClick={onSend}
         disabled={!canSend || sending}
       >
