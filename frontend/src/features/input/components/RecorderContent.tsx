@@ -1,11 +1,12 @@
 import MicButton from './MicButton'
 import Status from './Status'
 import Waveform from './Waveform'
-import Transcript from './Transcript'
+import SharedTextArea from './SharedTextArea'
 import Controls from './Controls'
 
 type Props = {
   isRecording: boolean
+  shouldFlashMic: boolean
   durationLabel: string
   micRef: React.Ref<HTMLButtonElement>
   canvasRef: React.Ref<HTMLCanvasElement>
@@ -32,6 +33,7 @@ type Props = {
 
 const RecorderContent = ({
   isRecording,
+  shouldFlashMic,
   durationLabel,
   micRef,
   canvasRef,
@@ -56,10 +58,15 @@ const RecorderContent = ({
   onSend,
 }: Props) => {
 
+  const transcriptDescriptionId = 'transcript-description'
+  const transcriptDescription = speechSupported
+    ? 'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
+    : 'Transcript area: Speech-to-text is not supported in this browser. Audio will be recorded, but automatic transcription is unavailable.'
+
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
-        <MicButton ref={micRef} isRecording={isRecording} disabled={isPlaying} onClick={onMicClick} onKeyDown={onMicKeyDown} />
+        <MicButton ref={micRef} isRecording={isRecording} shouldFlash={shouldFlashMic} disabled={isPlaying || sending} onClick={onMicClick} onKeyDown={onMicKeyDown} />
         <Status isRecording={isRecording} isPlaying={isPlaying} hasAudio={!!audioSrc} duration={durationLabel} />
       </div>
 
@@ -73,14 +80,41 @@ const RecorderContent = ({
         emptyMessage={"Press Down on Microphone to Record"}
       />
 
-      <Transcript supported={speechSupported} transcript={transcript} interim={interimTranscript} />
+      {/* Visually hidden description for screen readers */}
+      <div
+        id={transcriptDescriptionId}
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0
+        }}
+      >
+        {transcriptDescription}
+      </div>
+
+      <SharedTextArea
+        value={(transcript + ' ' + interimTranscript).trim()}
+        placeholder={speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'}
+        disabled={true}
+        className="audio-recorder__transcript"
+        rows={2}
+        aria-describedby={transcriptDescriptionId}
+        aria-label="Speech transcript"
+      />
 
       <Controls
-        canPlay={canPlay}
+        canPlay={canPlay && !sending}
         isPlaying={isPlaying}
+        isRecording={isRecording}
         onTogglePlay={onTogglePlay}
         onDiscard={onDiscard}
-        canDiscard={canDiscard}
+        canDiscard={canDiscard && !sending}
         onSend={onSend}
         canSend={canSend}
         sending={sending}

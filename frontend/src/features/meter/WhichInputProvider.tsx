@@ -1,11 +1,26 @@
 import React, { useState } from 'react'
 import type { WhichInputOption } from './constants'
-import { DEFAULT_POSITIONS } from './constants'
+import { DEFAULT_POSITIONS, PATH_TO_VALUE } from './constants'
 import { WhichInputCtx, type WhichInputContext } from './useWhichInput'
 
 type ProviderProps = {
   children: React.ReactNode
   positions?: WhichInputOption[]
+}
+
+/**
+ * Get initial index based on current URL pathname
+ */
+function getInitialIndex(positions: WhichInputOption[]): number {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const targetValue = PATH_TO_VALUE[pathname]
+  
+  if (targetValue) {
+    const index = positions.findIndex(p => p.value === targetValue)
+    if (index !== -1) return index
+  }
+  
+  return 0
 }
 
 export function WhichInputProvider({ children, positions }: ProviderProps) {
@@ -14,7 +29,7 @@ export function WhichInputProvider({ children, positions }: ProviderProps) {
     degrees: ((p.degrees % 360) + 360) % 360,
   }))
 
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(() => getInitialIndex(normalized))
   const value = normalized[Math.max(0, Math.min(index, normalized.length - 1))]?.value ?? normalized[0].value
 
   const setValue = (v: string) => {

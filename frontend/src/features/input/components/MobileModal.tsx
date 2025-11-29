@@ -82,8 +82,7 @@ const MobileModal = ({ open, onClose, children }: Props) => {
       <div className="audio-recorder__backdrop" onClick={onClose} onPointerDown={(e) => e.stopPropagation()} />
       <div className="audio-recorder__modal__content" ref={modalRef}>
         <div className="audio-recorder__modal__header">
-          <h2>Recorder</h2>
-          <button type="button" className="audio-btn" onClick={onClose} aria-label="Close recorder">
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close recorder">
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
