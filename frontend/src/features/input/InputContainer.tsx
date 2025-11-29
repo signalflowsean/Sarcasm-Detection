@@ -21,8 +21,8 @@ const InputContainer = () => {
     }
 
     // Use View Transitions API if available
-    if (document.startViewTransition && !isMobile) {
-      document.startViewTransition(() => {
+    if (!isMobile) {
+      document.startViewTransition?.(() => {
         setDisplayValue(value)
       })
     } else {
