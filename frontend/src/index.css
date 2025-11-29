@@ -430,6 +430,43 @@
     margin-bottom: 2rem;
   }
 
+  .close-btn {
+    padding: 0.65rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255,255,255,.2);
+    background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+    color: var(--clr-primary);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 140ms ease, transform 100ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,.3);
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .close-btn:hover {
+    background: linear-gradient(145deg, #4a4a4a, #333);
+    border-color: rgba(255,255,255,.3);
+    box-shadow: 0 4px 10px rgba(0,0,0,.4);
+    transform: translateY(-1px);
+  }
+
+  .close-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+
+  .close-btn:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 3px;
+  }
+
+  .close-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
   /* Make modal content larger */
   .audio-recorder__modal .audio-recorder {
     gap: 1.75rem;
@@ -440,7 +477,7 @@
   }
 
   .audio-recorder__modal .audio-recorder__status {
-    font-size: clamp(1.15rem, 3vw, 1.5rem);
+    font-size: clamp(1.4rem, 4vw, 1.85rem);
   }
 
   .audio-recorder__modal .audio-recorder__waveform {
@@ -453,17 +490,17 @@
   }
 
   .audio-recorder__modal .audio-recorder__waveform__empty {
-    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    font-size: clamp(1.35rem, 3.5vw, 1.65rem);
   }
 
   .audio-recorder__modal .audio-recorder__transcript p {
-    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    font-size: clamp(1.35rem, 3.5vw, 1.65rem);
     line-height: 1.7;
   }
 
   .audio-recorder__modal .audio-btn {
     padding: 1rem 2rem;
-    font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+    font-size: clamp(1.35rem, 3.5vw, 1.6rem);
     border-radius: 0.75rem;
   }
 
@@ -472,12 +509,17 @@
   }
 
   .audio-recorder__modal .audio-recorder__error {
-    font-size: clamp(1rem, 2.2vw, 1.2rem);
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
     padding: 1rem;
   }
 
   /* Hide jack/port in mobile modals */
   .audio-recorder__modal .input-container__port {
+    display: none;
+  }
+  
+  /* Also hide jack when modal is open (since jack is position:fixed, it's outside modal) */
+  body:has(.audio-recorder__modal) .input-container__port {
     display: none;
   }
   .meter {
@@ -1290,21 +1332,21 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   .getting-started {
-    gap: clamp(0.875rem, 3vw, 1.5rem);
+    gap: clamp(0.6rem, 1.8vw, 0.95rem);
   }
   
   .getting-started__title {
-    font-size: clamp(1rem, 5vw, 1.75rem);
+    font-size: clamp(1.3rem, 4.5vw, 1.75rem);
   }
   
   .getting-started__intro {
-    font-size: clamp(0.85rem, 4vw, 1.1rem);
+    font-size: clamp(1.15rem, 3.75vw, 1.4rem);
   }
   
   .getting-started__description,
   .getting-started__model,
   .getting-started__cta {
-    font-size: clamp(0.8rem, 3.5vw, 1rem);
+    font-size: clamp(1.05rem, 3.25vw, 1.3rem);
   }
 
   .input-container {
@@ -1317,23 +1359,31 @@ body:has(.audio-recorder__modal) .detector-jack {
     overflow: visible;
   }
 
+  /* Hide desktop cable overlay on mobile */
   .cable-overlay {
     display: none;
   }
 
-  /* Hide detector jack on mobile */
-  .detector-jack {
-    display: none;
-  }
 
-  /* Hide input container port/jack on mobile */
+  /* Make jack visible on mobile (move it into viewport) */
   .input-container__port {
-    display: none;
+    top: 4px; /* Move into viewport instead of -12px */
   }
 
-  /* Hide mobile cable */
+  /* Horizontal cable exiting jack and going off-screen */
   .mobile-cable {
-    display: none;
+    display: block;
+    position: absolute;
+    bottom: calc(1rem + 15px - 2px);
+    right: calc(100% - (1rem + 15px));
+    width: 120vw;
+    height: 6px;
+    background: linear-gradient(180deg, #2a2a2a, #444);
+    border-radius: 4px;
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+    z-index: 0;
   }
 }
 

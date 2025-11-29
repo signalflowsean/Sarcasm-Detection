@@ -44,8 +44,6 @@ const CableOverlay = () => {
     // At 25% mark, cable should be above container top by CLEARANCE
     const point25Y = ic.top - CLEARANCE
     
-    // Peak at 75% + 5px of the horizontal distance from jack
-    
     // Peak Y: highest point, in gap between title and container
     const titleBottom = title ? title.bottom : ic.top - 100
     const peakY = titleBottom + CLEARANCE

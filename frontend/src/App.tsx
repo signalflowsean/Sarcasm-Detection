@@ -13,7 +13,7 @@ const App = () => {
           <h1 className="title">Sarcasm Detector™</h1>
           <Routes>
             <Route path="/" element={<Navigate to="/getting-started" replace />} />
-            <Route path="/getting-started" element={<InputContainer />} />
+            <Route path="/:mode" element={<InputContainer />} />
             <Route path="*" element={<Navigate to="/getting-started" replace />} />
           </Routes>
         </section>

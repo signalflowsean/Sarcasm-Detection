@@ -39,18 +39,18 @@ const InputContainer = () => {
 
   if (isMobile) {
     return (
-      <MobileInputOverlay>
-        <section className="input-container">
-          <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
+      <section className="input-container">
+        <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
+        <MobileInputOverlay>
           {content}
-        </section>
-      </MobileInputOverlay>
+        </MobileInputOverlay>
+      </section>
     )
   }
 
   return (
     <section className="input-container">
-      <div className="input-container__port" data-cable-anchor="input" aria-hidden />
+      <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
       <div className="input-container__content">
         {content}
       </div>
