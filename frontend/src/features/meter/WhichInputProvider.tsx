@@ -1,21 +1,11 @@
 import React, { useState } from 'react'
 import type { WhichInputOption } from './constants'
-import { DEFAULT_POSITIONS } from './constants'
+import { DEFAULT_POSITIONS, PATH_TO_VALUE } from './constants'
 import { WhichInputCtx, type WhichInputContext } from './useWhichInput'
 
 type ProviderProps = {
   children: React.ReactNode
   positions?: WhichInputOption[]
-}
-
-/**
- * Maps URL paths to rotary switch values for initial load
- */
-const PATH_TO_VALUE: Record<string, string> = {
-  '/': 'off',
-  '/getting-started': 'off',
-  '/text-input': 'text',
-  '/audio-input': 'audio',
 }
 
 /**

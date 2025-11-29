@@ -6,15 +6,17 @@ const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [position, setPosition] = useState({ left: '50%', top: '45%' })
   const contentRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Check if user has visited before
     const hasVisited = localStorage.getItem(STORAGE_KEY)
+    let animationFrameId: number | undefined;
+    
     if (!hasVisited) {
       setShowOverlay(true)
       
       // Position overlay based on rotary knob location
-      let animationFrameId: number;
       const tryPositionOverlay = () => {
         const knob = document.querySelector('.rotary__knob') as HTMLElement;
         if (knob) {
@@ -46,10 +48,32 @@ const FirstTimeOverlay = () => {
     setShowOverlay(false)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleDismiss()
+    }
+  }
+
+  // Auto-focus the overlay when it appears for keyboard accessibility
+  useEffect(() => {
+    if (showOverlay && overlayRef.current) {
+      overlayRef.current.focus()
+    }
+  }, [showOverlay])
+
   if (!showOverlay) return null
 
   return (
-    <div className="first-time-overlay" onClick={handleDismiss}>
+    <div 
+      ref={overlayRef}
+      className="first-time-overlay" 
+      onClick={handleDismiss}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Welcome tutorial - Turn the knob to start detecting sarcasm"
+      tabIndex={0}
+    >
       <div 
         ref={contentRef}
         className="first-time-overlay__content"
@@ -58,6 +82,7 @@ const FirstTimeOverlay = () => {
           top: position.top,
           transform: 'translate(0, -50%)'
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Compact clockwise rotation arrow - about 30 degrees */}
         <svg 

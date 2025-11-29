@@ -113,13 +113,11 @@
 @layer layouts {
   main {
     min-height: 100svh;
-    height: 100svh;
     display: grid;
     place-items: center;
     grid-template-columns: 2fr 3fr; /* Detector is larger and more prominent */
     gap: 2rem;
     background-color: var(--clr-secondary);
-    overflow: hidden; /* Prevent scrolling on main */
     /* padding: 1rem; */
   }
 }
@@ -467,7 +465,7 @@
     height: 24px;
   }
 
-  /* Make modal content larger */
+  /* Make modal content larger - Audio Recorder */
   .audio-recorder__modal .audio-recorder {
     gap: 1.75rem;
   }
@@ -513,6 +511,33 @@
     padding: 1rem;
   }
 
+  /* Make modal content larger - Text Input */
+  .audio-recorder__modal .text-input {
+    gap: 1.75rem;
+  }
+
+  .audio-recorder__modal .shared-textarea {
+    min-height: 14rem !important;
+    padding: 2rem !important;
+    font-size: clamp(1.35rem, 3.5vw, 1.65rem) !important;
+    line-height: 1.7 !important;
+  }
+
+  .audio-recorder__modal .text-input__send-btn {
+    padding: 1rem 2rem !important;
+    font-size: clamp(1.35rem, 3.5vw, 1.6rem) !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .audio-recorder__modal .text-input__error {
+    font-size: clamp(1.25rem, 3vw, 1.5rem) !important;
+    padding: 1rem !important;
+  }
+
+  .audio-recorder__modal .text-input__controls {
+    margin-top: 1.5rem !important;
+  }
+
   /* Hide jack/port in mobile modals */
   .audio-recorder__modal .input-container__port {
     display: none;
@@ -522,6 +547,7 @@
   body:has(.audio-recorder__modal) .input-container__port {
     display: none;
   }
+
   .meter {
     position: relative;
     aspect-ratio: var(--meter-aspect-ratio);
@@ -894,14 +920,9 @@
   padding: 0.25rem 0.75rem;
   /* border: 2px solid rgba(255, 216, 77, 0.35); */
   border-radius: 8px;
-  /* background:
-    linear-gradient(180deg, rgba(255, 216, 77, 0.10), rgba(255, 216, 77, 0.02)); */
   text-shadow:
     0 1px 0 rgba(0,0,0,0.4),
     0 0 12px rgba(255, 216, 77, 0.25);
-  box-shadow:
-    inset 0 0 12px rgba(255, 216, 77, 0.10),
-    0 6px 24px rgba(0,0,0,0.35);
 }
 
 /* Getting Started */
@@ -994,8 +1015,7 @@
   max-height: 100%;
   overflow: hidden;
 }
-.shared-textarea,
-.text-input__textarea {
+.shared-textarea {
   width: 100%;
   max-width: 100%;
   min-height: 120px;
@@ -1014,8 +1034,7 @@
   overflow: auto;
 }
 
-.shared-textarea:focus:not(:disabled),
-.text-input__textarea:focus {
+.shared-textarea:focus:not(:disabled) {
   outline: none;
   border-color: rgba(255, 255, 255, 0.4);
 }
@@ -1313,7 +1332,7 @@ body:has(.audio-recorder__modal) .detector-jack {
     letter-spacing: 0.1em;
     font-weight: 800;
     font-size: clamp(1.1rem, 5vw, 1.6rem);
-    padding: 0.5rem 0.5rem 0.25rem;
+    padding: 1.25rem 0.5rem 1.25rem;
     flex: 0 0 auto;
   }
 
@@ -1322,6 +1341,10 @@ body:has(.audio-recorder__modal) .detector-jack {
     max-width: 600px;
     height: auto;
     padding-top: 0;
+  }
+
+  .meter__display {
+    margin-block-start: 0; /* Remove top margin on mobile for vertical centering */
   }
 
   .audio-recorder__launcher {

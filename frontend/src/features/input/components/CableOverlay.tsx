@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')
+  const resizeTimeoutRef = useRef<number | null>(null)
 
   const recompute = () => {
     const meterAnchor = document.querySelector('[data-cable-anchor="meter"]') as HTMLElement | null
@@ -91,15 +92,65 @@ const CableOverlay = () => {
   }
 
   useEffect(() => {
+    // Initial calculation with delay to ensure layout is settled
     const timer = setTimeout(() => {
       recompute()
     }, 100)
 
-    const onResize = () => recompute()
+    // Additional delayed recalculation to catch any late layout changes
+    const extraTimer = setTimeout(() => {
+      recompute()
+    }, 300)
+
+    // Throttled resize handler to improve performance
+    const onResize = () => {
+      if (resizeTimeoutRef.current !== null) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
+
+      resizeTimeoutRef.current = window.setTimeout(() => {
+        recompute()
+        resizeTimeoutRef.current = null
+      }, 150)
+    }
+
     window.addEventListener('resize', onResize)
+
+    // Add ResizeObserver to watch for element size/position changes
+    const meterEl = document.querySelector('.meter')
+    const inputContainer = document.querySelector('.input-container')
+    const mainEl = document.querySelector('main')
+    
+    const resizeObserver = new ResizeObserver(() => {
+      onResize()
+    })
+
+    if (meterEl) resizeObserver.observe(meterEl)
+    if (inputContainer) resizeObserver.observe(inputContainer)
+    if (mainEl) resizeObserver.observe(mainEl)
+
+    // Also recalculate on any navigation/route changes
+    const mutationObserver = new MutationObserver(() => {
+      onResize()
+    })
+
+    if (inputContainer) {
+      mutationObserver.observe(inputContainer, {
+        childList: true,
+        subtree: true,
+        attributes: false
+      })
+    }
+
     return () => {
       clearTimeout(timer)
+      clearTimeout(extraTimer)
       window.removeEventListener('resize', onResize)
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+      if (resizeTimeoutRef.current !== null) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
     }
   }, [])
 

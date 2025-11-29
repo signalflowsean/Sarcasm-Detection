@@ -1,25 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useWhichInput } from './useWhichInput'
-
-/**
- * Maps rotary switch values to URL paths
- */
-const VALUE_TO_PATH: Record<string, string> = {
-  off: '/getting-started',
-  text: '/text-input',
-  audio: '/audio-input',
-}
-
-/**
- * Maps URL paths to rotary switch values
- */
-const PATH_TO_VALUE: Record<string, string> = {
-  '/': 'off',
-  '/getting-started': 'off',
-  '/text-input': 'text',
-  '/audio-input': 'audio',
-}
+import { VALUE_TO_PATH, PATH_TO_VALUE } from './constants'
 
 /**
  * Component that syncs the rotary switch position with the URL route
@@ -81,4 +63,3 @@ export function RouteSync() {
 
   return null
 }
-

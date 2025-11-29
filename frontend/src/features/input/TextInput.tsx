@@ -44,7 +44,6 @@ const TextInput = () => {
         value={text}
         onChange={handleTextChange}
         placeholder="Type something here and send it to the detector — we'll see if it's sarcastic."
-        className="text-input__textarea"
         shouldFlash={!hasEverTyped}
       />
       <div className="text-input__controls">
