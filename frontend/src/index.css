@@ -125,7 +125,6 @@
 @layer components {
   /* Audio Recorder */
   .audio-recorder {
-    /* padding-inline-start: 2rem; */
     display: grid;
     gap: 1rem;
     align-items: start;
