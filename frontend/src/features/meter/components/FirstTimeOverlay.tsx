@@ -5,7 +5,6 @@ const STORAGE_KEY = 'sarcasm-detector-visited'
 const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [position, setPosition] = useState({ left: '50%', top: '45%' })
-  const contentRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
