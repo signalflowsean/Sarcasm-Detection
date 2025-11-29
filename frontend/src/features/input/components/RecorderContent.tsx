@@ -58,6 +58,11 @@ const RecorderContent = ({
   onSend,
 }: Props) => {
 
+  const transcriptDescriptionId = 'transcript-description'
+  const transcriptDescription = speechSupported
+    ? 'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
+    : 'Transcript area: Speech-to-text is not supported in this browser. Audio will be recorded, but automatic transcription is unavailable.'
+
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
@@ -75,12 +80,32 @@ const RecorderContent = ({
         emptyMessage={"Press Down on Microphone to Record"}
       />
 
+      {/* Visually hidden description for screen readers */}
+      <div
+        id={transcriptDescriptionId}
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0
+        }}
+      >
+        {transcriptDescription}
+      </div>
+
       <SharedTextArea
         value={(transcript + ' ' + interimTranscript).trim()}
         placeholder={speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'}
         disabled={true}
         className="audio-recorder__transcript"
         rows={2}
+        aria-describedby={transcriptDescriptionId}
+        aria-label="Speech transcript"
       />
 
       <Controls

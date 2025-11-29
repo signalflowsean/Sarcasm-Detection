@@ -33,3 +33,24 @@ export const PATH_TO_VALUE: Record<string, string> = {
   '/text-input': 'text',
   '/audio-input': 'audio',
 }
+
+/**
+ * Display labels for each input mode
+ */
+export const MODE_LABELS: Record<string, { title: string; action: string; description: string }> = {
+  off: {
+    title: 'Getting Started',
+    action: 'Open getting started',
+    description: 'Getting Started mode',
+  },
+  text: {
+    title: 'Text Input',
+    action: 'Open text input',
+    description: 'Text Input mode',
+  },
+  audio: {
+    title: 'Audio Recorder',
+    action: 'Open audio recorder',
+    description: 'Audio Recorder mode',
+  },
+}

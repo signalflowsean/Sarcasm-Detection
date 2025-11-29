@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWhichInput } from '../../meter/useWhichInput'
+import { MODE_LABELS } from '../../meter/constants'
 import MobileModal from './MobileModal'
 import Portal from './Portal'
 import { KeyboardIcon } from '../../meter/components/icons'
@@ -13,11 +14,17 @@ const MobileInputOverlay = ({ children }: Props) => {
   const [open, setOpen] = useState(false)
   const [pulsate, setPulsate] = useState(false)
   const prev = useRef(value)
+  const [announcement, setAnnouncement] = useState('')
 
   useEffect(() => {
     if (prev.current !== value && !open) {
       setPulsate(true)
       const t = setTimeout(() => setPulsate(false), 600)
+      
+      // Announce mode change to screen readers
+      const modeLabel = MODE_LABELS[value]?.description || 'Unknown mode'
+      setAnnouncement(`Input mode changed to ${modeLabel}`)
+      
       prev.current = value
       return () => clearTimeout(t)
     }
@@ -56,8 +63,8 @@ const MobileInputOverlay = ({ children }: Props) => {
     )
   })()
 
-  const title = value === 'off' ? 'Getting Started' : value === 'text' ? 'Text Input' : 'Audio Recorder'
-  const label = value === 'off' ? 'Open getting started' : value === 'text' ? 'Open text input' : 'Open audio recorder'
+  const title = MODE_LABELS[value]?.title || 'Input'
+  const label = MODE_LABELS[value]?.action || 'Open input'
 
   let launcherClass = 'audio-recorder__launcher'
   if (open) launcherClass += ' is-hidden'
@@ -65,6 +72,25 @@ const MobileInputOverlay = ({ children }: Props) => {
 
   return (
     <>
+      {/* Visually hidden live region for screen reader announcements */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0
+        }}
+      >
+        {announcement}
+      </div>
       <Portal target="mobile-launcher">
         <button type="button" className={launcherClass} aria-label={label} onClick={() => setOpen(true)}>
           {icon}

@@ -19,7 +19,7 @@ const GettingStarted = () => {
         </li>
       </ul>
       <p className="getting-started__cta">
-        So go ahead — say something clever, dry, or dangerously witty — and let the Sarcasm Detector decide whether you're joking or genius.
+        So go ahead — say something clever, dry, or dangerously witty — and let the Sarcasm Detector decide whether you're joking or a genius.
       </p>
     </div>
   )

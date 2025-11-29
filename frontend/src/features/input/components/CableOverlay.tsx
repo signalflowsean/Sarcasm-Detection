@@ -4,7 +4,7 @@ const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')
   const resizeTimeoutRef = useRef<number | null>(null)
 
-  const recompute = () => {
+  const recomputeCablePath = () => {
     const meterAnchor = document.querySelector('[data-cable-anchor="meter"]') as HTMLElement | null
     const inputAnchor = document.querySelector('[data-cable-anchor="input"]') as HTMLElement | null
     const inputContainer = document.querySelector('.input-container') as HTMLElement | null
@@ -102,11 +102,11 @@ const CableOverlay = () => {
       const inputContainer = document.querySelector('.input-container')
       
       if (meterEl && inputContainer) {
-        recompute()
+        recomputeCablePath()
         
         // Schedule an additional recalculation to catch any late layout changes
         extraAnimationFrameId = requestAnimationFrame(() => {
-          recompute()
+          recomputeCablePath()
         })
       } else {
         // If elements aren't ready, try again on next frame
@@ -128,7 +128,7 @@ const CableOverlay = () => {
       }
 
       resizeTimeoutRef.current = window.setTimeout(() => {
-        recompute()
+        recomputeCablePath()
         resizeTimeoutRef.current = null
       }, 150)
     }

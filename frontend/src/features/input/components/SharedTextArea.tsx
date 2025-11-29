@@ -8,10 +8,12 @@ type SharedTextAreaProps = {
   className?: string
   shouldFlash?: boolean
   rows?: number
+  'aria-describedby'?: string
+  'aria-label'?: string
 }
 
 const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps>(
-  ({ value, onChange, placeholder, disabled = false, className = '', shouldFlash = false, rows = 4 }, ref) => {
+  ({ value, onChange, placeholder, disabled = false, className = '', shouldFlash = false, rows = 4, 'aria-describedby': ariaDescribedBy, 'aria-label': ariaLabel }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (!disabled && onChange) onChange(e.target.value)
     }
@@ -24,6 +26,8 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
         placeholder={placeholder}
         disabled={disabled}
         rows={rows}
+        aria-describedby={ariaDescribedBy}
+        aria-label={ariaLabel}
       />
     )
   }

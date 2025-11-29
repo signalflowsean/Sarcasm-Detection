@@ -579,27 +579,7 @@
     gap: 1.75rem;
   }
 
-  .audio-recorder__modal .shared-textarea {
-    min-height: 14rem !important;
-    padding: 2rem !important;
-    font-size: clamp(1.35rem, 3.5vw, 1.65rem) !important;
-    line-height: 1.7 !important;
-  }
-
-  .audio-recorder__modal .text-input__send-btn {
-    padding: 1rem 2rem !important;
-    font-size: clamp(1.35rem, 3.5vw, 1.6rem) !important;
-    border-radius: 0.75rem !important;
-  }
-
-  .audio-recorder__modal .text-input__error {
-    font-size: clamp(1.25rem, 3vw, 1.5rem) !important;
-    padding: 1rem !important;
-  }
-
-  .audio-recorder__modal .text-input__controls {
-    margin-top: 1.5rem !important;
-  }
+  /* Modal text input overrides - moved to end of file after base styles */
 
   /* Hide jack/port in mobile modals */
   .audio-recorder__modal .input-container__port {
@@ -1625,4 +1605,55 @@ body:has(.audio-recorder__modal) .detector-jack {
     font-size: 1.25rem;
     padding: 0.625rem 1.25rem;
   }
+}
+
+/* ============================================================================
+ * MODAL OVERRIDES - Keep at end of file for proper cascade
+ * ============================================================================
+ * These styles override base component styles for modal contexts.
+ * They appear last to ensure they win in the cascade, even with equal specificity.
+ * Using .audio-recorder__modal.audio-recorder__modal increases specificity to (0,2,0)
+ * which beats single-class selectors (0,1,0) without needing !important.
+ */
+
+/* Shared textarea in modals - applies to both text input and audio recorder transcript */
+.audio-recorder__modal.audio-recorder__modal .shared-textarea {
+  min-height: 14rem;
+  padding: 2rem;
+  font-size: clamp(1.35rem, 3.5vw, 1.65rem);
+  line-height: 1.7;
+}
+
+/* Text input send button in modals */
+.audio-recorder__modal.audio-recorder__modal .text-input__send-btn {
+  padding: 1rem 2rem;
+  font-size: clamp(1.35rem, 3.5vw, 1.6rem);
+  border-radius: 0.75rem;
+}
+
+/* Text input error messages in modals */
+.audio-recorder__modal.audio-recorder__modal .text-input__error {
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  padding: 1rem;
+}
+
+/* Text input controls container in modals */
+.audio-recorder__modal.audio-recorder__modal .text-input__controls {
+  margin-top: 1.5rem;
+}
+
+/* Getting Started content in modals - larger text for better readability */
+.audio-recorder__modal.audio-recorder__modal .getting-started__title {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.audio-recorder__modal.audio-recorder__modal .getting-started__intro {
+  font-size: clamp(1.25rem, 3.5vw, 1.6rem);
+}
+
+.audio-recorder__modal.audio-recorder__modal .getting-started__description,
+.audio-recorder__modal.audio-recorder__modal .getting-started__model,
+.audio-recorder__modal.audio-recorder__modal .getting-started__cta {
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  line-height: 1.7;
 }
