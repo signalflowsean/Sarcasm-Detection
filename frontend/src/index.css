@@ -17,7 +17,7 @@
   }
 
   html {
-    font-size: 18px;
+    font-size: 112.5%; /* 18px at default 16px browser setting */
     color-scheme: dark light;
     /* Default dark */
     hanging-punctuation: first last;

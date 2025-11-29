@@ -49,6 +49,7 @@ const TextInput = () => {
         onChange={handleTextChange}
         placeholder="Type something here and send it to the detector — we'll see if it's sarcastic."
         shouldFlash={!hasEverTyped}
+        disabled={isSending}
       />
       <div className="text-input__controls">
         <button

@@ -12,6 +12,10 @@ const FirstTimeOverlay = () => {
     // Check if user has visited before
     const hasVisited = localStorage.getItem(STORAGE_KEY)
     let animationFrameId: number | undefined;
+    let retryCount = 0;
+    const MAX_RETRIES = 100; // Maximum number of animation frames to try
+    const MAX_TIME_MS = 5000; // Maximum time to wait (5 seconds)
+    const startTime = Date.now();
     
     if (!hasVisited) {
       setShowOverlay(true)
@@ -19,6 +23,8 @@ const FirstTimeOverlay = () => {
       // Position overlay based on rotary knob location
       const tryPositionOverlay = () => {
         const knob = document.querySelector('.rotary__knob') as HTMLElement;
+        const elapsedTime = Date.now() - startTime;
+        
         if (knob) {
           const rect = knob.getBoundingClientRect();
           // Position to the right of the knob - arrow will start here
@@ -29,8 +35,13 @@ const FirstTimeOverlay = () => {
             left: `${rightX}px`,
             top: `${centerY}px`
           });
-        } else {
+        } else if (retryCount < MAX_RETRIES && elapsedTime < MAX_TIME_MS) {
+          // Only retry if we haven't exceeded the maximum retries or time
+          retryCount++;
           animationFrameId = requestAnimationFrame(tryPositionOverlay);
+        } else {
+          // Give up after max retries/time - fallback to center position
+          console.warn('FirstTimeOverlay: Could not find .rotary__knob element after', retryCount, 'retries and', elapsedTime, 'ms');
         }
       };
       tryPositionOverlay();

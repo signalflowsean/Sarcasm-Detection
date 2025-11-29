@@ -66,7 +66,7 @@ const RecorderContent = ({
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
-        <MicButton ref={micRef} isRecording={isRecording} shouldFlash={shouldFlashMic} disabled={isPlaying} onClick={onMicClick} onKeyDown={onMicKeyDown} />
+        <MicButton ref={micRef} isRecording={isRecording} shouldFlash={shouldFlashMic} disabled={isPlaying || sending} onClick={onMicClick} onKeyDown={onMicKeyDown} />
         <Status isRecording={isRecording} isPlaying={isPlaying} hasAudio={!!audioSrc} duration={durationLabel} />
       </div>
 
@@ -109,12 +109,12 @@ const RecorderContent = ({
       />
 
       <Controls
-        canPlay={canPlay}
+        canPlay={canPlay && !sending}
         isPlaying={isPlaying}
         isRecording={isRecording}
         onTogglePlay={onTogglePlay}
         onDiscard={onDiscard}
-        canDiscard={canDiscard}
+        canDiscard={canDiscard && !sending}
         onSend={onSend}
         canSend={canSend}
         sending={sending}

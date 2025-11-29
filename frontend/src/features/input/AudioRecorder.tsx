@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 // portal usage is encapsulated in MobileRecorderOverlay
 import { sendLexicalText, sendProsodicAudio } from './apiService'
 import { formatDuration, clamp01 } from './utils'
@@ -529,6 +529,7 @@ const AudioRecorder = () => {
   }
 
   // Send
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onSend = async () => {
     if (!state.audioBlob) return
     setState((s) => ({ ...s, isSending: true, error: null }))
@@ -552,7 +553,8 @@ const AudioRecorder = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
   const [audioDurationMs, setAudioDurationMs] = useState(0)
-  const togglePlay = useCallback(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const togglePlay = () => {
     const el = audioRef.current
     if (!el) return
     if (el.paused) {
@@ -573,7 +575,7 @@ const AudioRecorder = () => {
     } else {
       el.pause()
     }
-  }, [])
+  }
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -648,8 +650,8 @@ const AudioRecorder = () => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
-      // Don't toggle if playing audio
-      if (isPlaying) return
+      // Don't toggle if playing audio or sending
+      if (isPlaying || state.isSending) return
       
       e.preventDefault()
       if (state.isRecording) {
@@ -661,7 +663,7 @@ const AudioRecorder = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.isRecording, isPlaying, startRecording, stopRecording])
+  }, [state.isRecording, state.isSending, isPlaying, startRecording, stopRecording])
 
   // Global keyboard handler for Delete/Backspace key to discard recording
   useEffect(() => {
@@ -673,8 +675,8 @@ const AudioRecorder = () => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
-      // Only discard if there's audio to discard AND not currently recording
-      if (state.audioBlob && !state.isRecording) {
+      // Only discard if there's audio to discard AND not currently recording or sending
+      if (state.audioBlob && !state.isRecording && !state.isSending) {
         e.preventDefault()
         discardRecording()
       }
@@ -682,7 +684,7 @@ const AudioRecorder = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.audioBlob, state.isRecording, discardRecording])
+  }, [state.audioBlob, state.isRecording, state.isSending, discardRecording])
 
   // Global keyboard handler for Cmd/Ctrl+Enter to send
   useEffect(() => {
@@ -715,8 +717,8 @@ const AudioRecorder = () => {
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
       
-      // Only toggle playback if there's audio to play (not for recording)
-      if (state.audioUrl && !state.isRecording) {
+      // Only toggle playback if there's audio to play (not for recording or sending)
+      if (state.audioUrl && !state.isRecording && !state.isSending) {
         e.preventDefault() // Prevent page scroll
         togglePlay()
       }
@@ -724,7 +726,7 @@ const AudioRecorder = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [state.isRecording, state.audioUrl, togglePlay])
+  }, [state.isRecording, state.isSending, state.audioUrl, togglePlay])
 
   return (
     <>
