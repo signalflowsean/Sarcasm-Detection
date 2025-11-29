@@ -118,7 +118,6 @@
     grid-template-columns: 2fr 3fr; /* Detector is larger and more prominent */
     gap: 2rem;
     background-color: var(--clr-secondary);
-    /* padding: 1rem; */
   }
 }
 
