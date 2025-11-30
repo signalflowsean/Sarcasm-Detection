@@ -51,7 +51,11 @@ const InputContainer = () => {
       <section className="input-container">
         <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
         <MobileInputOverlay>
-          {content}
+          {({ onClose }) => {
+            if (displayValue === 'off') return <GettingStarted />
+            if (displayValue === 'text') return <TextInput onClose={onClose} />
+            return <AudioRecorder onClose={onClose} />
+          }}
         </MobileInputOverlay>
       </section>
     )

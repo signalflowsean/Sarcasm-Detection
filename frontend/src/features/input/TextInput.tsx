@@ -3,7 +3,11 @@ import SharedTextArea from './components/SharedTextArea'
 import { sendLexicalText } from './apiService'
 import { isMacPlatform } from './utils'
 
-const TextInput = () => {
+type TextInputProps = {
+  onClose?: () => void
+}
+
+const TextInput = ({ onClose }: TextInputProps = {}) => {
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,6 +25,8 @@ const TextInput = () => {
     try {
       await sendLexicalText(payload)
       setText('')
+      // Close modal after successful send (mobile only)
+      onClose?.()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send'
       setError(msg)

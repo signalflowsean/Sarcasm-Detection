@@ -6,7 +6,7 @@ import Portal from './Portal'
 import { KeyboardIcon } from '../../meter/components/icons'
 
 type Props = {
-  children: React.ReactNode
+  children: React.ReactNode | ((props: { onClose: () => void }) => React.ReactNode)
 }
 
 const MobileInputOverlay = ({ children }: Props) => {
@@ -15,6 +15,8 @@ const MobileInputOverlay = ({ children }: Props) => {
   const [pulsate, setPulsate] = useState(false)
   const prev = useRef(value)
   const [announcement, setAnnouncement] = useState('')
+  
+  const handleClose = () => setOpen(false)
 
   useEffect(() => {
     if (prev.current !== value && !open) {
@@ -97,8 +99,8 @@ const MobileInputOverlay = ({ children }: Props) => {
       </Portal>
       {open && (
         <Portal target="body">
-          <MobileModal open={open} onClose={() => setOpen(false)}>
-            {children}
+          <MobileModal open={open} onClose={handleClose}>
+            {typeof children === 'function' ? children({ onClose: handleClose }) : children}
           </MobileModal>
         </Portal>
       )}

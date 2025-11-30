@@ -38,7 +38,11 @@ type RecorderState = {
 
 // extracted hooks are imported from ./hooks
 
-const AudioRecorder = () => {
+type AudioRecorderProps = {
+  onClose?: () => void
+}
+
+const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
 
   const [state, setState] = useState<RecorderState>({
     isRecording: false,
@@ -540,6 +544,8 @@ const AudioRecorder = () => {
       ])
       // Successfully sent - discard the recording to allow a new one
       discardRecording()
+      // Close modal after successful send (mobile only)
+      onClose?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
       setState((s) => ({ ...s, error: message }))
