@@ -76,6 +76,7 @@ const findBoundaryIntersection = (rowBottom: number): { x: number; y: number } =
   const c = (r * r - 625) / 625;
   
   const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return { x: 0, y: rowBottom };
   const u = (-b - Math.sqrt(discriminant)) / (2 * a); // Take more negative root for left side
   
   const x = 50 * u + 50;
@@ -93,6 +94,30 @@ const LEXICAL_END = { x: 100 - LEXICAL_START.x, y: LEXICAL_START.y };
 // Indicator size as percentage of container dimensions
 const INDICATOR_WIDTH_PCT = 5;
 const INDICATOR_HEIGHT_PCT = 4;
+
+// Needle rotation constants (must match the Needle component in index.tsx)
+const NEEDLE_MIN_DEG = -55;
+const NEEDLE_MAX_DEG = 55;
+const NEEDLE_RANGE_DEG = NEEDLE_MAX_DEG - NEEDLE_MIN_DEG; // 110 degrees
+const MAX_SIN = Math.sin(NEEDLE_MAX_DEG * Math.PI / 180); // sin(55°) ≈ 0.819
+
+/**
+ * Convert a value (0-1) to a position fraction (0-1) that matches the needle's
+ * sinusoidal arc. This ensures the level indicator appears at the same relative
+ * horizontal position as the needle tip for any given value.
+ * 
+ * The needle rotates from -55° to +55°, creating a sinusoidal x-position.
+ * This function maps value → angle → sin(angle) → normalized fraction.
+ */
+const valueToNeedleAlignedFraction = (value: number): number => {
+  // Convert value to needle rotation angle (same formula as Needle component)
+  const angleDeg = NEEDLE_MIN_DEG + value * NEEDLE_RANGE_DEG;
+  const angleRad = angleDeg * Math.PI / 180;
+  
+  // Convert angle to horizontal position fraction
+  // sin(angle) ranges from -sin(55°) to +sin(55°), we normalize to 0-1
+  return (Math.sin(angleRad) / MAX_SIN + 1) / 2;
+};
 
 type IndicatorProps = {
   value: number;
@@ -130,9 +155,11 @@ const Indicator = ({
   const arcStart = variant === 'prosodic' ? PROSODIC_START : LEXICAL_START;
   const arcEnd = variant === 'prosodic' ? PROSODIC_END : LEXICAL_END;
   
-  // Map value (0-1) to x position along the visible arc
-  // value=0 -> arcStart.x, value=1 -> arcEnd.x
-  const xPct = arcStart.x + value * (arcEnd.x - arcStart.x);
+  // Map value (0-1) to x position along the visible arc using the same
+  // sinusoidal scale as the needle. This ensures alignment between
+  // the needle position and level indicator for single-input scenarios.
+  const positionFraction = valueToNeedleAlignedFraction(value);
+  const xPct = arcStart.x + positionFraction * (arcEnd.x - arcStart.x);
   
   // Get Y position on the ellipse curve
   const yPct = getEllipseY(xPct, rowBottom);
@@ -210,6 +237,10 @@ const LevelIndicators = ({
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   
+  // Refs to track animation frame IDs for proper cleanup
+  const outerFrameRef = useRef<number | null>(null);
+  const innerFrameRef = useRef<number | null>(null);
+  
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -232,11 +263,24 @@ const LevelIndicators = ({
   useEffect(() => {
     if (dimensions && !isVisible) {
       // Wait for the SVG to be in position before showing
-      const id = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setIsVisible(true));
+      outerFrameRef.current = requestAnimationFrame(() => {
+        innerFrameRef.current = requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
       });
-      return () => cancelAnimationFrame(id);
     }
+    
+    return () => {
+      // Cancel both animation frames on cleanup
+      if (outerFrameRef.current !== null) {
+        cancelAnimationFrame(outerFrameRef.current);
+        outerFrameRef.current = null;
+      }
+      if (innerFrameRef.current !== null) {
+        cancelAnimationFrame(innerFrameRef.current);
+        innerFrameRef.current = null;
+      }
+    };
   }, [dimensions, isVisible]);
   
   return (

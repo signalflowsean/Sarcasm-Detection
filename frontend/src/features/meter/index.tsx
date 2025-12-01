@@ -48,7 +48,16 @@ const MeterSection = () => {
   // Calculate display values (0 for disabled meters)
   const displayLexicalValue = lexicalEnabled ? lexicalValue : 0;
   const displayProsodicValue = prosodicEnabled ? prosodicValue : 0;
-  const displayMainValue = powerState === 'on' ? mainValue : 0;
+  
+  // Calculate main needle value based on enabled inputs:
+  // - When both inputs are enabled (audio mode): average them
+  // - When only lexical is enabled (text mode): use lexical value directly
+  // - When powered off: 0
+  const displayMainValue = powerState === 'on'
+    ? (prosodicEnabled 
+        ? mainValue  // Audio mode: use average of both
+        : lexicalValue)  // Text mode: use lexical directly (no averaging with disabled prosodic)
+    : 0;
 
   // Determine animation duration based on state
   const needleAnimDuration = detectionState === DetectionState.RESETTING 
@@ -134,7 +143,7 @@ const MeterSection = () => {
       {/* Cable anchor on meter */}
       <div className="detector-jack" data-cable-anchor="meter" aria-hidden="true" />
       {/* Mobile simple cable */}
-      <div className="mobile-cable" aria-hidden="true" />
+      <div className={`mobile-cable ${isLoading ? 'mobile-cable--loading' : ''}`} aria-hidden="true" />
     </section>
   );
 };
