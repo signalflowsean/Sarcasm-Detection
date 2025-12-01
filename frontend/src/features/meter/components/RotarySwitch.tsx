@@ -5,28 +5,46 @@ import { normalizeDegrees, circularDistance, angleFromPoints } from '../utils'
 
 type CSSVarProps = React.CSSProperties & Record<`--${string}`, string | number>
 
+const STORAGE_KEY = 'sarcasm-detector-visited'
+
 const RotarySwitch: React.FC = () => {
   const { positions, index, setIndex, next, prev } = useWhichInput()
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  // Initialize first-time state directly from localStorage (lazy init for SSR safety)
+  const [isFirstTime, setIsFirstTime] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !localStorage.getItem(STORAGE_KEY)
+  })
   const ref = useRef<HTMLDivElement | null>(null)
 
   const activeIndex = dragIndex ?? index
   const angleNow = normalizeDegrees(positions[activeIndex]?.degrees ?? 0)
   const knobVars: CSSVarProps = { '--angle-deg': `${angleNow}deg` }
 
+  const dismissFirstTime = useEffectEvent(() => {
+    if (isFirstTime) {
+      localStorage.setItem(STORAGE_KEY, 'true')
+      setIsFirstTime(false)
+    }
+  })
+
   const handleKey = useEffectEvent((e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
       prev()
+      dismissFirstTime()
     } else if (e.key === 'ArrowRight') {
       e.preventDefault()
       next()
+      dismissFirstTime()
     } else if (e.key === 'Home') {
       e.preventDefault()
       setIndex(0)
+      dismissFirstTime()
     } else if (e.key === 'End') {
       e.preventDefault()
       setIndex(positions.length - 1)
+      dismissFirstTime()
     }
   })
 
@@ -76,6 +94,7 @@ const RotarySwitch: React.FC = () => {
       setDragIndex(null)
     }
     if (el && el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+    dismissFirstTime()
   })
 
   useEffect(() => {
@@ -109,7 +128,7 @@ const RotarySwitch: React.FC = () => {
       style={knobVars}
     >
       <span className="rotary__plate" aria-hidden />
-      <span className="rotary__knob" data-role="knob" aria-hidden />
+      <span className={`rotary__knob ${isFirstTime ? 'rotary__knob--pulse' : ''}`} data-role="knob" aria-hidden />
       {positions.map((p, i) => (
         <span
           key={p.value}

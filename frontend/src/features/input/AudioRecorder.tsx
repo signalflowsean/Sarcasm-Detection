@@ -4,6 +4,7 @@ import { sendLexicalText, sendProsodicAudio } from './apiService'
 import { formatDuration, clamp01 } from './utils'
 import { useRafInterval } from './hooks'
 import RecorderContent from './components/RecorderContent'
+import { useDetection } from '../meter/useDetection'
 
 type Nullable<T> = T | null
 
@@ -57,6 +58,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
 
   // Track if user has ever started recording (to control mic button flash)
   const [hasEverRecorded, setHasEverRecorded] = useState(false)
+
+  // Detection context for meter display
+  const { setLoading, setDetectionResult } = useDetection()
 
   const mediaRecorderRef = useRef<Nullable<MediaRecorder>>(null)
   const mediaStreamRef = useRef<Nullable<MediaStream>>(null)
@@ -537,11 +541,20 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   const onSend = async () => {
     if (!state.audioBlob) return
     setState((s) => ({ ...s, isSending: true, error: null }))
+    // Signal detection loading state to meter
+    setLoading(true)
     try {
-      await Promise.all([
+      const [prosodicResponse, lexicalResponse] = await Promise.all([
         sendProsodicAudio(state.audioBlob),
-        state.transcript.trim() ? sendLexicalText(state.transcript.trim()) : Promise.resolve({ id: 'no-text' }),
+        state.transcript.trim() 
+          ? sendLexicalText(state.transcript.trim()) 
+          : Promise.resolve({ id: 'no-text', value: 0 }),
       ])
+      // Pass both values to detection provider
+      setDetectionResult({ 
+        lexical: lexicalResponse.value, 
+        prosodic: prosodicResponse.value,
+      })
       // Successfully sent - discard the recording to allow a new one
       discardRecording()
       // Close modal after successful send (mobile only)
@@ -549,6 +562,8 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
       setState((s) => ({ ...s, error: message }))
+      // Reset loading state on error
+      setLoading(false)
     } finally {
       setState((s) => ({ ...s, isSending: false }))
     }

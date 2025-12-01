@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SharedTextArea from './components/SharedTextArea'
 import { sendLexicalText } from './apiService'
 import { isMacPlatform } from './utils'
+import { useDetection } from '../meter/useDetection'
 
 type TextInputProps = {
   onClose?: () => void
@@ -13,6 +14,8 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
   const [error, setError] = useState<string | null>(null)
   const [hasEverTyped, setHasEverTyped] = useState(false)
 
+  const { setLoading, setDetectionResult } = useDetection()
+
   // Detect platform for keyboard shortcut display
   const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
@@ -22,14 +25,20 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
     if (!payload) return
     setIsSending(true)
     setError(null)
+    // Signal detection loading state to meter
+    setLoading(true)
     try {
-      await sendLexicalText(payload)
+      const response = await sendLexicalText(payload)
+      // Pass lexical value to detection provider (prosodic stays at 0 for text mode)
+      setDetectionResult({ lexical: response.value, prosodic: 0 })
       setText('')
       // Close modal after successful send (mobile only)
       onClose?.()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send'
       setError(msg)
+      // Reset loading state on error
+      setLoading(false)
     } finally {
       setIsSending(false)
     }
