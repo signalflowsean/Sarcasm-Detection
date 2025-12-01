@@ -73,29 +73,41 @@
 }
 
 @layer base {
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
   :root {
-    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
     --clr-primary: #fff;
-    --clr-secondary: #000;
-    --clr-terciary: #202020;
+    --clr-secondary: #0a0908;
+    --clr-tertiary: #1a1816;
 
-    --clr-meter-display-boundary: #d3d3d3;
-    --level-clr-primary: #ff0000;
-    --level-clr-secondary: #ffa500;
-    --needle-holder-clr: #808080;
-    --needle-clr: #444;
+    /* Vintage bakelite and brass palette */
+    --clr-meter-display-boundary: #e8e0d0;
+    --level-clr-primary: #c41e3a; /* Cardinal red */
+    --level-clr-secondary: #cd7f32; /* Bronze */
+    --needle-holder-clr: #8b7355; /* Weathered brass */
+    --needle-clr: #1a1a1a;
+    
+    /* Vintage meter colors */
+    --meter-face-cream: #f7f3e3;
+    --meter-face-aged: #efe8d5;
+    --meter-bezel-dark: #2a2520;
+    --meter-bezel-light: #4a453d;
+    --meter-brass: #b8860b;
+    --meter-brass-dark: #8b6914;
+    --meter-patina: #5c6b5d;
 
     --min-col-width: 25rem;
-    --border-radius-primary: 1rem;
+    --border-radius-primary: 0.375rem;
 
     --meter-level-thickness: 0.625em;
-    --meter-tick-width: 0.15em;
-    --meter-display-margin: 8%;
+    --meter-tick-width: 0.125em;
+    --meter-display-margin: 6%;
     --meter-padding: 2rem;
     --meter-aspect-ratio: calc(3 / 4);
 
@@ -104,8 +116,8 @@
 
   @media (prefers-color-scheme: light) {
     :root {
-      --clr-primary: #000;
-      --clr-secondary: #fff;
+      --clr-primary: #1a1816;
+      --clr-secondary: #f5f0e6;
     }
   }
 }
@@ -341,6 +353,7 @@
   .audio-btn--primary { background: #1f2937; border-color: rgba(59,130,246,.45); }
   .audio-btn--primary:hover { background: #263247; }
   .audio-btn--danger { background: #3a1f1f; border-color: rgba(239,68,68,.45); }
+  .audio-btn--danger svg { min-width: 1.25rem; }
   .audio-btn--danger:hover { background: #4a2626; }
   
   .audio-btn--with-shortcut {
@@ -593,20 +606,93 @@
     display: flex;
     flex-direction: column;
 
-    background-color: var(--clr-terciary);
+    /* Vintage bakelite housing with wood grain undertones */
+    background: 
+      /* Fine wood grain texture */
+      repeating-linear-gradient(
+        87deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(139, 90, 43, 0.03) 2px,
+        rgba(139, 90, 43, 0.03) 3px
+      ),
+      /* Subtle noise texture */
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"),
+      /* Deep bakelite gradient */
+      linear-gradient(
+        175deg,
+        #3d3632 0%,
+        #2a2520 25%,
+        #1f1c19 50%,
+        #2a2520 75%,
+        #1f1c19 100%
+      );
     border-radius: var(--border-radius-primary);
 
-    box-shadow: inset 0 0 3rem rgba(255, 255, 255, 0.2);
+    /* Layered vintage shadows for depth */
+    box-shadow: 
+      /* Outer glow - subtle warmth */
+      0 0 40px rgba(139, 90, 43, 0.1),
+      /* Heavy drop shadow */
+      0 20px 50px rgba(0, 0, 0, 0.5),
+      0 8px 25px rgba(0, 0, 0, 0.4),
+      /* Inner edge highlights */
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+      /* Subtle inner glow from display */
+      inset 0 0 60px rgba(247, 243, 227, 0.03);
     
-    padding-top: 2.5rem; /* Align top with title */
+    /* Metallic edge trim */
+    border: 1px solid rgba(139, 115, 85, 0.3);
+    
+    padding-top: 2.5rem;
     >*:not(.meter__title) {
       flex: 1 1 0;
+    }
+    
+    /* Brass corner accents */
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: 
+        radial-gradient(
+          circle at 35% 35%,
+          #d4af37 0%,
+          #b8860b 40%,
+          #8b6914 70%,
+          #5c4a1f 100%
+        );
+      box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.4),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.4),
+        0 2px 4px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+    
+    &::before {
+      top: 12px;
+      left: 12px;
+    }
+    
+    &::after {
+      top: 12px;
+      right: 12px;
     }
   }
 
   .meter__title {
     display: none; /* Hidden on desktop */
     flex: 0 0 auto; /* Ensure title doesn't stretch */
+    font-family: 'Playfair Display', Georgia, serif;
+    color: #d4af37;
+    text-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.6),
+      0 -1px 0 rgba(255, 223, 150, 0.2),
+      0 0 15px rgba(212, 175, 55, 0.25);
   }
 
   /* Mobile launcher portal container */
@@ -627,12 +713,49 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(4, 1fr);
+    /* Prevent sub-pixel gaps between grid cells */
+    gap: 0;
 
-    margin-block-start: var(--meter-display-margin);
-    margin-inline: var(--meter-display-margin);
-    border-radius: var(--border-radius-primary);
-    background-color: var(--clr-primary);
+    border-radius: 4px;
     overflow: hidden;
+    
+    /* Consistent vintage meter face color - warm aged ivory/cream */
+    --meter-face-color: #f5f1e4;
+    background-color: var(--meter-face-color);
+    
+    /* Deeply recessed display with brass bezel */
+    box-shadow: 
+      /* Outer brass frame edge */
+      inset 0 0 0 4px #9a7850,
+      inset 0 0 0 5px #6b5538,
+      inset 0 0 0 6px rgba(0, 0, 0, 0.3),
+      /* Deep recess shadow */
+      inset 0 10px 25px rgba(0, 0, 0, 0.22),
+      inset 0 -4px 12px rgba(255, 250, 235, 0.3),
+      inset 8px 0 18px rgba(0, 0, 0, 0.12),
+      inset -8px 0 18px rgba(0, 0, 0, 0.12);
+    
+    /* Glass cover border */
+    border: 1px solid rgba(60, 50, 35, 0.5);
+    
+    /* Glass effect pseudo-element */
+    position: relative;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      /* Glass glare diagonal streak */
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.06) 20%,
+        transparent 35%,
+        transparent 100%
+      );
+      border-radius: inherit;
+    }
   }
 
   .meter__controls {
@@ -644,7 +767,8 @@
     width: 100%;
     height: 100%;
     grid-row: 1 / 5;
-    background-color: var(--clr-primary);
+    /* Use the same solid color as display */
+    background-color: var(--meter-face-color, #f5f1e4);
     z-index: 1;
   }
 
@@ -666,15 +790,37 @@
 
     background: var(--level-color);
     clip-path: ellipse(50% 100% at bottom center);
+    
+    /* Position above the level indicators */
+    position: relative;
+    z-index: 1;
   }
 
   .meter__display__level--prosodic {
-    --level-color: var(--level-clr-primary);
+    /* Deep vintage cardinal red with gradient */
+    --level-color: linear-gradient(
+      90deg,
+      #8a1828 0%,
+      #a82035 30%,
+      #c41e3a 50%,
+      #a82035 70%,
+      #8a1828 100%
+    );
+    background: var(--level-color);
     grid-row: 2 / 3;
   }
 
   .meter__display__level--lexical {
-    --level-color: var(--level-clr-secondary);
+    /* Rich amber/bronze with gradient */
+    --level-color: linear-gradient(
+      90deg,
+      #7a5020 0%,
+      #9a6930 30%,
+      #c9923e 50%,
+      #9a6930 70%,
+      #7a5020 100%
+    );
+    background: var(--level-color);
     grid-row: 3 / 4;
   }
 
@@ -686,7 +832,8 @@
 
     display: flex;
     justify-content: space-between;
-    background: white;
+    /* Use the same solid color as display */
+    background-color: var(--meter-face-color, #f5f1e4);
     clip-path: ellipse(calc(50% - var(--meter-level-thickness)) calc(100% - var(--meter-level-thickness)) at bottom center);
   }
 
@@ -696,7 +843,8 @@
     width: 100%;
     height: 100%;
 
-    background: var(--clr-primary);
+    /* Use the same solid color as display */
+    background-color: var(--meter-face-color, #f5f1e4);
     clip-path: ellipse(calc(50% - var(--meter-level-thickness) * 2) calc(100% - var(--meter-level-thickness) * 2) at bottom center);
   }
 
@@ -705,7 +853,8 @@
     left: 0;
     width: var(--meter-tick-width);
     height: 100%;
-    background: color-mix(in srgb, var(--clr-secondary) 60%, white 40%);
+    /* Classic dark tick marks */
+    background: #2a2520;
   }
 
   .meter__needle__holder {
@@ -717,37 +866,486 @@
     width: 100%;
     height: 100%;
 
-    background: var(--needle-holder-clr);
-    clip-path: circle(40% at bottom center);
-    filter: blur(6px);
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+    /* Vintage brass pivot mount with patina */
+    background: 
+      /* Dome highlight */
+      radial-gradient(
+        ellipse 60% 45% at 50% 30%,
+        rgba(255, 223, 150, 0.6) 0%,
+        rgba(255, 223, 150, 0.2) 40%,
+        transparent 70%
+      ),
+      /* Machined concentric rings - brass */
+      repeating-radial-gradient(
+        circle at 50% 100%,
+        transparent 0px,
+        transparent 2px,
+        rgba(92, 74, 50, 0.25) 2px,
+        rgba(92, 74, 50, 0.25) 3px,
+        rgba(255, 223, 150, 0.15) 3px,
+        rgba(255, 223, 150, 0.15) 4px,
+        transparent 4px,
+        transparent 6px
+      ),
+      /* Inner detail rings */
+      repeating-radial-gradient(
+        circle at 50% 100%,
+        transparent 0px,
+        transparent 1px,
+        rgba(92, 74, 50, 0.12) 1px,
+        rgba(92, 74, 50, 0.12) 2px,
+        transparent 2px,
+        transparent 3px
+      ),
+      /* Rich brass gradient with aged patina hints */
+      radial-gradient(
+        ellipse 95% 75% at 50% 115%,
+        #d4af37 0%,
+        #c9a227 20%,
+        #b8960b 40%,
+        #8b7355 60%,
+        #6b5a45 80%,
+        #4a3f32 100%
+      );
+    clip-path: circle(42% at bottom center);
+    box-shadow: 
+      /* Deep inset shadows for dimension */
+      inset 0 -4px 10px rgba(0, 0, 0, 0.5),
+      inset 0 4px 6px rgba(255, 223, 150, 0.3),
+      /* Outer ring shadow */
+      0 4px 12px rgba(0, 0, 0, 0.6),
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      /* Subtle brass glow */
+      0 0 20px rgba(184, 134, 11, 0.15);
     z-index: 3;
+    
+    /* Central pivot screw */
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: 
+        radial-gradient(
+          circle at 35% 35%,
+          #f4e4bc 0%,
+          #d4af37 30%,
+          #8b6914 60%,
+          #4a3520 100%
+        );
+      box-shadow:
+        inset 0 -1px 2px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(0, 0, 0, 0.4);
+    }
   }
 
   .meter__needle {
     grid-column: 2 / 3;
     grid-row: 1 / 5;
 
-    width: 3px;
-    height: 95%;
+    width: 12px;
+    height: 92%;
 
     margin-block-start: auto;
     margin-inline: auto;
-    background: var(--needle-clr);
+    
+    /* Classic blued steel needle */
+    background: linear-gradient(
+      90deg,
+      #0a0a12 0%,
+      #1a1a28 25%,
+      #2a2a3a 50%,
+      #1a1a28 75%,
+      #0a0a12 100%
+    );
     transform-origin: 50% 100%;
-    rotate: 27deg;
+    transform: rotate(var(--needle-rotation, -55deg));
     z-index: 2;
 
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+    /* Needle shadow for depth */
+    box-shadow: 
+      2px 2px 6px rgba(0, 0, 0, 0.5),
+      0 0 1px rgba(0, 0, 0, 0.6);
+    transition: transform var(--anim-duration, 700ms) cubic-bezier(0.34, 1.2, 0.64, 1);
+    
+    /* Elegant tapered needle shape */
+    clip-path: polygon(
+      35% 1.5%,
+      50% 0%,
+      65% 1.5%,
+      56% 10%,
+      56% 100%,
+      44% 100%,
+      44% 10%
+    );
+    
+    /* Red tip indicator */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 15%;
+      background: linear-gradient(
+        to bottom,
+        #c41e3a 0%,
+        #8b1428 60%,
+        transparent 100%
+      );
+      clip-path: polygon(
+        0% 0%,
+        100% 0%,
+        80% 100%,
+        20% 100%
+      );
+    }
+  }
+
+  /* ========================================
+     METER POWER STATES & ANIMATIONS
+     ======================================== */
+  
+  /* Power OFF state - cold, unlit display */
+  .meter--off .meter__display {
+    --meter-face-color: #e0dcd0;
+    background-color: var(--meter-face-color);
+    filter: saturate(0.35) brightness(0.9);
+  }
+
+  .meter--off .meter__needle {
+    transform: rotate(-55deg) !important;
+    transition: none;
+    opacity: 0.7;
   }
   
-  /* Rotary switch */
+  .meter--off .meter__needle::before {
+    opacity: 0.5;
+  }
+
+  .meter--off .level-indicator {
+    opacity: 0.3;
+  }
+
+  /* Power ON state - warm incandescent tube glow */
+  .meter__display--backlit {
+    /* Warmer cream when backlit */
+    --meter-face-color: #faf6eb;
+    background-color: var(--meter-face-color);
+    box-shadow: 
+      /* Brass bezel glowing */
+      inset 0 0 0 4px #b89060,
+      inset 0 0 0 5px #7a6040,
+      inset 0 0 0 6px rgba(0, 0, 0, 0.25),
+      /* Recessed shadows - softened for glow */
+      inset 0 8px 20px rgba(0, 0, 0, 0.1),
+      inset 0 -4px 12px rgba(255, 250, 235, 0.35),
+      inset 6px 0 15px rgba(0, 0, 0, 0.05),
+      inset -6px 0 15px rgba(0, 0, 0, 0.05),
+      /* Warm incandescent backlight glow */
+      inset 0 0 100px rgba(255, 230, 170, 0.4),
+      inset 0 0 50px rgba(255, 215, 140, 0.3),
+      /* Outer warm glow */
+      0 0 35px rgba(255, 215, 140, 0.2);
+    /* Hint browser to optimize for box-shadow changes (promotes to own layer) */
+    will-change: box-shadow;
+    animation: backlight-pulse 8s ease-in-out infinite;
+  }
+
+  /* Disable animation for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .meter__display--backlit {
+      animation: none;
+      will-change: auto;
+    }
+  }
+
+  @keyframes backlight-pulse {
+    0%, 100% {
+      box-shadow: 
+        inset 0 0 0 4px #b89060,
+        inset 0 0 0 5px #7a6040,
+        inset 0 0 0 6px rgba(0, 0, 0, 0.25),
+        inset 0 8px 20px rgba(0, 0, 0, 0.1),
+        inset 0 -4px 12px rgba(255, 250, 235, 0.35),
+        inset 6px 0 15px rgba(0, 0, 0, 0.05),
+        inset -6px 0 15px rgba(0, 0, 0, 0.05),
+        inset 0 0 100px rgba(255, 230, 170, 0.4),
+        inset 0 0 50px rgba(255, 215, 140, 0.3),
+        0 0 35px rgba(255, 215, 140, 0.2);
+    }
+    50% {
+      box-shadow: 
+        inset 0 0 0 4px #c9a070,
+        inset 0 0 0 5px #8a7050,
+        inset 0 0 0 6px rgba(0, 0, 0, 0.2),
+        inset 0 8px 20px rgba(0, 0, 0, 0.06),
+        inset 0 -4px 12px rgba(255, 250, 235, 0.45),
+        inset 6px 0 15px rgba(0, 0, 0, 0.04),
+        inset -6px 0 15px rgba(0, 0, 0, 0.04),
+        inset 0 0 120px rgba(255, 235, 180, 0.5),
+        inset 0 0 60px rgba(255, 220, 150, 0.4),
+        0 0 45px rgba(255, 220, 150, 0.25);
+    }
+  }
+
+  /* Power-on animation - vacuum tube warm-up effect */
+  .meter--powering-on .meter__display--backlit {
+    animation: backlight-fade-in 450ms ease-out forwards;
+  }
+
+  @keyframes backlight-fade-in {
+    0% {
+      filter: saturate(0.4) brightness(0.92);
+      box-shadow: 
+        inset 0 0 0 3px #8b7355,
+        inset 0 0 0 4px #5c4a32,
+        inset 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+    30% {
+      filter: saturate(0.7) brightness(0.96);
+    }
+    100% {
+      filter: saturate(1) brightness(1);
+      box-shadow: 
+        inset 0 0 0 4px #b89060,
+        inset 0 0 0 5px #7a6040,
+        inset 0 0 0 6px rgba(0, 0, 0, 0.25),
+        inset 0 8px 20px rgba(0, 0, 0, 0.1),
+        inset 0 -4px 12px rgba(255, 250, 235, 0.35),
+        inset 6px 0 15px rgba(0, 0, 0, 0.05),
+        inset -6px 0 15px rgba(0, 0, 0, 0.05),
+        inset 0 0 100px rgba(255, 230, 170, 0.4),
+        inset 0 0 50px rgba(255, 215, 140, 0.3),
+        0 0 35px rgba(255, 215, 140, 0.2);
+    }
+  }
+
+  /* Power-on needle stutter animation */
+  .meter__needle--powering-on {
+    animation: needle-stutter 700ms ease-out forwards;
+  }
+
+
+  @keyframes needle-stutter {
+    0% { transform: rotate(var(--needle-rotation, -90deg)); }
+    15% { transform: rotate(calc(var(--needle-rotation, -90deg) + 8deg)); }
+    30% { transform: rotate(calc(var(--needle-rotation, -90deg) - 5deg)); }
+    45% { transform: rotate(calc(var(--needle-rotation, -90deg) + 4deg)); }
+    60% { transform: rotate(calc(var(--needle-rotation, -90deg) - 3deg)); }
+    75% { transform: rotate(calc(var(--needle-rotation, -90deg) + 2deg)); }
+    100% { transform: rotate(var(--needle-rotation, -90deg)); }
+  }
+
+  /* Loading state - needle jitter */
+  .meter__needle--loading {
+    animation: needle-loading-jitter 500ms ease-in-out infinite;
+  }
+
+
+  @keyframes needle-loading-jitter {
+    0%, 100% { transform: rotate(var(--needle-rotation, -90deg)); }
+    25% { transform: rotate(calc(var(--needle-rotation, -90deg) + 3deg)); }
+    50% { transform: rotate(calc(var(--needle-rotation, -90deg) - 2deg)); }
+    75% { transform: rotate(calc(var(--needle-rotation, -90deg) + 2deg)); }
+  }
+
+  /* Disable needle jitter for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .meter__needle--loading {
+      animation: none;
+    }
+  }
+
+  /* ========================================
+     SCALE LABELS
+     ======================================== */
+  
+  .meter__display__scale-labels {
+    position: absolute;
+    top: 5%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10%;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .meter__display__scale-label {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: clamp(0.45rem, 1.3vw, 0.65rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    /* Engraved text appearance */
+    color: #3d352d;
+    text-shadow: 
+      0 1px 0 rgba(255, 255, 255, 0.5),
+      0 -0.5px 0 rgba(0, 0, 0, 0.15);
+  }
+
+  .meter__display__scale-label--left {
+    text-align: left;
+  }
+
+  .meter__display__scale-label--right {
+    text-align: right;
+  }
+
+  /* ========================================
+     CURVED LABELS FOR METERS
+     ======================================== */
+  
+  .meter__display-wrapper {
+    position: relative;
+    margin-block-start: var(--meter-display-margin);
+    margin-inline: var(--meter-display-margin);
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .meter__display-wrapper .meter__display {
+    flex: 1 1 auto;
+  }
+
+  .meter__curved-label {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    width: 84%;
+    height: 14%;
+    pointer-events: none;
+    z-index: 10;
+    overflow: visible;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.4));
+  }
+
+  .meter__curved-label__text {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    fill: currentColor;
+  }
+
+  .meter__curved-label__text .italic {
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .meter__curved-label--prosodic {
+    color: #8b1e3a; /* Deep vintage red */
+    top: 31%;
+  }
+
+  .meter__curved-label--lexical {
+    color: #8b5a2b; /* Aged bronze */
+    top: 56%;
+  }
+
+  .meter__curved-label--disabled {
+    color: #8a8578 !important;
+    filter: none;
+  }
+
+  /* ========================================
+     LEVEL METER STATES (ENABLED/DISABLED)
+     ======================================== */
+
+  .meter__display__level--disabled.meter__display__level--prosodic,
+  .meter__display__level--disabled.meter__display__level--lexical {
+    --level-color: #9a958c;
+  }
+
+  .meter__display__level--disabled .meter__tick {
+    background: #a5a095;
+  }
+
+  /* ========================================
+     SVG-BASED LEVEL INDICATORS
+     ======================================== */
+  
+  .level-indicators-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2; /* In front so indicators are visible */
+  }
+  
+  .level-indicators-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  
+  .level-indicator {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  }
+  
+  .level-indicator__body {
+    filter: brightness(1);
+  }
+  
+  .level-indicator--disabled {
+    /* Color is handled in component via gradient fill */
+    opacity: 0.85;
+  }
+  
+  /* Loading animation for SVG indicators */
+  .level-indicator--loading {
+    animation: svg-indicator-jitter 500ms ease-in-out infinite;
+  }
+  
+  @keyframes svg-indicator-jitter {
+    0%, 100% { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)); }
+    25% { filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.5)); }
+    50% { filter: drop-shadow(-1px 2px 3px rgba(0, 0, 0, 0.5)); }
+    75% { filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.5)); }
+  }
+
+  /* Disable indicator jitter for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .level-indicator--loading {
+      animation: none;
+    }
+  }
+  
+  /* Power-on stutter for SVG indicators */
+  .level-indicator--powering-on {
+    animation: svg-indicator-stutter 700ms ease-out forwards;
+  }
+  
+  @keyframes svg-indicator-stutter {
+    0%, 100% { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)) brightness(1); }
+    15% { filter: drop-shadow(3px 2px 3px rgba(0, 0, 0, 0.5)) brightness(1.2); }
+    30% { filter: drop-shadow(-2px 2px 3px rgba(0, 0, 0, 0.5)) brightness(0.9); }
+    50% { filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.5)) brightness(1.1); }
+    70% { filter: drop-shadow(-1px 2px 3px rgba(0, 0, 0, 0.5)) brightness(1); }
+  }
+
+  /* ========================================
+     METER DISPLAY POSITION ADJUSTMENTS
+     ======================================== */
+  
+  .meter__display {
+    position: relative;
+  }
+  
+  /* Rotary switch - vintage Bakelite style */
   .rotary {
     /* Responsive dial sizing */
     --size: clamp(12rem, 40vw, 20rem);
     --radius: calc(var(--size) * 0.42);
     --icon-size: clamp(1.5rem, calc(var(--size) * 0.12), 2.8rem);
-    --accent: #3b82f6;
+    --accent: #d4af37;
 
     position: relative;
     display: grid;
@@ -763,24 +1361,70 @@
   .rotary:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 4px;
+    border-radius: 50%;
   }
 
   .rotary__plate {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(255,255,255,.15), rgba(0,0,0,.2));
-    box-shadow: inset 0 2px 6px rgba(0,0,0,.35);
+    /* Recessed mounting plate with brass ring */
+    background: 
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(0, 0, 0, 0.1) 45%,
+        rgba(139, 115, 85, 0.3) 48%,
+        rgba(139, 115, 85, 0.15) 52%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at center, 
+        rgba(255,255,255,.08) 0%, 
+        rgba(0,0,0,.25) 100%
+      );
+    box-shadow: 
+      inset 0 4px 12px rgba(0,0,0,.45),
+      inset 0 -2px 6px rgba(255, 255, 255, 0.05);
   }
 
   .rotary__knob {
     width: calc(var(--size) * 0.55);
     height: calc(var(--size) * 0.55);
     border-radius: 50%;
-    background: linear-gradient(145deg, #444, #2a2a2a);
-    box-shadow: 0 4px 12px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.1);
+    /* Rich bakelite knob with depth */
+    background: 
+      /* Top highlight dome */
+      radial-gradient(
+        ellipse 80% 60% at 40% 30%,
+        rgba(80, 70, 60, 0.9) 0%,
+        transparent 50%
+      ),
+      /* Grip ridges suggestion */
+      repeating-conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.03) 0deg 6deg,
+        transparent 6deg 12deg
+      ),
+      /* Main bakelite gradient */
+      linear-gradient(
+        155deg, 
+        #4a4540 0%,
+        #3a3632 25%,
+        #2a2825 50%,
+        #1f1d1a 75%,
+        #151412 100%
+      );
+    box-shadow: 
+      /* Outer ring shadow */
+      0 8px 25px rgba(0,0,0,.6),
+      0 4px 10px rgba(0,0,0,.4),
+      /* Inner edge definition */
+      inset 0 2px 4px rgba(255,255,255,.08),
+      inset 0 -3px 8px rgba(0,0,0,.4),
+      /* Subtle brass edge ring */
+      0 0 0 2px rgba(139, 115, 85, 0.2);
     transform: rotate(var(--angle-deg));
-    transition: transform 160ms ease-out, box-shadow 120ms ease, filter 120ms ease;
+    transition: transform 180ms cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 150ms ease, filter 150ms ease;
   }
   /* Icons rendered around the dial at configured angles */
   .rotary__icon {
@@ -791,9 +1435,10 @@
     /* Fallback placement using rotate + translate */
     transform: rotate(var(--deg)) translateY(calc(-1 * (var(--radius) + var(--radial-adjust)))) rotate(calc(-1 * var(--deg)));
     transform-origin: center;
-    color: var(--clr-primary);
-    opacity: 0.4;
-    transition: opacity 120ms ease, transform 160ms ease;
+    color: rgba(212, 175, 55, 0.35);
+    opacity: 1;
+    transition: color 180ms ease, transform 160ms ease, filter 180ms ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   }
 
   /* Prefer precise placement using trig functions when supported */
@@ -810,7 +1455,12 @@
   .rotary__icon--audio { --radial-adjust: -6px; }
   .rotary__icon--text { --radial-adjust: -6px; }
 
-  .rotary__icon.is-active { opacity: 1; }
+  .rotary__icon.is-active { 
+    color: #d4af37;
+    filter: 
+      drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))
+      drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+  }
 
   .rotary__icon__glyph {
     display: inline-grid;
@@ -822,32 +1472,55 @@
   /* Ensure inline SVGs scale with container */
   .rotary__icon__glyph svg { width: 100%; height: 100%; }
 
-  /* Selected indicator line that points toward the dial center */
+  /* Selected indicator line - brass inlay pointer */
   .rotary__knob::after {
     content: '';
     position: absolute;
     left: 50%;
-    top: 0;
+    top: 8%;
     transform: translateX(-50%);
-    width: 3px;
-    height: calc(50% - 2px); /* reaches toward center */
-    border-radius: 2px;
-    background: linear-gradient(to bottom, #fafafa, #d0d0d0);
-    box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 2px 2px rgba(0,0,0,.25);
+    width: 4px;
+    height: calc(42%);
+    border-radius: 2px 2px 1px 1px;
+    /* Brass inlay effect */
+    background: 
+      linear-gradient(
+        to bottom, 
+        #f4e4bc 0%,
+        #d4af37 15%,
+        #b8960b 50%,
+        #8b6914 85%,
+        #5c4a1f 100%
+      );
+    box-shadow: 
+      inset 0 1px 1px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.4),
+      0 0 3px rgba(0, 0, 0, 0.4),
+      0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .rotary:hover .rotary__knob {
-    filter: brightness(1.06);
-    box-shadow: 0 6px 14px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.2);
+    filter: brightness(1.08);
+    box-shadow: 
+      0 10px 30px rgba(0,0,0,.65),
+      0 5px 12px rgba(0,0,0,.45),
+      inset 0 2px 4px rgba(255,255,255,.1),
+      inset 0 -3px 8px rgba(0,0,0,.4),
+      0 0 0 2px rgba(184, 134, 11, 0.25);
   }
 
   .rotary__label {
     position: absolute;
     bottom: calc(var(--size) * -0.12);
+    font-family: 'Playfair Display', Georgia, serif;
     font-size: clamp(0.8rem, calc(var(--size) * 0.06), 1rem);
-    font-weight: 600;
-    color: var(--clr-primary);
-    text-shadow: 0 1px 1px rgba(0,0,0,.6);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(212, 175, 55, 0.8);
+    text-shadow: 
+      0 1px 2px rgba(0,0,0,.7),
+      0 0 10px rgba(212, 175, 55, 0.15);
     pointer-events: none;
   }
 }
@@ -947,19 +1620,47 @@
   }
 }
 
+.title-group {
+  place-self: start center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .title {
-  place-self: start center; /* top-aligned, horizontally centered */
-  color: #ffd84d; /* retro yellow */
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #d4af37; /* Brass gold */
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 800;
-  font-size: clamp(1.25rem, 3vw, 3rem);
-  padding: 0.25rem 0.75rem;
-  /* border: 2px solid rgba(255, 216, 77, 0.35); */
-  border-radius: 8px;
+  letter-spacing: 0.15em;
+  font-weight: 900;
+  font-size: clamp(1.25rem, 3vw, 2.75rem);
+  padding: 0.5rem 1rem;
+  /* Engraved brass nameplate effect */
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(255, 223, 150, 0.3),
+    0 0 20px rgba(212, 175, 55, 0.3),
+    0 0 40px rgba(212, 175, 55, 0.15);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.05) 50%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.subtitle {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  color: rgba(212, 175, 55, 0.5);
+  font-style: italic;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
   text-shadow:
     0 1px 0 rgba(0,0,0,0.4),
-    0 0 12px rgba(255, 216, 77, 0.25);
+    0 0 10px rgba(212, 175, 55, 0.1);
 }
 
 /* Getting Started */
@@ -1295,6 +1996,37 @@ body:has(.audio-recorder__modal) .detector-jack {
   z-index: 0;
 }
 
+/* Cable loading animation - data flow effect */
+
+.cable-overlay--loading .cable-overlay__texture {
+  animation: cable-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cable-pulse {
+  0%, 100% {
+    opacity: 0.9;
+    stroke: #555;
+  }
+  50% {
+    opacity: 1;
+    stroke: #666;
+  }
+}
+
+/* Animated data flow path */
+.cable-overlay__data-flow {
+  animation: data-flow 0.8s linear infinite;
+}
+
+@keyframes data-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -30;
+  }
+}
+
 /* ============================================
    RESPONSIVE STYLES - Desktop (min-width: 1024px)
    ============================================ */
@@ -1386,20 +2118,25 @@ body:has(.audio-recorder__modal) .detector-jack {
     grid-template-rows: 1fr 4fr;
   }
 
-  .title {
+  .title-group {
     display: none; /* Hide the title on mobile - it will show on the meter instead */
   }
 
   .meter__title {
     display: block;
     text-align: center;
-    color: #ffd84d;
+    font-family: 'Playfair Display', Georgia, serif;
+    color: #d4af37;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 800;
+    letter-spacing: 0.12em;
+    font-weight: 900;
     font-size: clamp(1.1rem, 5vw, 1.6rem);
     padding: 1.25rem 0.5rem 1.25rem;
     flex: 0 0 auto;
+    text-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.6),
+      0 -1px 0 rgba(255, 223, 150, 0.2),
+      0 0 15px rgba(212, 175, 55, 0.25);
   }
 
   .meter {
@@ -1473,6 +2210,33 @@ body:has(.audio-recorder__modal) .detector-jack {
       0 1px 2px rgba(0,0,0,0.5),
       inset 0 1px 0 rgba(255,255,255,0.08);
     z-index: 0;
+    overflow: hidden;
+  }
+
+  /* Mobile cable loading animation - data flow effect */
+  .mobile-cable--loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 10px,
+      rgba(59, 130, 246, 0.6) 10px,
+      rgba(59, 130, 246, 0.6) 20px,
+      transparent 20px,
+      transparent 30px
+    );
+    animation: mobile-cable-data-flow 0.6s linear infinite;
+  }
+
+  @keyframes mobile-cable-data-flow {
+    0% {
+      transform: translateX(-30px);
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
 }
 
@@ -1513,9 +2277,10 @@ body:has(.audio-recorder__modal) .detector-jack {
 
 .first-time-overlay__arrow {
   /* Size is controlled inline based on knob dimensions */
-  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.8)) 
-          drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+  filter: drop-shadow(2px 2px 6px rgba(0, 0, 0, 0.8)) 
+          drop-shadow(0 0 12px rgba(212, 175, 55, 0.5));
   animation: rotateHint 3s ease-in-out infinite;
+  color: #d4af37;
 }
 
 /* Animation suggests rotation by rotating the arrow slightly */
@@ -1566,21 +2331,57 @@ body:has(.audio-recorder__modal) .detector-jack {
 }
 
 .first-time-overlay__text {
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.5rem;
   font-weight: 700;
   text-align: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 0.75rem 1.5rem;
-  border-radius: 1rem;
+  color: #f7f3e3;
+  /* Vintage brass plaque effect */
+  background: 
+    linear-gradient(
+      145deg,
+      rgba(42, 37, 32, 0.95) 0%,
+      rgba(26, 24, 22, 0.95) 100%
+    );
+  padding: 1rem 1.75rem;
+  border-radius: 0.375rem;
+  border: 2px solid rgba(212, 175, 55, 0.4);
   text-shadow: 
-    2px 2px 0px #000,
-    -1px -1px 0px #000,
-    1px -1px 0px #000,
-    -1px 1px 0px #000;
-  line-height: 1.3;
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 0 10px rgba(212, 175, 55, 0.15);
+  line-height: 1.4;
   max-width: 350px;
   pointer-events: auto;
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Pulse the rotary knob for first-time users - brass glow */
+.rotary__knob--pulse {
+  animation: knobPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes knobPulse {
+  0%, 100% {
+    box-shadow: 
+      0 8px 25px rgba(0,0,0,.6),
+      0 4px 10px rgba(0,0,0,.4),
+      inset 0 2px 4px rgba(255,255,255,.08),
+      inset 0 -3px 8px rgba(0,0,0,.4),
+      0 0 0 2px rgba(139, 115, 85, 0.2),
+      0 0 0 0 rgba(212, 175, 55, 0);
+  }
+  50% {
+    box-shadow: 
+      0 8px 25px rgba(0,0,0,.6),
+      0 4px 10px rgba(0,0,0,.4),
+      inset 0 2px 4px rgba(255,255,255,.08),
+      inset 0 -3px 8px rgba(0,0,0,.4),
+      0 0 0 3px rgba(212, 175, 55, 0.5),
+      0 0 30px 12px rgba(212, 175, 55, 0.25),
+      0 0 50px 20px rgba(212, 175, 55, 0.1);
+  }
 }
 
 @media (max-width: 768px) {

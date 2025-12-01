@@ -5,7 +5,7 @@ const STORAGE_KEY = 'sarcasm-detector-visited'
 const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [position, setPosition] = useState({ left: '50%', top: '45%' })
-  const [arrowPosition, setArrowPosition] = useState({ left: '50%', top: '45%', size: 100 })
+  const [_arrowPosition, setArrowPosition] = useState({ left: '50%', top: '45%', size: 100 })
   const overlayRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 

@@ -1,8 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
+import { useDetection } from '../../meter/useDetection'
 
 const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')
   const resizeTimeoutRef = useRef<number | null>(null)
+  
+  // Subscribe to detection loading state
+  const { isLoading } = useDetection()
 
   const recomputeCablePath = () => {
     const meterAnchor = document.querySelector('[data-cable-anchor="meter"]') as HTMLElement | null
@@ -184,11 +188,41 @@ const CableOverlay = () => {
   if (!pathD) return null
 
   return (
-    <svg className="cable-overlay" aria-hidden="true">
+    <svg 
+      className={`cable-overlay ${isLoading ? 'cable-overlay--loading' : ''}`} 
+      aria-hidden="true"
+    >
+      {/* Base cable shadow */}
       <path d={pathD} stroke="#1f1f1f" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Cable body */}
       <path d={pathD} stroke="#343434" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={pathD} stroke="#555" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="7 10" opacity="0.9" />
+      {/* Cable texture */}
+      <path 
+        d={pathD} 
+        stroke="#555" 
+        strokeWidth="6" 
+        fill="none" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeDasharray="7 10" 
+        opacity="0.9"
+        className="cable-overlay__texture"
+      />
+      {/* Highlight */}
       <path d={pathD} stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Data flow animation layer (only visible during loading) */}
+      {isLoading && (
+        <path 
+          d={pathD} 
+          stroke="rgba(59, 130, 246, 0.8)" 
+          strokeWidth="3" 
+          fill="none" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeDasharray="10 20"
+          className="cable-overlay__data-flow"
+        />
+      )}
     </svg>
   )
 }
