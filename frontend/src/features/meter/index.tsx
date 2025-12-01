@@ -12,6 +12,8 @@ import {
   LEVEL_INDICATOR_ANIM_DURATION_MS,
   LEVEL_INDICATOR_RETURN_DURATION_MS,
   POWER_ON_STUTTER_DURATION_MS,
+  NEEDLE_MIN_DEG,
+  NEEDLE_RANGE_DEG,
 } from './meterConstants';
 
 type PowerState = 'off' | 'on';
@@ -253,9 +255,9 @@ type NeedleProps = {
 };
 
 const Needle = ({ value, isLoading, isPoweringOn, animDuration }: NeedleProps) => {
-  // Convert value (0-1) to rotation degrees (-55 to 55) to stay within visible arc
-  // -55deg = leftmost (0), 0deg = center (0.5), 55deg = rightmost (1)
-  const rotation = -55 + (value * 110);
+  // Convert value (0-1) to rotation degrees to stay within visible arc
+  // NEEDLE_MIN_DEG = leftmost (0), 0deg = center (0.5), NEEDLE_MAX_DEG = rightmost (1)
+  const rotation = NEEDLE_MIN_DEG + (value * NEEDLE_RANGE_DEG);
   
   return (
     <div 

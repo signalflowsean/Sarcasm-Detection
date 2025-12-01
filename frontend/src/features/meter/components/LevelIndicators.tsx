@@ -68,17 +68,33 @@ const getEllipseTangent = (x: number): number => {
  * For lexical (rowBottom=75): intersection at x≈18.5%, y≈55.6%
  */
 const findBoundaryIntersection = (rowBottom: number): { x: number; y: number } => {
-  // General quadratic: 37u² + bu + c = 0
-  // where b = 72 - 0.48*rowBottom and c = ((rowBottom-150)² - 625)/625
+  // Solve the quadratic equation: au² + bu + c = 0
+  // where u = (x - 50) / 50 is the normalized x-coordinate
+  
+  // r: offset from the reference point (150) used to derive coefficients
+  // This simplifies the algebra when computing b and c from rowBottom
   const r = rowBottom - 150;
+  
+  // a: coefficient of u² (constant for all rows, derived from combining
+  // the squared boundary equation with the ellipse equation)
   const a = 37;
-  const b = -300 * r / 625; // = 72 - 0.48*rowBottom
+  
+  // b: coefficient of u (varies with rowBottom, represents the linear term
+  // from cross-multiplying the boundary and ellipse equations)
+  const b = -300 * r / 625; // Simplifies to: 72 - 0.48 * rowBottom
+  
+  // c: constant term (varies with rowBottom, derived from the constant
+  // terms when combining boundary line x = y/3 with ellipse equation)
   const c = (r * r - 625) / 625;
   
+  // Apply quadratic formula: u = (-b ± √(b² - 4ac)) / 2a
   const discriminant = b * b - 4 * a * c;
   if (discriminant < 0) return { x: 0, y: rowBottom };
-  const u = (-b - Math.sqrt(discriminant)) / (2 * a); // Take more negative root for left side
   
+  // Take the negative root (-√discriminant) to get the left intersection point
+  const u = (-b - Math.sqrt(discriminant)) / (2 * a);
+  
+  // Convert normalized u back to percentage x-coordinate
   const x = 50 * u + 50;
   const y = getEllipseY(x, rowBottom);
   
@@ -95,10 +111,13 @@ const LEXICAL_END = { x: 100 - LEXICAL_START.x, y: LEXICAL_START.y };
 const INDICATOR_WIDTH_PCT = 5;
 const INDICATOR_HEIGHT_PCT = 4;
 
-// Needle rotation constants (must match the Needle component in index.tsx)
-const NEEDLE_MIN_DEG = -55;
-const NEEDLE_MAX_DEG = 55;
-const NEEDLE_RANGE_DEG = NEEDLE_MAX_DEG - NEEDLE_MIN_DEG; // 110 degrees
+// Import shared needle rotation constants
+import {
+  NEEDLE_MIN_DEG,
+  NEEDLE_MAX_DEG,
+  NEEDLE_RANGE_DEG,
+} from '../meterConstants';
+
 const MAX_SIN = Math.sin(NEEDLE_MAX_DEG * Math.PI / 180); // sin(55°) ≈ 0.819
 
 /**

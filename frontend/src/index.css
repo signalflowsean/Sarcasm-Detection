@@ -1154,6 +1154,13 @@
     75% { transform: rotate(calc(var(--needle-rotation, -90deg) + 2deg)); }
   }
 
+  /* Disable needle jitter for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .meter__needle--loading {
+      animation: none;
+    }
+  }
+
   /* ========================================
      SCALE LABELS
      ======================================== */
@@ -1302,6 +1309,13 @@
     25% { filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.5)); }
     50% { filter: drop-shadow(-1px 2px 3px rgba(0, 0, 0, 0.5)); }
     75% { filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.5)); }
+  }
+
+  /* Disable indicator jitter for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .level-indicator--loading {
+      animation: none;
+    }
   }
   
   /* Power-on stutter for SVG indicators */

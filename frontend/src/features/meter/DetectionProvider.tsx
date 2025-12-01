@@ -76,6 +76,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     }
   }, []);
 
+  // Cleanup timers on unmount to prevent memory leaks and race conditions
+  useEffect(() => {
+    return clearTimers;
+  }, [clearTimers]);
+
   // Set loading state
   const setLoading = useCallback((loading: boolean) => {
     setIsLoading(loading);
