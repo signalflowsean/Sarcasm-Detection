@@ -1,12 +1,11 @@
-import { MOCK_RESPONSE_DELAY_MS } from '../meter/meterConstants';
-
 /**
- * Generate a mock sarcasm score between 0 and 1
- * Centralized for easy modification of distribution in the future
+ * API service for sarcasm detection endpoints.
+ * Communicates with the Flask backend for lexical and prosodic analysis.
  */
-export function generateMockScore(): number {
-  return Math.random();
-}
+
+// In Docker: empty string makes URLs relative (nginx proxies /api/* to backend)
+// In development: falls back to direct backend connection
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
 
 export type ProsodicResponse = {
   id: string;
@@ -18,29 +17,46 @@ export type LexicalResponse = {
   value: number; // 0.0–1.0 inclusive
 };
 
+/**
+ * Send audio to the prosodic detection endpoint.
+ * @param audio - Audio blob from recording
+ * @returns Promise with detection result
+ */
 export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> {
-  // Stubbed prosodic detector call. Replace with real API integration.
-  // Intentionally simulates latency for UX feedback during development.
-  // eslint-disable-next-line no-console
-  console.log('Prosodic audio stub', audio.type, audio.size);
-  await new Promise((resolve) => setTimeout(resolve, MOCK_RESPONSE_DELAY_MS));
-  return { 
-    id: crypto.randomUUID(),
-    value: generateMockScore(),
-  };
+  const formData = new FormData();
+  formData.append('audio', audio, 'recording.webm');
+
+  const response = await fetch(`${API_BASE_URL}/api/prosodic`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  return response.json();
 }
 
+/**
+ * Send text to the lexical detection endpoint.
+ * @param text - Text to analyze for sarcasm
+ * @returns Promise with detection result
+ */
 export async function sendLexicalText(text: string): Promise<LexicalResponse> {
-  // Stubbed lexical detector call. Replace with real API integration.
-  // eslint-disable-next-line no-console
-  console.log('Lexical text stub', text);
-  await new Promise((resolve) => setTimeout(resolve, MOCK_RESPONSE_DELAY_MS));
-  return { 
-    id: crypto.randomUUID(),
-    value: generateMockScore(),
-  };
+  const response = await fetch(`${API_BASE_URL}/api/lexical`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+
+  return response.json();
 }
-
-
-
-
