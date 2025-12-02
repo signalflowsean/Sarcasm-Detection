@@ -17,6 +17,28 @@ export type LexicalResponse = {
   value: number; // 0.0–1.0 inclusive
 };
 
+// Map MIME types to file extensions for upload filename
+const MIME_TO_EXTENSION: Record<string, string> = {
+  'audio/webm': '.webm',
+  'audio/wav': '.wav',
+  'audio/x-wav': '.wav',
+  'audio/wave': '.wav',
+  'audio/mpeg': '.mp3',
+  'audio/mp3': '.mp3',
+  'audio/ogg': '.ogg',
+  'audio/flac': '.flac',
+  'audio/mp4': '.m4a',
+  'audio/aac': '.aac',
+};
+
+/**
+ * Get file extension from blob MIME type.
+ * Defaults to .webm for unknown types (most common browser recording format).
+ */
+function getExtensionFromBlob(blob: Blob): string {
+  return MIME_TO_EXTENSION[blob.type] ?? '.webm';
+}
+
 /**
  * Send audio to the prosodic detection endpoint.
  * @param audio - Audio blob from recording
@@ -24,7 +46,8 @@ export type LexicalResponse = {
  */
 export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> {
   const formData = new FormData();
-  formData.append('audio', audio, 'recording.webm');
+  const extension = getExtensionFromBlob(audio);
+  formData.append('audio', audio, `recording${extension}`);
 
   const response = await fetch(`${API_BASE_URL}/api/prosodic`, {
     method: 'POST',

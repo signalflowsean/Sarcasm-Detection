@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -11,6 +9,9 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - API_DELAY_SECONDS=0
+      # Set CORS_ORIGINS to restrict allowed origins in production (comma-separated)
+      # - CORS_ORIGINS=https://yourdomain.com
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
       interval: 30s

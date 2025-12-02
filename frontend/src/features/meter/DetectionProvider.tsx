@@ -213,7 +213,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
           sendLexicalText(testPhrase),
         ]);
         console.log(`🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}%, Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}%`);
-        setDetectionResult({ lexical: lexicalResponse.value, prosodic: prosodicResponse.value });
+        setDetectionResult({ lexical: lexicalResponse.value, prosodic: prosodicResponse.value }); 
       } else {
         // Text mode: call only lexical endpoint
         const response = await sendLexicalText(testPhrase);
@@ -222,9 +222,9 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       }
     } catch (error) {
       console.error('🔧 Dev mode: API call failed:', error);
-      setLoading(false);
+      reset();
     }
-  }, [isLoading, state, inputMode, setLoading, setDetectionResult]);
+  }, [isLoading, state, inputMode, setLoading, setDetectionResult, reset]);
 
   // DEV MODE: Listen for 'h' key to trigger test detection
   useEffect(() => {
