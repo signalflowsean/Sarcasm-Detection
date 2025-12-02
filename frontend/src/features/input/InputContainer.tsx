@@ -5,10 +5,11 @@ import GettingStarted from './GettingStarted'
 import TextInput from './TextInput'
 import AudioRecorder from './AudioRecorder'
 import MobileInputOverlay from './components/MobileInputOverlay'
+import { MEDIA_QUERIES } from '../../breakpoints'
 
 const InputContainer = () => {
   const { value } = useWhichInput()
-  const isMobile = useMediaQuery('(max-width: 1023px)')
+  const isMobile = useMediaQuery(MEDIA_QUERIES.isMobile)
   const [displayValue, setDisplayValue] = useState(value)
   const isInitialMount = useRef(true)
 

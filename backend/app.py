@@ -3,13 +3,18 @@ Flask backend for Sarcasm Detection API.
 Provides endpoints for lexical (text-based) and prosodic (audio-based) sarcasm detection.
 """
 
+import os
 import random
+import time
 import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# Artificial delay in seconds to showcase loading animations (set to 0 in production)
+API_DELAY_SECONDS = float(os.environ.get('API_DELAY_SECONDS', '1.2'))
 
 
 @app.route('/api/lexical', methods=['POST'])
@@ -29,6 +34,10 @@ def lexical_detection():
     text = data['text']
     if not isinstance(text, str) or not text.strip():
         return jsonify({'error': 'Text must be a non-empty string'}), 400
+    
+    # Artificial delay to showcase loading animations
+    if API_DELAY_SECONDS > 0:
+        time.sleep(API_DELAY_SECONDS)
     
     # TODO: Replace with actual ML model inference
     # For now, return random value to match mock behavior
@@ -59,6 +68,10 @@ def prosodic_detection():
     
     # Read the audio data (for future processing)
     # audio_data = audio_file.read()
+    
+    # Artificial delay to showcase loading animations
+    if API_DELAY_SECONDS > 0:
+        time.sleep(API_DELAY_SECONDS)
     
     # TODO: Replace with actual ML model inference
     # For now, return random value to match mock behavior

@@ -136,31 +136,39 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     // Clear any existing timers
     clearTimers();
 
-    // Update values
-    if (values.lexical !== undefined) {
-      setLexicalValue(values.lexical);
-    }
-    if (values.prosodic !== undefined) {
-      setProsodicValue(values.prosodic);
-    }
-
-    // Transition to holding result state
+    // First, stop the loading animation by clearing isLoading
+    // This removes the CSS animation class from the needle
     setIsLoading(false);
-    setState(DetectionState.HOLDING_RESULT);
+    
+    // Wait one frame before updating values to allow CSS transition to work
+    // This is necessary because CSS transitions don't fire when an animation
+    // is removed and the property changes in the same frame
+    requestAnimationFrame(() => {
+      // Update values - this will now trigger a CSS transition
+      if (values.lexical !== undefined) {
+        setLexicalValue(values.lexical);
+      }
+      if (values.prosodic !== undefined) {
+        setProsodicValue(values.prosodic);
+      }
 
-    // After hold duration, transition to resetting
-    holdTimeoutRef.current = window.setTimeout(() => {
-      setState(DetectionState.RESETTING);
-      
-      // Reset values to 0
-      setLexicalValue(0);
-      setProsodicValue(0);
+      // Transition to holding result state
+      setState(DetectionState.HOLDING_RESULT);
 
-      // After reset animation, return to idle
-      resetTimeoutRef.current = window.setTimeout(() => {
-        setState(DetectionState.IDLE);
-      }, NEEDLE_RETURN_DURATION_MS);
-    }, RESULT_HOLD_DURATION_MS);
+      // After hold duration, transition to resetting
+      holdTimeoutRef.current = window.setTimeout(() => {
+        setState(DetectionState.RESETTING);
+        
+        // Reset values to 0
+        setLexicalValue(0);
+        setProsodicValue(0);
+
+        // After reset animation, return to idle
+        resetTimeoutRef.current = window.setTimeout(() => {
+          setState(DetectionState.IDLE);
+        }, NEEDLE_RETURN_DURATION_MS);
+      }, RESULT_HOLD_DURATION_MS);
+    });
   }, [clearTimers]);
 
   // Manual reset
