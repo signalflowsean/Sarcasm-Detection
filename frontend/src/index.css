@@ -175,15 +175,25 @@
   
   @keyframes mic-pulse {
     0%, 100% {
-      box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08), 0 0 0 0 rgba(59, 130, 246, 0.7);
+      box-shadow: 
+        0 6px 18px rgba(0,0,0,.45), 
+        inset 0 0 0 1px rgba(255,255,255,.08), 
+        0 0 0 0 rgba(59, 130, 246, 0.9),
+        0 0 15px 2px rgba(59, 130, 246, 0.3);
+      transform: scale(1);
     }
     50% {
-      box-shadow: 0 8px 24px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 8px rgba(59, 130, 246, 0.3);
+      box-shadow: 
+        0 10px 28px rgba(0,0,0,.6), 
+        inset 0 0 0 1px rgba(255,255,255,.15), 
+        0 0 0 16px rgba(59, 130, 246, 0.5),
+        0 0 35px 8px rgba(59, 130, 246, 0.4);
+      transform: scale(1.03);
     }
   }
 
   .audio-recorder__mic.should-flash {
-    animation: mic-pulse 2s ease-in-out infinite;
+    animation: mic-pulse 1.6s ease-in-out infinite;
   }
 
   .audio-recorder__mic:disabled {
@@ -476,6 +486,11 @@
       backdrop-filter: none;
       background: rgba(0,0,0,.65); /* Slightly darker to compensate for missing blur */
     }
+  }
+  
+  /* Hide meter display when modal is open to prevent visual bleed-through */
+  body:has(.audio-recorder__modal) .meter__display {
+    visibility: hidden;
   }
   .audio-recorder__modal__content {
     position: relative;
@@ -970,7 +985,7 @@
     box-shadow: 
       2px 2px 6px rgba(0, 0, 0, 0.5),
       0 0 1px rgba(0, 0, 0, 0.6);
-    transition: transform var(--anim-duration, 700ms) cubic-bezier(0.34, 1.2, 0.64, 1);
+    transition: transform var(--anim-duration, 1400ms) cubic-bezier(0.25, 0.1, 0.25, 1);
     
     /* Elegant tapered needle shape */
     clip-path: polygon(
@@ -1784,16 +1799,20 @@
 @keyframes textarea-pulse {
   0%, 100% {
     border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    box-shadow: 
+      0 0 0 0 rgba(59, 130, 246, 0.9),
+      0 0 10px 2px rgba(59, 130, 246, 0.15);
   }
   50% {
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.8);
+    box-shadow: 
+      0 0 0 8px rgba(59, 130, 246, 0.4),
+      0 0 25px 6px rgba(59, 130, 246, 0.25);
   }
 }
 
 .shared-textarea.should-flash {
-  animation: textarea-pulse 2s ease-in-out infinite;
+  animation: textarea-pulse 1.6s ease-in-out infinite;
 }
 .text-input__controls {
   display: flex;
@@ -2027,10 +2046,48 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 }
 
+/* ============================================================================
+   BREAKPOINTS DOCUMENTATION
+   ============================================================================
+   
+   The mobile breakpoint controls when the app switches between:
+     - Desktop: Side-by-side layout (meter + input panel)
+     - Mobile: Stacked layout with modal-based input
+   
+   CURRENT VALUES:
+     - Main breakpoint: 1750px
+     - Small mobile: 768px (only affects FirstTimeOverlay text sizing)
+   
+   HOW TO CHANGE THE MAIN BREAKPOINT:
+   
+     You need to update 2 places:
+   
+     1. JavaScript constant (SINGLE SOURCE OF TRUTH):
+        File: frontend/src/breakpoints.ts
+        Update: MOBILE_BREAKPOINT = <new value>
+        
+     2. CSS media queries (cannot use JS variables):
+        File: frontend/src/index.css (this file)
+        Update BOTH:
+          - @media (min-width: <new value>px)     [Desktop styles below]
+          - @media (max-width: <new value - 1>px) [Mobile styles further below]
+   
+   WHY TWO PLACES?
+     CSS media queries don't support CSS custom properties (--variables).
+     This is a CSS specification limitation. The breakpoints.ts file serves as
+     documentation and provides the JS values for useMediaQuery hooks.
+   
+   FILES THAT USE BREAKPOINTS:
+     - frontend/src/breakpoints.ts                      - Constants & media query strings
+     - frontend/src/index.css                           - CSS media queries (this file)
+     - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isMobile
+   
+   ============================================================================ */
+
 /* ============================================
-   RESPONSIVE STYLES - Desktop (min-width: 1024px)
+   RESPONSIVE STYLES - Desktop (min-width: 1750px)
    ============================================ */
-@media (min-width: 1024px) {
+@media (min-width: 1750px) {
   .audio-recorder {
     gap: 1.5rem;
   }
@@ -2094,9 +2151,9 @@ body:has(.audio-recorder__modal) .detector-jack {
 }
 
 /* ============================================
-   RESPONSIVE STYLES - Mobile (max-width: 1023px)
+   RESPONSIVE STYLES - Mobile (max-width: 1749px)
    ============================================ */
-@media (max-width: 1023px) {
+@media (max-width: 1749px) {
   main {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
@@ -2384,6 +2441,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 }
 
+/* Small mobile adjustments - see breakpoints.ts SMALL_MOBILE_BREAKPOINT */
 @media (max-width: 768px) {
   .first-time-overlay__content {
     flex-direction: column;

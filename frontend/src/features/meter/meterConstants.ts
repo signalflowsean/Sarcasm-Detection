@@ -2,9 +2,6 @@
  * Centralized timing and animation constants for the meter display
  */
 
-// API / Mock timing
-export const MOCK_RESPONSE_DELAY_MS = 2000;
-
 // Detection cycle timing
 export const RESULT_HOLD_DURATION_MS = 6000;
 
@@ -35,4 +32,3 @@ export const DetectionState = {
 } as const;
 
 export type DetectionStateType = typeof DetectionState[keyof typeof DetectionState];
-
