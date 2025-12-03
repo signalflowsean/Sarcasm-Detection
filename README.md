@@ -1,4 +1,4 @@
-# Sarcasm Detector™
+# [Sarcasm Detector™](https://sarcasm-detector.com)
 
 > *A signalflowsean production*
 
@@ -240,7 +240,16 @@ railway login
 
 ### Deploying
 
-Deploy from within each service folder:
+**Option A: From project root (using -s flag)**
+
+```bash
+cd Sarcasm-Detection
+railway link  # Select: sarcasm → production → skip service
+railway up -s Frontend
+railway up -s Backend
+```
+
+**Option B: From within each folder**
 
 ```bash
 # Deploy frontend
@@ -254,7 +263,7 @@ railway link  # Select: sarcasm → production → Backend
 railway up
 ```
 
-> **Note:** Root directories are configured in the Railway dashboard, not in `railway.toml`.
+> **Note:** Root directories are configured in the Railway dashboard, not in `railway.toml`. Service names are case-sensitive.
 
 ### Environment Variables
 
