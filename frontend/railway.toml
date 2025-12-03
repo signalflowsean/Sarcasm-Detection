@@ -2,6 +2,14 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile.railway"
 
+# Tell Railway this service lives in the frontend folder
+[service]
+rootDirectory = "frontend"
+
+# Only trigger builds when frontend files change
+[build.watch]
+include = ["frontend/**"]
+
 # Pass Railway service variable as Docker build argument
 [build.args]
 VITE_API_URL = "${{VITE_API_URL}}"

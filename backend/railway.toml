@@ -2,6 +2,14 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
+# Tell Railway this service lives in the backend folder
+[service]
+rootDirectory = "backend"
+
+# Only trigger builds when backend files change
+[build.watch]
+include = ["backend/**"]
+
 [deploy]
 healthcheckPath = "/api/health"
 healthcheckTimeout = 100
