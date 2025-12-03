@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState } from 'react';
 import {
   DetectionState,
   RESULT_HOLD_DURATION_MS,
@@ -113,7 +113,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   const mainValue = (lexicalValue + prosodicValue) / 2;
 
   // Cleanup function for detection cycle timers (does NOT clear cable animation)
-  const clearTimers = useCallback(() => {
+  const clearTimers = () => {
     if (holdTimeoutRef.current !== null) {
       window.clearTimeout(holdTimeoutRef.current);
       holdTimeoutRef.current = null;
@@ -122,15 +122,15 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       window.clearTimeout(resetTimeoutRef.current);
       resetTimeoutRef.current = null;
     }
-  }, []);
+  };
 
   // Cleanup cable animation timer (used when starting new animation or unmounting)
-  const clearCableAnimationTimer = useCallback(() => {
+  const clearCableAnimationTimer = () => {
     if (cableAnimationTimeoutRef.current !== null) {
       window.clearTimeout(cableAnimationTimeoutRef.current);
       cableAnimationTimeoutRef.current = null;
     }
-  }, []);
+  };
 
   // Cleanup timers on unmount to prevent memory leaks and race conditions
   useEffect(() => {
@@ -138,10 +138,10 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       clearTimers();
       clearCableAnimationTimer();
     };
-  }, [clearTimers, clearCableAnimationTimer]);
+  }, []);
 
   // Set loading state
-  const setLoading = useCallback((loading: boolean) => {
+  const setLoading = (loading: boolean) => {
     setIsLoading(loading);
     if (loading) {
       // Cancel any pending result cycle if we start a new request
@@ -158,10 +158,10 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
         cableAnimationTimeoutRef.current = null;
       }, CABLE_ANIMATION_MIN_DURATION_MS);
     }
-  }, [clearTimers, clearCableAnimationTimer]);
+  };
 
   // Handle detection result - receives values and manages the cycle
-  const setDetectionResult = useCallback((values: Partial<DetectionValues>) => {
+  const setDetectionResult = (values: Partial<DetectionValues>) => {
     // Clear any existing timers
     clearTimers();
 
@@ -198,10 +198,10 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
         }, NEEDLE_RETURN_DURATION_MS);
       }, RESULT_HOLD_DURATION_MS);
     });
-  }, [clearTimers]);
+  };
 
   // Manual reset
-  const reset = useCallback(() => {
+  const reset = () => {
     clearTimers();
     clearCableAnimationTimer();
     setIsLoading(false);
@@ -209,14 +209,14 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     setLexicalValue(0);
     setProsodicValue(0);
     setState(DetectionState.IDLE);
-  }, [clearTimers, clearCableAnimationTimer]);
+  };
 
   // DEV MODE: Trigger a test detection by calling real endpoints
   // Behavior depends on current input mode:
   // - 'audio': calls both prosodic and lexical endpoints
   // - 'text': calls only lexical endpoint
   // - 'off': does nothing
-  const triggerTestDetection = useCallback(async () => {
+  const triggerTestDetection = async () => {
     // Don't trigger if already in a detection cycle
     if (isLoading || state !== DetectionState.IDLE) {
       console.log('🔧 Dev mode: Detection already in progress, skipping');
@@ -255,7 +255,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       console.error('🔧 Dev mode: API call failed:', error);
       reset();
     }
-  }, [isLoading, state, inputMode, setLoading, setDetectionResult, reset]);
+  };
 
   // DEV MODE: Listen for 'h' key to trigger test detection
   useEffect(() => {
@@ -273,7 +273,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [triggerTestDetection]);
+  });
 
   const contextValue: DetectionContextType = {
     state,

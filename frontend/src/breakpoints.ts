@@ -18,9 +18,9 @@
  * BREAKPOINT OVERVIEW
  * ============================================================================
  * 
- * MOBILE_BREAKPOINT (1750px):
- *   - Desktop: min-width: 1750px (side-by-side layout)
- *   - Mobile:  max-width: 1749px (stacked/modal layout)
+ * MOBILE_BREAKPOINT (1440px):
+ *   - Desktop: min-width: 1440px (side-by-side layout)
+ *   - Mobile:  max-width: 1439px (stacked/modal layout)
  *   - Used in: InputContainer.tsx (JS), index.css (CSS media queries)
  * 
  * SMALL_MOBILE_BREAKPOINT (768px):
@@ -31,7 +31,7 @@
  */
 
 // Main mobile/desktop breakpoint - controls layout mode
-export const MOBILE_BREAKPOINT = 1750
+export const MOBILE_BREAKPOINT = 1440
 
 // Smaller mobile adjustments (first-time overlay only)
 export const SMALL_MOBILE_BREAKPOINT = 768
