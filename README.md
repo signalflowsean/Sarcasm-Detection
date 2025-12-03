@@ -236,24 +236,25 @@ npm install -g @railway/cli
 
 # Login to Railway
 railway login
-
-# Link to the project (from repo root)
-cd Sarcasm-Detection
-railway link
-# Select: sarcasm → production → (skip service selection or choose one)
 ```
 
 ### Deploying
 
-From the project root:
+Deploy from within each service folder:
 
 ```bash
 # Deploy frontend
-railway up -s Frontend
+cd frontend
+railway link  # Select: sarcasm → production → Frontend
+railway up
 
 # Deploy backend
-railway up -s Backend
+cd ../backend
+railway link  # Select: sarcasm → production → Backend
+railway up
 ```
+
+> **Note:** Root directories are configured in the Railway dashboard, not in `railway.toml`.
 
 ### Environment Variables
 
@@ -272,7 +273,18 @@ Configure these in the Railway dashboard for each service:
 
 ### Custom Domain
 
-The frontend is configured with a custom domain. DNS is managed through the domain registrar (Namecheap) with an ALIAS record pointing to Railway's provided target.
+The frontend is configured with a custom domain (`sarcasm-detector.com`).
+
+**DNS Setup (Namecheap):**
+- Type: `ALIAS`
+- Host: `@`
+- Value: Railway's provided target (e.g., `xyz123.up.railway.app`)
+
+**Railway Setup:**
+- Custom domain port must be set to `8080` (Railway's internal port)
+- Wait for TLS certificate to be issued (green checkmark)
+
+> **Important:** When re-adding a custom domain, Railway may provide a new target. Always update your DNS to match.
 
 ## License
 
