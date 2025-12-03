@@ -2,9 +2,9 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile.railway"
 
-# Tell Railway this service lives in the frontend folder
-[service]
-rootDirectory = "frontend"
+# Root directory is configured in Railway dashboard
+# [service]
+# rootDirectory = "frontend"
 
 # Only trigger builds when frontend files change
 [build.watch]

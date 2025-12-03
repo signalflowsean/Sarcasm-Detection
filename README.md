@@ -193,6 +193,87 @@ cd backend
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Local Docker Deployment
+
+You can run the full application locally using Docker Compose. This mirrors the production environment but **does not support hot reload** — use the [manual development setup](#manual-development-setup) if you need hot reload during development.
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Access the application
+open http://localhost
+
+# Stop the services
+docker-compose down
+```
+
+To rebuild after making changes:
+
+```bash
+# Rebuild and restart
+docker-compose up --build
+
+# Or rebuild a specific service
+docker-compose up --build frontend
+docker-compose up --build backend
+```
+
+## Deployment (Railway)
+
+The application is deployed on [Railway](https://railway.app) with frontend and backend as separate services in one project.
+
+### Prerequisites
+
+- [Railway CLI](https://docs.railway.app/develop/cli) installed
+- Railway account with access to the project
+
+### Initial Setup
+
+```bash
+# Install Railway CLI (if not installed)
+npm install -g @railway/cli
+
+# Login to Railway
+railway login
+
+# Link to the project (from repo root)
+cd Sarcasm-Detection
+railway link
+# Select: sarcasm → production → (skip service selection or choose one)
+```
+
+### Deploying
+
+From the project root:
+
+```bash
+# Deploy frontend
+railway up -s Frontend
+
+# Deploy backend
+railway up -s Backend
+```
+
+### Environment Variables
+
+Configure these in the Railway dashboard for each service:
+
+**Frontend:**
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend URL (e.g., `https://backend-production-xxxx.up.railway.app`) |
+
+**Backend:**
+| Variable | Description |
+|----------|-------------|
+| `API_DELAY_SECONDS` | Set to `0` for production |
+| `FLASK_ENV` | Set to `production` |
+
+### Custom Domain
+
+The frontend is configured with a custom domain. DNS is managed through the domain registrar (Namecheap) with an ALIAS record pointing to Railway's provided target.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
