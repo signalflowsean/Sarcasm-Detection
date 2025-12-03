@@ -21,7 +21,7 @@ type InputMode = 'text' | 'audio' | 'off';
 
 const MeterSection = () => {
   const { value } = useWhichInput();
-  const { state: detectionState, isLoading, lexicalValue, prosodicValue, mainValue } = useDetection();
+  const { state: detectionState, isLoading, cableAnimating, lexicalValue, prosodicValue, mainValue } = useDetection();
   
   // Derive power state and input mode from rotary switch
   const powerState: PowerState = value === 'off' ? 'off' : 'on';
@@ -145,7 +145,7 @@ const MeterSection = () => {
       {/* Cable anchor on meter */}
       <div className="detector-jack" data-cable-anchor="meter" aria-hidden="true" />
       {/* Mobile simple cable */}
-      <div className={`mobile-cable ${isLoading ? 'mobile-cable--loading' : ''}`} aria-hidden="true" />
+      <div className={`mobile-cable ${cableAnimating ? 'mobile-cable--loading' : ''}`} aria-hidden="true" />
     </section>
   );
 };

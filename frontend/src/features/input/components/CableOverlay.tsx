@@ -5,8 +5,8 @@ const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')
   const resizeTimeoutRef = useRef<number | null>(null)
   
-  // Subscribe to detection loading state
-  const { isLoading } = useDetection()
+  // Subscribe to cable animation state (triggers immediately on send, stays visible for minimum duration)
+  const { cableAnimating } = useDetection()
 
   const recomputeCablePath = () => {
     const meterAnchor = document.querySelector('[data-cable-anchor="meter"]') as HTMLElement | null
@@ -189,7 +189,7 @@ const CableOverlay = () => {
 
   return (
     <svg 
-      className={`cable-overlay ${isLoading ? 'cable-overlay--loading' : ''}`} 
+      className={`cable-overlay ${cableAnimating ? 'cable-overlay--loading' : ''}`} 
       aria-hidden="true"
     >
       {/* Base cable shadow */}
@@ -210,8 +210,8 @@ const CableOverlay = () => {
       />
       {/* Highlight */}
       <path d={pathD} stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Data flow animation layer (only visible during loading) */}
-      {isLoading && (
+      {/* Data flow animation layer (only visible during animation) */}
+      {cableAnimating && (
         <path 
           d={pathD} 
           stroke="rgba(59, 130, 246, 0.8)" 

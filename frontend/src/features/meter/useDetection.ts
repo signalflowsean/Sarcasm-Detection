@@ -8,6 +8,7 @@ import type { DetectionContextType } from './DetectionProvider';
  * Provides:
  * - state: Current detection cycle state (IDLE, LOADING, HOLDING_RESULT, RESETTING)
  * - isLoading: Whether an API call is in flight
+ * - cableAnimating: Whether cable animation is active (stays true for minimum visible duration)
  * - lexicalValue: Current lexical meter value (0-1)
  * - prosodicValue: Current prosodic meter value (0-1)
  * - mainValue: Average of lexical and prosodic values

@@ -18,6 +18,8 @@ export type DetectionContextType = {
   state: DetectionStateType;
   // Is currently loading (API call in flight)
   isLoading: boolean;
+  // Is cable animation active (stays true for minimum visible duration)
+  cableAnimating: boolean;
   // Current meter values (0-1)
   lexicalValue: number;
   prosodicValue: number;
@@ -36,6 +38,7 @@ export type DetectionContextType = {
 const defaultContext: DetectionContextType = {
   state: DetectionState.IDLE,
   isLoading: false,
+  cableAnimating: false,
   lexicalValue: 0,
   prosodicValue: 0,
   mainValue: 0,
@@ -88,9 +91,13 @@ function createTestAudioBlob(): Blob {
   return new Blob([header], { type: 'audio/wav' });
 }
 
+// Minimum duration the cable animation stays visible (ms)
+const CABLE_ANIMATION_MIN_DURATION_MS = 800;
+
 export function DetectionProvider({ children }: DetectionProviderProps) {
   const [state, setState] = useState<DetectionStateType>(DetectionState.IDLE);
   const [isLoading, setIsLoading] = useState(false);
+  const [cableAnimating, setCableAnimating] = useState(false);
   const [lexicalValue, setLexicalValue] = useState(0);
   const [prosodicValue, setProsodicValue] = useState(0);
 
@@ -100,11 +107,12 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   // Refs to track timers for cleanup
   const holdTimeoutRef = useRef<number | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
+  const cableAnimationTimeoutRef = useRef<number | null>(null);
 
   // Calculate main value as average
   const mainValue = (lexicalValue + prosodicValue) / 2;
 
-  // Cleanup function for timers
+  // Cleanup function for detection cycle timers (does NOT clear cable animation)
   const clearTimers = useCallback(() => {
     if (holdTimeoutRef.current !== null) {
       window.clearTimeout(holdTimeoutRef.current);
@@ -116,10 +124,21 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     }
   }, []);
 
+  // Cleanup cable animation timer (used when starting new animation or unmounting)
+  const clearCableAnimationTimer = useCallback(() => {
+    if (cableAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(cableAnimationTimeoutRef.current);
+      cableAnimationTimeoutRef.current = null;
+    }
+  }, []);
+
   // Cleanup timers on unmount to prevent memory leaks and race conditions
   useEffect(() => {
-    return clearTimers;
-  }, [clearTimers]);
+    return () => {
+      clearTimers();
+      clearCableAnimationTimer();
+    };
+  }, [clearTimers, clearCableAnimationTimer]);
 
   // Set loading state
   const setLoading = useCallback((loading: boolean) => {
@@ -128,8 +147,18 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       // Cancel any pending result cycle if we start a new request
       clearTimers();
       setState(DetectionState.LOADING);
+      
+      // Clear any existing cable animation timer before starting new one
+      clearCableAnimationTimer();
+      
+      // Start cable animation immediately and keep it running for minimum duration
+      setCableAnimating(true);
+      cableAnimationTimeoutRef.current = window.setTimeout(() => {
+        setCableAnimating(false);
+        cableAnimationTimeoutRef.current = null;
+      }, CABLE_ANIMATION_MIN_DURATION_MS);
     }
-  }, [clearTimers]);
+  }, [clearTimers, clearCableAnimationTimer]);
 
   // Handle detection result - receives values and manages the cycle
   const setDetectionResult = useCallback((values: Partial<DetectionValues>) => {
@@ -174,11 +203,13 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   // Manual reset
   const reset = useCallback(() => {
     clearTimers();
+    clearCableAnimationTimer();
     setIsLoading(false);
+    setCableAnimating(false);
     setLexicalValue(0);
     setProsodicValue(0);
     setState(DetectionState.IDLE);
-  }, [clearTimers]);
+  }, [clearTimers, clearCableAnimationTimer]);
 
   // DEV MODE: Trigger a test detection by calling real endpoints
   // Behavior depends on current input mode:
@@ -247,6 +278,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   const contextValue: DetectionContextType = {
     state,
     isLoading,
+    cableAnimating,
     lexicalValue,
     prosodicValue,
     mainValue,
