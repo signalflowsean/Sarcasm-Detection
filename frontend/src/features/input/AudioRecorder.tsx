@@ -357,6 +357,16 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   const startRecording = async () => {
     if (state.isRecording) return
     
+    // Check for mediaDevices support (may be unavailable in WebViews/in-app browsers)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|LinkedInApp|Snapchat/i.test(navigator.userAgent)
+      const message = isInAppBrowser
+        ? 'Audio recording not supported in this browser. Please open in Chrome or Safari.'
+        : 'Audio recording is not supported in this browser.'
+      setState((s) => ({ ...s, error: message }))
+      return
+    }
+    
     // Clear previous recording if it exists
     if (state.audioUrl) {
       URL.revokeObjectURL(state.audioUrl)
@@ -469,7 +479,17 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       setState((s) => ({ ...s, isRecording: true, error: null, durationMs: 0, interimTranscript: '' }))
       setHasEverRecorded(true)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
+      let message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
+      
+      // Provide more helpful error for mobile permission issues
+      if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+        message = 'Microphone access denied. Please allow microphone access in your browser settings.'
+      } else if (err instanceof Error && err.name === 'NotFoundError') {
+        message = 'No microphone found. Please connect a microphone and try again.'
+      } else if (err instanceof Error && err.name === 'NotReadableError') {
+        message = 'Microphone is in use by another app. Please close other apps using the microphone.'
+      }
+      
       setState((s) => ({ ...s, error: message }))
     }
   }
