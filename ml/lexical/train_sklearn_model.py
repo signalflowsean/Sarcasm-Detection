@@ -65,7 +65,10 @@ print("\nClassification Report:")
 print(classification_report(y_test, y_pred, target_names=['Not Sarcastic', 'Sarcastic']))
 
 # Save model to backend folder
-output_path = '../backend/sarcasm_model.pkl'
+from pathlib import Path
+SCRIPT_DIR = Path(__file__).parent
+BACKEND_DIR = SCRIPT_DIR.parent.parent / "backend"
+output_path = BACKEND_DIR / 'sarcasm_model.pkl'
 with open(output_path, 'wb') as f:
     pickle.dump(model, f)
 print(f"\nModel saved to: {output_path}")

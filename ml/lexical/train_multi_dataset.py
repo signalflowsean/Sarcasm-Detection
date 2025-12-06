@@ -365,7 +365,10 @@ def main():
     model, accuracy = train_model(X_train, y_train, X_test, y_test)
     
     # Save model
-    output_path = '../backend/sarcasm_model.pkl'
+    from pathlib import Path
+    SCRIPT_DIR = Path(__file__).parent
+    BACKEND_DIR = SCRIPT_DIR.parent.parent / "backend"
+    output_path = BACKEND_DIR / 'sarcasm_model.pkl'
     with open(output_path, 'wb') as f:
         pickle.dump(model, f)
     print(f"\n💾 Model saved to: {output_path}")

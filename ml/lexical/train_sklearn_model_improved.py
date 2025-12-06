@@ -451,13 +451,16 @@ def main():
         best_acc = ensemble_accuracy
     
     # Save the best model
-    output_path = '../backend/sarcasm_model.pkl'
+    from pathlib import Path
+    SCRIPT_DIR = Path(__file__).parent
+    BACKEND_DIR = SCRIPT_DIR.parent.parent / "backend"
+    output_path = BACKEND_DIR / 'sarcasm_model.pkl'
     with open(output_path, 'wb') as f:
         pickle.dump(final_model, f)
     print(f"\n💾 Model saved to: {output_path}")
     
     # Also save a local copy
-    local_path = 'sarcasm_model_improved.pkl'
+    local_path = SCRIPT_DIR / 'sarcasm_model_improved.pkl'
     with open(local_path, 'wb') as f:
         pickle.dump(final_model, f)
     print(f"💾 Backup saved to: {local_path}")
