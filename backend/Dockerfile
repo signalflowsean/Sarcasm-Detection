@@ -6,8 +6,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code and model
 COPY app.py .
+COPY sarcasm_model.pkl .
 
 # Default port (Railway sets PORT env var dynamically)
 ENV PORT=5000

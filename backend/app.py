@@ -8,6 +8,7 @@ import random
 import time
 import uuid
 import logging
+import pickle
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -21,6 +22,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Load the lexical sarcasm detection model (scikit-learn pipeline saved as pickle)
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'sarcasm_model.pkl')
+
+lexical_model = None
+if os.path.exists(MODEL_PATH):
+    logger.info(f"Loading lexical model from: {MODEL_PATH}")
+    with open(MODEL_PATH, 'rb') as f:
+        lexical_model = pickle.load(f)
+    logger.info("Lexical model loaded successfully")
+else:
+    logger.warning(f"Could not find lexical model at {MODEL_PATH} - lexical endpoint will return mock data")
 
 app = Flask(__name__)
 
@@ -165,9 +178,19 @@ def lexical_detection():
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
     
-    # TODO: Replace with actual ML model inference
-    # For now, return random value to match mock behavior
-    score = random.random()
+    # Use the actual lexical model for prediction
+    if lexical_model is not None:
+        try:
+            # Get probability of sarcastic class
+            score = float(lexical_model.predict_proba([text.strip()])[0][1])
+            logger.debug(f"Lexical prediction for '{text[:50]}...': {score:.4f}")
+        except Exception as e:
+            logger.error(f"Error during lexical prediction: {e}")
+            # Fallback to random on error
+            score = random.random()
+    else:
+        # Fallback to random if model not loaded
+        score = random.random()
     
     return jsonify({
         'id': str(uuid.uuid4()),

@@ -2,11 +2,8 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
-# Root directory is configured in Railway dashboard
-# [service]
-# rootDirectory = "backend"
-
-# Only trigger builds when backend files change
+# Root directory is configured in Railway dashboard as "Backend"
+# Watch patterns are relative to repo root (use actual folder name casing)
 [build.watch]
 include = ["backend/**"]
 
