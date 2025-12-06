@@ -1,30 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-// portal usage is encapsulated in MobileRecorderOverlay
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { sendLexicalText, sendProsodicAudio } from './apiService'
-import { formatDuration, clamp01, isMobileBrowser, isIOSDevice } from './utils'
-import { useRafInterval } from './hooks'
+import { formatDuration, clamp01 } from './utils'
 import RecorderContent from './components/RecorderContent'
 import { useDetection } from '../meter/useDetection'
+import { useSpeechRecognition } from './hooks/useSpeechRecognition'
+import { useWaveform } from './hooks/useWaveform'
 
 type Nullable<T> = T | null
-
-// Minimal typings for Web Speech API
-type SpeechRecognitionLike = {
-  interimResults: boolean
-  continuous?: boolean
-  maxAlternatives?: number
-  lang: string
-  onresult: (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void
-  onerror: (event: unknown) => void
-  onend: () => void
-  start: () => void
-  stop: () => void
-}
-
-const getSpeechRecognitionCtor = (): (new () => SpeechRecognitionLike) | null => {
-  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null
-}
 
 type RecorderState = {
   isRecording: boolean
@@ -36,8 +18,6 @@ type RecorderState = {
   audioUrl: Nullable<string>
   error: Nullable<string>
 }
-
-// extracted hooks are imported from ./hooks
 
 type AudioRecorderProps = {
   onClose?: () => void
@@ -62,6 +42,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   // Detection context for meter display
   const { setLoading, setDetectionResult } = useDetection()
 
+  // Recording refs
   const mediaRecorderRef = useRef<Nullable<MediaRecorder>>(null)
   const mediaStreamRef = useRef<Nullable<MediaStream>>(null)
   const audioChunksRef = useRef<BlobPart[]>([])
@@ -69,156 +50,54 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   const timerIntervalRef = useRef<number | null>(null)
   const isRecordingRef = useRef<boolean>(false)
 
-  // Waveform
-  const audioContextRef = useRef<Nullable<AudioContext>>(null)
-  const analyserRef = useRef<Nullable<AnalyserNode>>(null)
-  const dataArrayRef = useRef<Nullable<Uint8Array>>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const lastWaveformRef = useRef<Uint8Array | null>(null)
-  const peaksRef = useRef<{ min: Float32Array; max: Float32Array } | null>(null)
-  const peaksComputationIdRef = useRef<number>(0)
-  const decodingAudioContextRef = useRef<Nullable<AudioContext>>(null)
-
-  const drawPathFromArray = (array: Uint8Array) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const { width, height } = canvas
-    ctx.clearRect(0, 0, width, height)
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#3b82f6'
-    ctx.beginPath()
-    const sliceWidth = width / array.length
-    let x = 0
-    for (let i = 0; i < array.length; i++) {
-      const v = array[i] / 128.0
-      const y = (v * height) / 2
-      if (i === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-      x += sliceWidth
-    }
-    ctx.lineTo(width, height / 2)
-    ctx.stroke()
-  }
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-  }
-
-  const drawPeaks = (min: Float32Array, max: Float32Array) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const { width, height } = canvas
-    ctx.clearRect(0, 0, width, height)
-
-    const n = Math.min(min.length, max.length)
-    const step = width / n
-
-    // Fill shape between min and max
-    ctx.beginPath()
-    for (let i = 0; i < n; i++) {
-      const x = i * step
-      const yTop = (1 - max[i]) * height / 2
-      if (i === 0) ctx.moveTo(x, yTop)
-      else ctx.lineTo(x, yTop)
-    }
-    for (let i = n - 1; i >= 0; i--) {
-      const x = i * step
-      const yBot = (1 - min[i]) * height / 2
-      ctx.lineTo(x, yBot)
-    }
-    ctx.closePath()
-    ctx.fillStyle = 'rgba(59,130,246,0.25)'
-    ctx.fill()
-
-    // Draw outline on top
-    ctx.beginPath()
-    for (let i = 0; i < n; i++) {
-      const x = i * step
-      const y = (1 - max[i]) * height / 2
-      if (i === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-    }
-    ctx.strokeStyle = '#3b82f6'
-    ctx.lineWidth = 1
-    ctx.stroke()
-  }
-
-  const drawWaveform = () => {
-    const canvas = canvasRef.current
-    const analyser = analyserRef.current
-    const dataArray = dataArrayRef.current
-    if (!canvas || !analyser || !dataArray) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    const { width, height } = canvas
-    ctx.clearRect(0, 0, width, height)
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#3b82f6'
-    // Use a temporary array to satisfy strict ArrayBuffer typing
-    const temp = new Uint8Array(dataArray.length)
-    analyser.getByteTimeDomainData(temp)
-    dataArray.set(temp)
-    lastWaveformRef.current = temp.slice()
-    ctx.beginPath()
-    const sliceWidth = width / dataArray.length
-    let x = 0
-    for (let i = 0; i < dataArray.length; i++) {
-      const v = dataArray[i] / 128.0
-      const y = (v * height) / 2
-      if (i === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-      x += sliceWidth
-    }
-    ctx.lineTo(width, height / 2)
-    ctx.stroke()
-  }
-
-  useRafInterval(drawWaveform, state.isRecording)
-
+  // Keep isRecordingRef in sync with state
   useEffect(() => {
     isRecordingRef.current = state.isRecording
   }, [state.isRecording])
 
-  // Redraw static waveform when recording stops
-  useEffect(() => {
-    if (!state.isRecording) {
-      if (peaksRef.current) drawPeaks(peaksRef.current.min, peaksRef.current.max)
-      else if (lastWaveformRef.current) drawPathFromArray(lastWaveformRef.current)
-      else clearCanvas()
-    }
-  }, [state.isRecording])
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Waveform hook
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  // DPR sizing for canvas
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1
-      const rect = canvas.getBoundingClientRect()
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr))
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr))
-      // Redraw waveform after resize (canvas content is cleared when dimensions change)
-      // Skip if recording - the RAF loop will handle it
-      if (!state.isRecording) {
-        if (peaksRef.current) drawPeaks(peaksRef.current.min, peaksRef.current.max)
-        else if (lastWaveformRef.current) drawPathFromArray(lastWaveformRef.current)
-        else clearCanvas()
-      }
-    }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [state.isRecording])
+  const {
+    canvasRef,
+    setupWaveform,
+    cleanupWaveform,
+    invalidatePeaks,
+    computePeaksFromBlob,
+    resetWaveform,
+  } = useWaveform({ isRecording: state.isRecording })
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Speech recognition hook
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const handleTranscriptUpdate = useCallback(({ interim, final }: { interim: string; final: string }) => {
+    setState((s) => ({
+      ...s,
+      interimTranscript: interim,
+      transcript: s.transcript + final,
+    }))
+  }, [])
+
+  const handleSpeechError = useCallback((message: string) => {
+    setState((s) => ({ ...s, error: message }))
+  }, [])
+
+  const {
+    startSpeechRecognition,
+    stopSpeechRecognition,
+    speechSupported,
+  } = useSpeechRecognition({
+    isRecordingRef,
+    onTranscriptUpdate: handleTranscriptUpdate,
+    onError: handleSpeechError,
+  })
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Cleanup blob URL on unmount to prevent memory leaks
+  // ─────────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const currentUrl = state.audioUrl
     return () => {
@@ -228,175 +107,10 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }
   }, [state.audioUrl])
 
-  // Cleanup decoding AudioContext on unmount
-  useEffect(() => {
-    return () => {
-      if (decodingAudioContextRef.current && decodingAudioContextRef.current.state !== 'closed') {
-        decodingAudioContextRef.current.close()
-      }
-    }
-  }, [])
-
-  const setupWaveform = async (stream: MediaStream) => {
-    const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
-    const AudioCtx = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
-    const audioCtx = new AudioCtx()
-    const source = audioCtx.createMediaStreamSource(stream)
-    const analyser = audioCtx.createAnalyser()
-    analyser.fftSize = 2048
-    const bufferLength = analyser.frequencyBinCount
-    const dataArray = new Uint8Array(bufferLength)
-    source.connect(analyser)
-    try { await audioCtx.resume() } catch { /* noop */ }
-    audioContextRef.current = audioCtx
-    analyserRef.current = analyser
-    dataArrayRef.current = dataArray
-  }
-
-  const cleanupWaveform = () => {
-    if (audioContextRef.current) {
-      audioContextRef.current.close()
-      audioContextRef.current = null
-    }
-    analyserRef.current = null
-    dataArrayRef.current = null
-  }
-
-  // Shared AudioContext for decoding to avoid hitting browser limits
-  const getDecodingAudioContext = () => {
-    if (!decodingAudioContextRef.current || decodingAudioContextRef.current.state === 'closed') {
-      const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
-      const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
-      decodingAudioContextRef.current = new ACtor()
-    }
-    return decodingAudioContextRef.current
-  }
-
-  // Speech recognition
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
-  const speechSupported = !!getSpeechRecognitionCtor()
-
-  // Track restart attempts for iOS Safari workaround
-  const restartAttemptsRef = useRef(0)
-  const maxRestartAttempts = 50 // Allow many restarts during a recording session
-  const restartDelayRef = useRef<number | null>(null)
-  
-  const startSpeechRecognition = () => {
-    if (!speechSupported) return
-    const Ctor = getSpeechRecognitionCtor()
-    if (!Ctor) return
-    
-    // Reset restart counter when starting fresh
-    restartAttemptsRef.current = 0
-    
-    const recognition = new Ctor()
-    recognition.interimResults = true
-    
-    // Mobile browsers (iOS Safari, Chrome on Android, etc.) have issues with continuous mode
-    // It often stops after a few seconds. Use non-continuous mode with auto-restart instead.
-    const isMobile = isMobileBrowser()
-    const isIOS = isIOSDevice()
-    recognition.continuous = !isMobile
-    recognition.maxAlternatives = 1
-    // Use browser's language setting with fallback to en-US
-    recognition.lang = navigator.language || 'en-US'
-    
-    recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
-      let interim = ''
-      let final = ''
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const res = event.results[i]
-        if (res.isFinal) final += res[0].transcript
-        else interim += res[0].transcript
-      }
-      setState((s) => ({ ...s, interimTranscript: interim, transcript: s.transcript + final }))
-    }
-    
-    recognition.onerror = (event: unknown) => {
-      const errorEvent = event as { error?: string; message?: string }
-      const errorType = errorEvent.error || 'unknown'
-      
-      // Only show user-facing errors for critical issues
-      if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
-        setState((s) => ({ ...s, error: 'Microphone permission denied for speech recognition' }))
-      } else if (errorType === 'network') {
-        setState((s) => ({ ...s, error: 'Network error: Speech recognition unavailable' }))
-      } else if (errorType === 'no-speech') {
-        // This is common on mobile when recognition times out without detecting speech
-        // Don't show error, just log - the onend handler will restart if still recording
-        console.warn('Speech recognition: No speech detected')
-      } else if (errorType === 'audio-capture') {
-        // Audio capture failed - common on mobile when mic access is interrupted
-        console.warn('Speech recognition: Audio capture failed')
-      } else if (errorType !== 'aborted') {
-        // Log other errors but don't show to user (might be transient)
-        console.warn('Speech recognition error:', errorType)
-      }
-    }
-    
-    recognition.onend = () => {
-      // Clear any existing restart timeout
-      if (restartDelayRef.current != null) {
-        clearTimeout(restartDelayRef.current)
-        restartDelayRef.current = null
-      }
-      
-      if (isRecordingRef.current && restartAttemptsRef.current < maxRestartAttempts) {
-        restartAttemptsRef.current += 1
-        
-        // On mobile browsers, add a delay before restarting to prevent rapid cycling
-        // iOS needs longer delay, Android Chrome needs shorter delay
-        const delay = isMobile ? (isIOS ? 150 : 100) : 0
-        
-        if (delay > 0) {
-          restartDelayRef.current = window.setTimeout(() => {
-            if (isRecordingRef.current) {
-              try { 
-                recognition.start() 
-              } catch (e) { 
-                console.warn('Failed to restart speech recognition:', e)
-              }
-            }
-          }, delay)
-        } else {
-          try { 
-            recognition.start() 
-          } catch (e) { 
-            console.warn('Failed to restart speech recognition:', e)
-          }
-        }
-      } else {
-        recognitionRef.current = null
-      }
-    }
-    
-    recognitionRef.current = recognition
-    
-    // Start immediately to preserve user gesture context (required on some mobile browsers)
-    // The delay is only used for REstarting after onend events
-    try {
-      recognition.start()
-    } catch (e) { 
-      console.warn('Failed to start speech recognition:', e)
-    }
-  }
-
-  const stopSpeechRecognition = () => {
-    // Clear any pending restart timeout
-    if (restartDelayRef.current != null) {
-      clearTimeout(restartDelayRef.current)
-      restartDelayRef.current = null
-    }
-    
-    const rec = recognitionRef.current
-    if (!rec) return
-    try {
-      rec.stop()
-    } catch { /* noop */ }
-    recognitionRef.current = null
-  }
-
+  // ─────────────────────────────────────────────────────────────────────────────
   // Timer - updates every 100ms to avoid excessive re-renders
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const startTimer = () => {
     startTimeRef.current = performance.now()
     const tick = () => {
@@ -406,6 +120,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     tick()
     timerIntervalRef.current = window.setInterval(tick, 100)
   }
+
   const stopTimer = () => {
     if (timerIntervalRef.current != null) {
       clearInterval(timerIntervalRef.current)
@@ -413,11 +128,14 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // Recording lifecycle
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const startRecording = async () => {
     if (state.isRecording) return
-    
+
     // Check for mediaDevices support (may be unavailable in WebViews/in-app browsers)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|LinkedInApp|Snapchat/i.test(navigator.userAgent)
@@ -427,14 +145,14 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       setState((s) => ({ ...s, error: message }))
       return
     }
-    
+
     // Clear previous recording if it exists
     if (state.audioUrl) {
       URL.revokeObjectURL(state.audioUrl)
     }
     // Invalidate any in-flight peaks computation
-    peaksComputationIdRef.current += 1
-    
+    invalidatePeaks()
+
     setState((s) => ({
       ...s,
       audioBlob: null,
@@ -445,10 +163,8 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }))
     setPlaybackMs(0)
     setAudioDurationMs(0)
-    lastWaveformRef.current = null
-    peaksRef.current = null
-    clearCanvas()
-    
+    resetWaveform()
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       mediaStreamRef.current = stream
@@ -474,63 +190,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         const url = URL.createObjectURL(blob)
         setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
-        
-        // Increment computation ID to invalidate any in-flight peaks computation
-        peaksComputationIdRef.current += 1
-        const currentComputationId = peaksComputationIdRef.current
-        
-        // Decode and compute peaks for a persistent waveform in playback
-        ;(async () => {
-          try {
-            const arrayBuf = await blob.arrayBuffer()
-            
-            // Check if this computation is still valid
-            if (currentComputationId !== peaksComputationIdRef.current) return
-            
-            // Reuse shared AudioContext to avoid hitting browser limits
-            const ac = getDecodingAudioContext()
-            const audioBuffer = await ac.decodeAudioData(arrayBuf)
-            
-            // Check again after async operations
-            if (currentComputationId !== peaksComputationIdRef.current) return
-            
-            const channels = audioBuffer.numberOfChannels
-            const length = audioBuffer.length
-            const data = new Float32Array(length)
-            // Mixdown to mono
-            for (let ch = 0; ch < channels; ch++) {
-              const chData = audioBuffer.getChannelData(ch)
-              for (let i = 0; i < length; i++) data[i] += chData[i] / channels
-            }
-            const bins = Math.max(512, Math.min(2048, Math.floor((canvasRef.current?.width || 1024) / 2)))
-            const blockSize = Math.max(1, Math.floor(length / bins))
-            const min = new Float32Array(bins)
-            const max = new Float32Array(bins)
-            for (let i = 0; i < bins; i++) {
-              let blockMin = 1.0
-              let blockMax = -1.0
-              const start = i * blockSize
-              const end = Math.min(start + blockSize, length)
-              for (let j = start; j < end; j++) {
-                const v = data[j]
-                if (v < blockMin) blockMin = v
-                if (v > blockMax) blockMax = v
-              }
-              min[i] = blockMin
-              max[i] = blockMax
-            }
-            
-            // Final check before updating refs and drawing
-            if (currentComputationId !== peaksComputationIdRef.current) return
-            
-            peaksRef.current = { min, max }
-            drawPeaks(min, max)
-          } catch (err) {
-            // Log but don't show user-facing error - peaks are optional for enhanced waveform
-            // The recording/playback still works without them
-            console.error('Failed to compute waveform peaks:', err)
-          }
-        })()
+
+        // Compute peaks for persistent waveform in playback
+        computePeaksFromBlob(blob)
       }
       mediaRecorderRef.current = mr
       await setupWaveform(stream)
@@ -541,7 +203,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       setHasEverRecorded(true)
     } catch (err) {
       let message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
-      
+
       // Provide more helpful error for mobile permission issues
       if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
         message = 'Microphone access denied. Please allow microphone access in your browser settings.'
@@ -550,7 +212,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       } else if (err instanceof Error && err.name === 'NotReadableError') {
         message = 'Microphone is in use by another app. Please close other apps using the microphone.'
       }
-      
+
       setState((s) => ({ ...s, error: message }))
     }
   }
@@ -579,10 +241,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       el.currentTime = 0
     }
     stopRecording()
-    
-    // Invalidate any in-flight peaks computation
-    peaksComputationIdRef.current += 1
-    
+
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
     setState((s) => ({
       ...s,
@@ -594,17 +253,20 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }))
     setPlaybackMs(0)
     setAudioDurationMs(0)
-    lastWaveformRef.current = null
-    peaksRef.current = null
-    clearCanvas()
+    resetWaveform()
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // Toggle recording handlers
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const micBtnRef = useRef<HTMLButtonElement>(null)
+
   const onMicClick = () => {
     if (state.isRecording) stopRecording()
     else startRecording()
   }
+
   const onMicKeyDown = (e: React.KeyboardEvent) => {
     // Only handle Enter (Space is reserved for playback toggle)
     if (e.code === 'Enter') {
@@ -617,7 +279,10 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // Send
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const onSend = async () => {
     if (!state.audioBlob) return
@@ -627,13 +292,13 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     try {
       const [prosodicResponse, lexicalResponse] = await Promise.all([
         sendProsodicAudio(state.audioBlob),
-        state.transcript.trim() 
-          ? sendLexicalText(state.transcript.trim()) 
+        state.transcript.trim()
+          ? sendLexicalText(state.transcript.trim())
           : Promise.resolve({ id: 'no-text', value: 0 }),
       ])
       // Pass both values to detection provider
-      setDetectionResult({ 
-        lexical: lexicalResponse.value, 
+      setDetectionResult({
+        lexical: lexicalResponse.value,
         prosodic: prosodicResponse.value,
       })
       // Successfully sent - discard the recording to allow a new one
@@ -650,11 +315,15 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     }
   }
 
-  // Preview
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Audio preview / playback
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
   const [audioDurationMs, setAudioDurationMs] = useState(0)
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const togglePlay = () => {
     const el = audioRef.current
@@ -678,6 +347,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       el.pause()
     }
   }
+
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -690,12 +360,12 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       setAudioDurationMs(Number.isFinite(el.duration) ? el.duration * 1000 : 0)
     }
     const onSeeked = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
-    
+
     // Check if metadata is already loaded (e.g., when switching to modal view)
     if (el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0) {
       setAudioDurationMs(el.duration * 1000)
     }
-    
+
     el.addEventListener('ended', onEnded)
     el.addEventListener('play', onPlay)
     el.addEventListener('pause', onPause)
@@ -739,22 +409,26 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     setPlaybackMs(newTime * 1000)
   }
 
-  // Global keyboard handler for "R" key to toggle recording
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Global keyboard shortcuts
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // "R" key to toggle recording
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle "R" key
       if (e.code !== 'KeyR') return
-      
+
       // Don't handle if any modifier keys are pressed (Cmd+R should refresh page)
       if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
-      
+
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      
+
       // Don't toggle if playing audio or sending
       if (isPlaying || state.isSending) return
-      
+
       e.preventDefault()
       if (state.isRecording) {
         stopRecording()
@@ -767,16 +441,16 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.isRecording, state.isSending, isPlaying, startRecording, stopRecording])
 
-  // Global keyboard handler for Delete/Backspace key to discard recording
+  // Delete/Backspace key to discard recording
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle both Delete and Backspace (Backspace is the "delete" key on Mac)
       if (e.code !== 'Delete' && e.code !== 'Backspace') return
-      
+
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      
+
       // Only discard if there's audio to discard AND not currently recording or sending
       if (state.audioBlob && !state.isRecording && !state.isSending) {
         e.preventDefault()
@@ -788,16 +462,16 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.audioBlob, state.isRecording, state.isSending, discardRecording])
 
-  // Global keyboard handler for Cmd/Ctrl+Enter to send
+  // Cmd/Ctrl+Enter to send
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle Cmd/Ctrl+Enter
       if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
-      
+
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      
+
       // Only send if there's audio to send and not already sending
       if (state.audioBlob && !state.isSending) {
         e.preventDefault()
@@ -809,16 +483,16 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.audioBlob, state.isSending, onSend])
 
-  // Global keyboard handler for space bar to toggle playback
+  // Space bar to toggle playback
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle space bar
       if (e.code !== 'Space') return
-      
+
       // Don't interfere if user is typing in an input or textarea
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
-      
+
       // Only toggle playback if there's audio to play (not for recording or sending)
       if (state.audioUrl && !state.isRecording && !state.isSending) {
         e.preventDefault() // Prevent page scroll
@@ -864,5 +538,3 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
 }
 
 export default AudioRecorder
-
-

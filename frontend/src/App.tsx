@@ -4,6 +4,7 @@ import InputContainer from './features/input/InputContainer'
 import CableOverlay from './features/input/components/CableOverlay'
 import { RouteSync } from './features/meter/RouteSync'
 import { DetectionProvider } from './features/meter/DetectionProvider'
+import FirstTimeOverlay from './features/meter/components/FirstTimeOverlay'
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
         </section>
         <MeterSection />
         <CableOverlay />
+        <FirstTimeOverlay />
       </main>
     </DetectionProvider>
   )

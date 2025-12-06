@@ -4,85 +4,73 @@ const STORAGE_KEY = 'sarcasm-detector-visited'
 
 const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
-  const [position, setPosition] = useState({ left: '50%', top: '45%' })
-  const [_arrowPosition, setArrowPosition] = useState({ left: '50%', top: '45%', size: 100 })
+  const [textPosition, setTextPosition] = useState({ left: '50%', top: '45%' })
   const overlayRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Check if user has visited before
     const hasVisited = localStorage.getItem(STORAGE_KEY)
-    let animationFrameId: number | undefined;
-    let retryCount = 0;
-    const MAX_RETRIES = 100; // Maximum number of animation frames to try
-    const MAX_TIME_MS = 5000; // Maximum time to wait (5 seconds)
-    const startTime = Date.now();
+    let animationFrameId: number | undefined
+    let retryCount = 0
+    const MAX_RETRIES = 100
+    const MAX_TIME_MS = 5000
+    const startTime = Date.now()
     
     if (!hasVisited) {
       setShowOverlay(true)
       
-      // Position overlay based on rotary knob location
       const tryPositionOverlay = () => {
-        const knob = document.querySelector('.rotary__knob') as HTMLElement;
-        const elapsedTime = Date.now() - startTime;
+        const knob = document.querySelector('.rotary__knob') as HTMLElement
+        const elapsedTime = Date.now() - startTime
         
         if (knob) {
-          const rect = knob.getBoundingClientRect();
-          // Position text to the right of the knob
-          const rightX = rect.right + 80;
-          const centerY = rect.top + rect.height / 2;
-          // Use viewport-relative positioning
-          setPosition({
-            left: `${rightX}px`,
-            top: `${centerY}px`
-          });
+          const rect = knob.getBoundingClientRect()
+          const knobCenterX = rect.left + rect.width / 2
           
-          // Position arrow centered on the knob
-          const knobCenterX = rect.left + rect.width / 2;
-          const knobCenterY = rect.top + rect.height / 2;
-          // Arrow should be about 1/3 of knob size larger than the knob
-          const arrowSize = rect.width * 1.33;
-          setArrowPosition({
+          // Position text below the knob
+          setTextPosition({
             left: `${knobCenterX}px`,
-            top: `${knobCenterY}px`,
-            size: arrowSize
-          });
+            top: `${rect.bottom + 30}px`
+          })
         } else if (retryCount < MAX_RETRIES && elapsedTime < MAX_TIME_MS) {
-          // Only retry if we haven't exceeded the maximum retries or time
-          retryCount++;
-          animationFrameId = requestAnimationFrame(tryPositionOverlay);
-        } else {
-          // Give up after max retries/time - fallback to center position
-          console.warn('FirstTimeOverlay: Could not find .rotary__knob element after', retryCount, 'retries and', elapsedTime, 'ms');
+          retryCount++
+          animationFrameId = requestAnimationFrame(tryPositionOverlay)
         }
-      };
-      tryPositionOverlay();
+      }
+      tryPositionOverlay()
     }
-    // Cleanup animation frame on unmount
+    
     return () => {
       if (typeof animationFrameId === 'number') {
-        cancelAnimationFrame(animationFrameId);
+        cancelAnimationFrame(animationFrameId)
       }
-    };
-  }, []);
-
-  const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, 'true')
-    setShowOverlay(false)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-      handleDismiss()
     }
-  }
+  }, [])
 
-  // Auto-focus the overlay when it appears for keyboard accessibility
+  // Listen for localStorage changes (when RotarySwitch dismisses first-time state)
   useEffect(() => {
-    if (showOverlay && overlayRef.current) {
-      overlayRef.current.focus()
+    const handleStorageChange = () => {
+      const hasVisited = localStorage.getItem(STORAGE_KEY)
+      if (hasVisited) {
+        setShowOverlay(false)
+      }
     }
-  }, [showOverlay])
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also poll localStorage since storage events don't fire for same-tab changes
+    const pollInterval = setInterval(() => {
+      const hasVisited = localStorage.getItem(STORAGE_KEY)
+      if (hasVisited) {
+        setShowOverlay(false)
+      }
+    }, 100)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(pollInterval)
+    }
+  }, [])
 
   if (!showOverlay) return null
 
@@ -90,29 +78,18 @@ const FirstTimeOverlay = () => {
     <div 
       ref={overlayRef}
       className="first-time-overlay" 
-      onClick={handleDismiss}
-      onKeyDown={handleKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Welcome tutorial - Turn the knob to start detecting sarcasm"
-      tabIndex={0}
+      role="status"
+      aria-live="polite"
+      aria-label="Welcome hint - Turn the knob to start detecting sarcasm"
     >
-      {/* Arrow positioned on the knob itself */}
-      {/* TODO: Add arrow */}
-      
-      {/* Text positioned to the right of knob */}
+      {/* Instructional text - non-blocking */}
       <div 
-        ref={contentRef}
         className="first-time-overlay__content"
         style={{ 
-          left: position.left, 
-          top: position.top,
-          transform: 'translate(0, -50%)',
-          flexDirection: 'column',
-          alignItems: 'flex-start'
+          left: textPosition.left, 
+          top: textPosition.top,
+          transform: 'translateX(-50%)',
         }}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
       >
         <p className="first-time-overlay__text">
           Turn the Knob to Start Detecting Sarcasm
