@@ -4,11 +4,13 @@ Provides endpoints for lexical (text-based) and prosodic (audio-based) sarcasm d
 """
 
 import os
+import io
 import random
 import time
 import uuid
 import logging
 import pickle
+import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -23,17 +25,180 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# Model Loading
+# ============================================================================
+
 # Load the lexical sarcasm detection model (scikit-learn pipeline saved as pickle)
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'sarcasm_model.pkl')
+LEXICAL_MODEL_PATH = os.path.join(os.path.dirname(__file__), 'sarcasm_model.pkl')
 
 lexical_model = None
-if os.path.exists(MODEL_PATH):
-    logger.info(f"Loading lexical model from: {MODEL_PATH}")
-    with open(MODEL_PATH, 'rb') as f:
+if os.path.exists(LEXICAL_MODEL_PATH):
+    logger.info(f"Loading lexical model from: {LEXICAL_MODEL_PATH}")
+    with open(LEXICAL_MODEL_PATH, 'rb') as f:
         lexical_model = pickle.load(f)
     logger.info("Lexical model loaded successfully")
 else:
-    logger.warning(f"Could not find lexical model at {MODEL_PATH} - lexical endpoint will return mock data")
+    logger.warning(f"Could not find lexical model at {LEXICAL_MODEL_PATH} - lexical endpoint will return mock data")
+
+# Load the prosodic sarcasm detection model (Wav2Vec2 + classifier)
+PROSODIC_MODEL_PATH = os.path.join(os.path.dirname(__file__), 'prosodic_model.pkl')
+WAV2VEC_MODEL_NAME = "facebook/wav2vec2-base-960h"
+TARGET_SAMPLE_RATE = 16000
+
+# Prosodic model components (lazy-loaded)
+prosodic_model = None
+wav2vec_processor = None
+wav2vec_model = None
+torch_available = False
+
+# Try to load PyTorch and transformers for prosodic model
+try:
+    import torch
+    import torchaudio
+    import soundfile as sf
+    from transformers import Wav2Vec2Processor, Wav2Vec2Model
+    torch_available = True
+    logger.info("PyTorch and transformers loaded successfully")
+except ImportError as e:
+    logger.warning(f"Could not import PyTorch/transformers: {e}")
+    logger.warning("Prosodic endpoint will return mock data")
+
+
+def load_prosodic_models():
+    """
+    Lazy-load prosodic model components.
+    Called on first prosodic request to avoid slow startup.
+    """
+    global prosodic_model, wav2vec_processor, wav2vec_model
+    
+    if not torch_available:
+        return False
+    
+    # Load Wav2Vec2 encoder
+    if wav2vec_processor is None or wav2vec_model is None:
+        logger.info(f"Loading Wav2Vec2 model: {WAV2VEC_MODEL_NAME}")
+        try:
+            wav2vec_processor = Wav2Vec2Processor.from_pretrained(WAV2VEC_MODEL_NAME)
+            wav2vec_model = Wav2Vec2Model.from_pretrained(WAV2VEC_MODEL_NAME)
+            wav2vec_model.eval()
+            logger.info("Wav2Vec2 model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load Wav2Vec2 model: {e}")
+            return False
+    
+    # Load classifier
+    if prosodic_model is None and os.path.exists(PROSODIC_MODEL_PATH):
+        logger.info(f"Loading prosodic classifier from: {PROSODIC_MODEL_PATH}")
+        try:
+            with open(PROSODIC_MODEL_PATH, 'rb') as f:
+                prosodic_model = pickle.load(f)
+            logger.info("Prosodic classifier loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load prosodic classifier: {e}")
+            return False
+    elif prosodic_model is None:
+        logger.warning(f"Could not find prosodic model at {PROSODIC_MODEL_PATH}")
+        return False
+    
+    return True
+
+
+def decode_audio(audio_bytes: bytes) -> tuple:
+    """
+    Decode audio bytes to waveform using soundfile.
+    Handles multiple formats (WAV, FLAC, OGG, etc.)
+    
+    Args:
+        audio_bytes: Raw audio file bytes
+        
+    Returns:
+        tuple: (waveform as numpy array, sample_rate)
+    """
+    # Use soundfile to decode (supports WAV, FLAC, OGG)
+    audio_buffer = io.BytesIO(audio_bytes)
+    try:
+        waveform, sr = sf.read(audio_buffer)
+        return waveform, sr
+    except Exception as e:
+        logger.debug(f"soundfile failed: {e}, trying torchaudio")
+    
+    # Fallback to torchaudio for formats soundfile doesn't handle (MP3, M4A, etc.)
+    audio_buffer.seek(0)
+    try:
+        waveform, sr = torchaudio.load(audio_buffer)
+        # torchaudio returns (channels, samples), convert to (samples,) or (samples, channels)
+        waveform = waveform.numpy()
+        if waveform.ndim == 2:
+            waveform = waveform.T  # (samples, channels)
+        return waveform, sr
+    except Exception as e:
+        logger.error(f"torchaudio also failed: {e}")
+        raise ValueError(f"Could not decode audio: {e}")
+
+
+def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
+    """
+    Preprocess audio for Wav2Vec2 model.
+    - Convert to mono
+    - Resample to 16kHz
+    - Normalize
+    
+    Args:
+        waveform: Audio waveform as numpy array
+        sr: Sample rate
+        
+    Returns:
+        Preprocessed waveform as 1D numpy array
+    """
+    # Convert to mono if stereo
+    if waveform.ndim == 2:
+        waveform = waveform.mean(axis=1)
+    
+    # Resample to 16kHz if necessary
+    if sr != TARGET_SAMPLE_RATE:
+        # Use torchaudio for resampling
+        waveform_tensor = torch.tensor(waveform).unsqueeze(0).float()
+        resampler = torchaudio.transforms.Resample(sr, TARGET_SAMPLE_RATE)
+        waveform_tensor = resampler(waveform_tensor)
+        waveform = waveform_tensor.squeeze(0).numpy()
+    
+    # Normalize (zero mean, unit variance)
+    waveform = (waveform - waveform.mean()) / (waveform.std() + 1e-9)
+    
+    return waveform
+
+
+def extract_prosodic_embedding(waveform: np.ndarray) -> np.ndarray:
+    """
+    Extract Wav2Vec2 embedding from preprocessed audio.
+    
+    Args:
+        waveform: Preprocessed audio waveform (1D numpy array, 16kHz, normalized)
+        
+    Returns:
+        Embedding as numpy array of shape (768,)
+    """
+    # Prepare input for Wav2Vec2
+    inputs = wav2vec_processor(
+        waveform,
+        sampling_rate=TARGET_SAMPLE_RATE,
+        return_tensors="pt",
+        padding=True
+    )
+    
+    # Extract embedding
+    with torch.no_grad():
+        outputs = wav2vec_model(inputs.input_values)
+        # Mean pool over time dimension
+        embedding = outputs.last_hidden_state.mean(dim=1).squeeze(0).numpy()
+    
+    return embedding
+
+
+# ============================================================================
+# Flask App Configuration
+# ============================================================================
 
 app = Flask(__name__)
 
@@ -151,6 +316,10 @@ def validate_audio_file(audio_file):
     return True, None
 
 
+# ============================================================================
+# API Endpoints
+# ============================================================================
+
 @app.route('/api/lexical', methods=['POST'])
 def lexical_detection():
     """
@@ -204,6 +373,8 @@ def prosodic_detection():
     Prosodic sarcasm detection endpoint.
     Accepts audio file upload, returns sarcasm score 0-1.
     
+    Uses Wav2Vec2 embeddings + LogisticRegression classifier trained on MUStARD dataset.
+    
     Supported formats: WAV, MP3, WebM, OGG, FLAC, M4A, AAC
     Max file size: 50MB (aligned with nginx client_max_body_size)
     
@@ -220,16 +391,48 @@ def prosodic_detection():
     if not is_valid:
         return jsonify({'error': error_message}), 400
     
-    # Read the audio data (for future processing)
-    # audio_data = audio_file.read()
+    # Read the audio data
+    audio_bytes = audio_file.read()
     
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
     
-    # TODO: Replace with actual ML model inference
-    # For now, return random value to match mock behavior
-    score = random.random()
+    # Try to use the real prosodic model
+    models_loaded = load_prosodic_models()
+    
+    if models_loaded and prosodic_model is not None:
+        try:
+            # Decode audio
+            waveform, sr = decode_audio(audio_bytes)
+            logger.debug(f"Decoded audio: {len(waveform)} samples at {sr}Hz")
+            
+            # Preprocess (mono, 16kHz, normalized)
+            waveform = preprocess_audio(waveform, sr)
+            logger.debug(f"Preprocessed audio: {len(waveform)} samples")
+            
+            # Check minimum length (at least 0.1 seconds)
+            min_samples = int(TARGET_SAMPLE_RATE * 0.1)
+            if len(waveform) < min_samples:
+                return jsonify({'error': 'Audio too short for analysis (minimum 0.1 seconds)'}), 400
+            
+            # Extract embedding
+            embedding = extract_prosodic_embedding(waveform)
+            logger.debug(f"Extracted embedding: shape {embedding.shape}")
+            
+            # Predict sarcasm score
+            embedding_2d = embedding.reshape(1, -1)
+            score = float(prosodic_model.predict_proba(embedding_2d)[0, 1])
+            logger.debug(f"Prosodic prediction: {score:.4f}")
+            
+        except Exception as e:
+            logger.error(f"Error during prosodic prediction: {e}")
+            # Fallback to random on error
+            score = random.random()
+    else:
+        # Fallback to random if model not loaded
+        logger.warning("Prosodic model not available, returning random score")
+        score = random.random()
     
     return jsonify({
         'id': str(uuid.uuid4()),
@@ -240,7 +443,14 @@ def prosodic_detection():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint for container orchestration."""
-    return jsonify({'status': 'healthy'})
+    return jsonify({
+        'status': 'healthy',
+        'models': {
+            'lexical': lexical_model is not None,
+            'prosodic': prosodic_model is not None,
+            'wav2vec': wav2vec_model is not None
+        }
+    })
 
 
 if __name__ == '__main__':
@@ -248,4 +458,3 @@ if __name__ == '__main__':
     debug_mode = not IS_PRODUCTION
     logger.info(f"Starting Flask app in {'production' if IS_PRODUCTION else 'development'} mode")
     app.run(host='0.0.0.0', port=5000, debug=debug_mode)
-
