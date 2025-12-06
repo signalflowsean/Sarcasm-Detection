@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 // portal usage is encapsulated in MobileRecorderOverlay
 import { sendLexicalText, sendProsodicAudio } from './apiService'
-import { formatDuration, clamp01 } from './utils'
+import { formatDuration, clamp01, isMobileBrowser, isIOSDevice } from './utils'
 import { useRafInterval } from './hooks'
 import RecorderContent from './components/RecorderContent'
 import { useDetection } from '../meter/useDetection'
@@ -276,16 +276,31 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const speechSupported = !!getSpeechRecognitionCtor()
 
+  // Track restart attempts for iOS Safari workaround
+  const restartAttemptsRef = useRef(0)
+  const maxRestartAttempts = 50 // Allow many restarts during a recording session
+  const restartDelayRef = useRef<number | null>(null)
+  
   const startSpeechRecognition = () => {
     if (!speechSupported) return
     const Ctor = getSpeechRecognitionCtor()
     if (!Ctor) return
+    
+    // Reset restart counter when starting fresh
+    restartAttemptsRef.current = 0
+    
     const recognition = new Ctor()
     recognition.interimResults = true
-    recognition.continuous = true
+    
+    // Mobile browsers (iOS Safari, Chrome on Android, etc.) have issues with continuous mode
+    // It often stops after a few seconds. Use non-continuous mode with auto-restart instead.
+    const isMobile = isMobileBrowser()
+    const isIOS = isIOSDevice()
+    recognition.continuous = !isMobile
     recognition.maxAlternatives = 1
     // Use browser's language setting with fallback to en-US
     recognition.lang = navigator.language || 'en-US'
+    
     recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
       let interim = ''
       let final = ''
@@ -296,6 +311,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       }
       setState((s) => ({ ...s, interimTranscript: interim, transcript: s.transcript + final }))
     }
+    
     recognition.onerror = (event: unknown) => {
       const errorEvent = event as { error?: string; message?: string }
       const errorType = errorEvent.error || 'unknown'
@@ -306,27 +322,72 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       } else if (errorType === 'network') {
         setState((s) => ({ ...s, error: 'Network error: Speech recognition unavailable' }))
       } else if (errorType === 'no-speech') {
-        // This is common and not critical, just log it
+        // This is common on mobile when recognition times out without detecting speech
+        // Don't show error, just log - the onend handler will restart if still recording
         console.warn('Speech recognition: No speech detected')
+      } else if (errorType === 'audio-capture') {
+        // Audio capture failed - common on mobile when mic access is interrupted
+        console.warn('Speech recognition: Audio capture failed')
       } else if (errorType !== 'aborted') {
         // Log other errors but don't show to user (might be transient)
         console.warn('Speech recognition error:', errorType)
       }
     }
+    
     recognition.onend = () => {
-      if (isRecordingRef.current) {
-        try { recognition.start() } catch { /* noop */ }
+      // Clear any existing restart timeout
+      if (restartDelayRef.current != null) {
+        clearTimeout(restartDelayRef.current)
+        restartDelayRef.current = null
+      }
+      
+      if (isRecordingRef.current && restartAttemptsRef.current < maxRestartAttempts) {
+        restartAttemptsRef.current += 1
+        
+        // On mobile browsers, add a delay before restarting to prevent rapid cycling
+        // iOS needs longer delay, Android Chrome needs shorter delay
+        const delay = isMobile ? (isIOS ? 150 : 100) : 0
+        
+        if (delay > 0) {
+          restartDelayRef.current = window.setTimeout(() => {
+            if (isRecordingRef.current) {
+              try { 
+                recognition.start() 
+              } catch (e) { 
+                console.warn('Failed to restart speech recognition:', e)
+              }
+            }
+          }, delay)
+        } else {
+          try { 
+            recognition.start() 
+          } catch (e) { 
+            console.warn('Failed to restart speech recognition:', e)
+          }
+        }
       } else {
         recognitionRef.current = null
       }
     }
+    
     recognitionRef.current = recognition
+    
+    // Start immediately to preserve user gesture context (required on some mobile browsers)
+    // The delay is only used for REstarting after onend events
     try {
       recognition.start()
-    } catch { /* noop */ }
+    } catch (e) { 
+      console.warn('Failed to start speech recognition:', e)
+    }
   }
 
   const stopSpeechRecognition = () => {
+    // Clear any pending restart timeout
+    if (restartDelayRef.current != null) {
+      clearTimeout(restartDelayRef.current)
+      restartDelayRef.current = null
+    }
+    
     const rec = recognitionRef.current
     if (!rec) return
     try {

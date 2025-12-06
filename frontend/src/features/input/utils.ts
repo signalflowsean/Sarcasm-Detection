@@ -37,6 +37,35 @@ export const isMacPlatform = (): boolean => {
   return false
 }
 
+/**
+ * Detects if the current device is running iOS (iPhone, iPad, iPod).
+ * Includes iPadOS detection which reports as MacIntel but has touch support.
+ */
+export const isIOSDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  // iPadOS reports as MacIntel but has touch
+  const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return /iPad|iPhone|iPod/.test(ua) || isIPadOS
+}
+
+/**
+ * Detects if the current browser is running on a mobile device.
+ * Used for applying mobile-specific workarounds (e.g., Web Speech API quirks).
+ */
+export const isMobileBrowser = (): boolean => {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
+  
+  const ua = navigator.userAgent
+  // Check for mobile/tablet user agents
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+  // Also check for touch devices that might be tablets
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 1
+  // iPadOS reports as MacIntel but has touch
+  const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return isMobileUA || isIPadOS || (isTouchDevice && window.innerWidth < 1024)
+}
+
 
 
 
