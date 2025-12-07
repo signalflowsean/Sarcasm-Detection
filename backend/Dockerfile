@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ============================================================================
 # Full PyTorch includes CUDA libraries we don't need for CPU inference.
 # CPU-only torch: ~700MB vs ~2GB for full version
+# Note: torch uses +cpu suffix, but torchaudio doesn't publish +cpu wheels
+# The --index-url ensures CPU-only versions are installed for both
 RUN pip install --no-cache-dir \
     torch==2.6.0+cpu \
     torchaudio==2.6.0 \

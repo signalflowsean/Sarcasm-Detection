@@ -237,7 +237,7 @@ def train_final_model(X: np.ndarray, y: np.ndarray, C: float = 1.0, class_weight
     return pipeline
 
 
-def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
+def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2, C: float = 1.0, class_weight=None):
     """
     Evaluate on a held-out test set for final performance estimate.
     
@@ -245,6 +245,8 @@ def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
         X: Feature matrix
         y: Labels
         test_size: Fraction of data to use for testing
+        C: Regularization parameter (inverse of regularization strength)
+        class_weight: Weights for classes (None or 'balanced')
     """
     print(f"\n{'='*60}")
     print(f"Hold-out Evaluation ({int((1-test_size)*100)}/{int(test_size*100)} split)")
@@ -261,7 +263,7 @@ def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
     # Train
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('classifier', LogisticRegression(max_iter=1000, C=1.0, random_state=42, n_jobs=-1))
+        ('classifier', LogisticRegression(max_iter=1000, C=C, class_weight=class_weight, random_state=42, n_jobs=-1))
     ])
     pipeline.fit(X_train, y_train)
     
@@ -359,8 +361,8 @@ def main():
     # Evaluate with cross-validation using tuned hyperparameters
     cv_scores = evaluate_with_cross_validation(X, y, n_folds=5, C=best_C, class_weight=best_class_weight)
     
-    # Evaluate on hold-out set
-    evaluate_holdout(X, y, test_size=0.2)
+    # Evaluate on hold-out set using tuned hyperparameters
+    evaluate_holdout(X, y, test_size=0.2, C=best_C, class_weight=best_class_weight)
     
     # Train final model on all data with tuned hyperparameters
     pipeline = train_final_model(X, y, C=best_C, class_weight=best_class_weight)

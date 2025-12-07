@@ -116,7 +116,7 @@ def add_conversational_examples(texts, labels):
     
     # Sarcastic examples
     sarcastic = [
-        "Oh great, another meeting",
+        "Oh great, another Monday",
         "Oh great, another meeting that could have been an email",
         "Oh wonderful, my coffee is cold",
         "Oh fantastic, my bus is late",
