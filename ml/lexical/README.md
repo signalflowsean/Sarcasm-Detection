@@ -6,13 +6,14 @@ Text-based sarcasm detection using various ML approaches.
 
 This module provides multiple training scripts for lexical (text-based) sarcasm detection:
 
-| Script | Model | Description |
-|--------|-------|-------------|
-| `train_sklearn_model.py` | TF-IDF + LogReg | Simple, fast, production-ready |
-| `train_sklearn_model_improved.py` | Ensemble | Hyperparameter tuning, multiple classifiers |
-| `train_multi_dataset.py` | TF-IDF + LogReg | Multiple dataset sources |
-| `train_huggingface.py` | BERT/Transformers | State-of-the-art accuracy |
-| `train_keras.py` | Embedding + Dense | TensorFlow/Keras neural network |
+| Script | Model | Accuracy | Description |
+|--------|-------|----------|-------------|
+| `train_sklearn_model.py` | TF-IDF + LogReg | ~80% | Simple, fast, production-ready |
+| `train_sklearn_model_improved.py` | Ensemble | ~85% | Hyperparameter tuning, multiple classifiers |
+| `train_transformer.py` | **DistilBERT** | **~90%** | **Fine-tuned transformer (recommended for best accuracy)** |
+| `train_multi_dataset.py` | TF-IDF + LogReg | ~82% | Multiple dataset sources |
+| `train_huggingface.py` | TF-IDF + Multi-data | ~83% | HuggingFace datasets |
+| `train_keras.py` | Embedding + Dense | ~82% | TensorFlow/Keras neural network |
 
 ## Quick Start
 
@@ -26,14 +27,38 @@ pip install -r requirements.txt
 ### Train the Production Model
 
 ```bash
-# Simple sklearn model (recommended for production)
+# Simple sklearn model (fast, ~80% accuracy)
 python train_sklearn_model.py
 
-# Or improved version with hyperparameter tuning
+# Improved sklearn with hyperparameter tuning (~85% accuracy)
 python train_sklearn_model_improved.py
+
+# DistilBERT transformer (~90% accuracy, requires GPU)
+python train_transformer.py --epochs 3
 ```
 
-The model is saved to `backend/sarcasm_model.pkl`.
+The sklearn models are saved to `backend/sarcasm_model.pkl`.
+The transformer model is saved to `ml/lexical/distilbert_sarcasm/`.
+
+### Fine-tune DistilBERT (Best Accuracy)
+
+For best results, fine-tune DistilBERT (requires GPU or Apple Silicon):
+
+```bash
+# Basic training (3 epochs)
+python train_transformer.py
+
+# More epochs for better accuracy
+python train_transformer.py --epochs 5
+
+# Export to ONNX for faster inference
+python train_transformer.py --export-onnx
+```
+
+**Training time:**
+- NVIDIA GPU: ~5-10 minutes
+- Apple M1/M2: ~15-30 minutes  
+- CPU: ~1-2 hours (not recommended)
 
 ### Test Inference
 
@@ -146,14 +171,18 @@ Score: [0.0, 1.0]
 
 ## Expected Performance
 
-| Model | Accuracy | F1 Score |
-|-------|----------|----------|
-| TF-IDF + LogReg | ~85% | ~0.85 |
-| TF-IDF + Ensemble | ~87% | ~0.87 |
-| Keras Embedding | ~82% | ~0.82 |
-| BERT Fine-tuned | ~89% | ~0.89 |
+| Model | Accuracy | F1 Score | Size | Inference |
+|-------|----------|----------|------|-----------|
+| TF-IDF + LogReg | ~80% | ~0.80 | ~5 MB | <1ms |
+| TF-IDF + Ensemble | ~85% | ~0.85 | ~15 MB | <5ms |
+| Keras Embedding | ~82% | ~0.82 | ~2 MB | ~10ms |
+| **DistilBERT Fine-tuned** | **~90%** | **~0.90** | ~250 MB | ~50ms |
 
 Note: Results on news headlines dataset. Conversational sarcasm is harder to detect.
+
+**Recommendation:**
+- **Production (speed priority)**: Use sklearn (`train_sklearn_model_improved.py`)
+- **Production (accuracy priority)**: Use DistilBERT (`train_transformer.py`) with ONNX export
 
 ## API Integration
 
