@@ -10,7 +10,6 @@ Usage:
     echo "Some text" | python inference.py --stdin
 """
 
-import sys
 import argparse
 import pickle
 from pathlib import Path

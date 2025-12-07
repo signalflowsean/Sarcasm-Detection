@@ -12,13 +12,12 @@ Prerequisites:
     - huggingface_hub installed (pip install huggingface_hub)
 """
 
-import os
 import json
 import pickle
 import subprocess
 import pandas as pd
 from pathlib import Path
-from huggingface_hub import hf_hub_download, snapshot_download
+from huggingface_hub import snapshot_download
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent

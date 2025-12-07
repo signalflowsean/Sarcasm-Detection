@@ -9,7 +9,6 @@ Usage:
     python inference_keras.py "Text 1" "Text 2"
 """
 
-import sys
 import argparse
 from pathlib import Path
 import tensorflow as tf
