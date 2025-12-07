@@ -30,7 +30,12 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
     try {
       const response = await sendLexicalText(payload)
       // Pass lexical value to detection provider (prosodic stays at 0 for text mode)
-      setDetectionResult({ lexical: response.value, prosodic: 0 })
+      setDetectionResult({ 
+        lexical: response.value, 
+        prosodic: 0,
+        lexicalReliable: response.reliable,
+        prosodicReliable: true, // Not used in text mode
+      })
       setText('')
       // Close modal after successful send (mobile only)
       onClose?.()

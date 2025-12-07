@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import packageJson from './package.json'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,4 +14,9 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    // Inject version info at build time
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
 })

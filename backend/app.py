@@ -3,11 +3,19 @@ Flask backend for Sarcasm Detection API.
 Provides endpoints for lexical (text-based) and prosodic (audio-based) sarcasm detection.
 """
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
-from config import CORS_ORIGINS, IS_PRODUCTION, logger
+from config import (
+    CORS_ORIGINS, 
+    IS_PRODUCTION, 
+    logger,
+    RATE_LIMIT_DEFAULT,
+    RATE_LIMIT_ENABLED,
+)
+from extensions import limiter
 from routes import lexical_bp, prosodic_bp, health_bp
+from errors import UserError
 
 
 def preload_models():
@@ -33,7 +41,7 @@ def preload_models():
 def create_app():
     """
     Flask application factory.
-    Creates and configures the Flask app with CORS and routes.
+    Creates and configures the Flask app with CORS, rate limiting, and routes.
     """
     app = Flask(__name__)
     
@@ -42,6 +50,35 @@ def create_app():
         CORS(app)  # Allow all origins (development)
     else:
         CORS(app, origins=CORS_ORIGINS.split(','))  # Restrict to specified origins
+    
+    # Initialize rate limiter with this app
+    limiter.init_app(app)
+    
+    if RATE_LIMIT_ENABLED:
+        logger.info(f"Rate limiting enabled: {RATE_LIMIT_DEFAULT} (default)")
+    else:
+        logger.info("Rate limiting disabled")
+    
+    # Custom error handler for rate limit exceeded
+    @app.errorhandler(429)
+    def rate_limit_exceeded(e):
+        # Log detailed rate limit info internally
+        logger.warning(f"[RATE LIMIT] Request blocked: {e.description}")
+        # Return sanitized message to user (don't expose internal details)
+        return jsonify({
+            'error': UserError.RATE_LIMITED
+        }), 429
+    
+    # Generic error handler for uncaught exceptions (production only)
+    if IS_PRODUCTION:
+        @app.errorhandler(500)
+        def internal_error(e):
+            # Log detailed error internally
+            logger.error(f"[INTERNAL ERROR] Uncaught exception: {e}")
+            # Return sanitized message to user
+            return jsonify({
+                'error': UserError.INTERNAL_ERROR
+            }), 500
     
     # Register blueprints
     app.register_blueprint(lexical_bp)

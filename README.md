@@ -147,7 +147,8 @@ Lexical (text-based) sarcasm detection.
 ```json
 {
   "id": "uuid-string",
-  "value": 0.85
+  "value": 0.85,
+  "reliable": true
 }
 ```
 
@@ -161,9 +162,12 @@ Prosodic (audio-based) sarcasm detection.
 ```json
 {
   "id": "uuid-string",
-  "value": 0.72
+  "value": 0.72,
+  "reliable": true
 }
 ```
+
+> **Note:** The `reliable` field indicates whether the prediction came from the actual ML model (`true`) or is a fallback value due to model unavailability (`false`). When `reliable` is `false`, the UI displays a warning to users.
 
 ### `GET /api/health`
 
@@ -181,7 +185,7 @@ Health check endpoint for container orchestration.
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, TypeScript, Vite, React Router |
-| Backend | Flask, Flask-CORS, Gunicorn |
+| Backend | Flask, Flask-CORS, Flask-Limiter, Gunicorn |
 | ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
 | ML (Prosodic) | Wav2Vec2 (HuggingFace) + scikit-learn |
 | Infrastructure | Docker, Docker Compose, Nginx |
@@ -194,6 +198,11 @@ Health check endpoint for container orchestration.
 |----------|---------|-------------|
 | `API_DELAY_SECONDS` | `2.0` | Artificial delay for showcasing loading animations (set to `0` in production) |
 | `FLASK_ENV` | `production` | Flask environment mode |
+| `RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
+| `RATE_LIMIT_DEFAULT` | `60 per minute` | Default rate limit for all endpoints |
+| `RATE_LIMIT_LEXICAL` | `30 per minute` | Rate limit for text analysis endpoint |
+| `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint |
+| `RATE_LIMIT_STORAGE` | `memory://` | Storage backend (`memory://` or `redis://host:port`) |
 
 ### Running Tests
 
@@ -342,6 +351,60 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 - Wait for TLS certificate to be issued (green checkmark)
 
 > **Important:** When re-adding a custom domain, Railway may provide a new target. Always update your DNS to match.
+
+---
+
+## TODO / Future Improvements
+
+### 🐳 Docker Image Optimization
+**Current size:** ~2.75GB | **Target:** ~1.5-2GB
+
+The backend image is large due to PyTorch (~700MB). Consider migrating to ONNX Runtime for inference:
+- Export Wav2Vec2 model to ONNX format
+- Replace `torch`/`torchaudio` with `onnxruntime` (~150MB)
+- Update `audio/processing.py` to use ONNX inference
+
+### 🎨 CSS Variables Cleanup
+Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
+
+**Spacing** (padding, margin, gap):
+- `0.375rem` (6px) — micro | `0.56rem` (9px) — small | `0.75rem` (12px) — base
+- `0.94rem` (15px) — medium | `1.125rem` (18px) — large | `1.5rem` (24px) — xl | `1.875rem` (30px) — 2xl
+
+**Border Radii:**
+- `0.19rem` — tiny (kbd) | `0.28rem` — small (already `--border-radius-primary`)
+- `0.45rem` — medium (buttons) | `0.56rem` — large (cards, modals)
+
+**Animation Durations:**
+- `100ms` — micro | `140ms` — hover | `160ms` — quick | `180ms` — standard | `350ms` — views | `500ms` — loading
+
+**Font Sizes** (type scale):
+- `0.49rem`, `0.56rem` — tiny | `0.675rem`, `0.71rem` — small | `0.75rem`, `0.83rem` — base
+- `0.94rem`, `1.05rem` — medium | `1.125rem+` — large/headings
+
+**Shadows:** Button, card/modal, inset depth, brass/metallic highlights
+
+**Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
+
+### 🧪 Testing & CI/CD
+- [ ] Add unit tests for backend (pytest)
+- [ ] Add unit tests for frontend (Vitest)
+- [ ] Add integration tests for API endpoints
+- [ ] Set up ESLint + Prettier for frontend
+- [ ] Set up Ruff/Black for backend linting
+- [ ] Create GitHub Actions workflow for:
+  - Linting on PR
+  - Running tests on PR
+  - Docker build verification
+  - Automated deployment to Railway on merge to main
+
+### 📝 Other Improvements
+- [ ] Add OpenAPI/Swagger documentation for API
+- [ ] Add end-to-end tests (Playwright)
+- [ ] Performance monitoring/logging
+- [ ] Model versioning and A/B testing support
+
+---
 
 ## License
 

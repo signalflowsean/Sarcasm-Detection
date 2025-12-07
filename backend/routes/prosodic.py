@@ -1,5 +1,8 @@
 """
 Prosodic (audio-based) sarcasm detection endpoint.
+
+Security: Error messages returned to users are sanitized.
+Detailed error information is logged internally for debugging.
 """
 
 import time
@@ -8,15 +11,18 @@ import logging
 
 from flask import Blueprint, request, jsonify
 
-from config import TARGET_SAMPLE_RATE, API_DELAY_SECONDS
+from config import TARGET_SAMPLE_RATE, API_DELAY_SECONDS, RATE_LIMIT_PROSODIC
 from audio import validate_audio_file, decode_audio, preprocess_audio, extract_embedding
 from models import prosodic_predict, load_prosodic_models
+from extensions import limiter
+from errors import UserError
 
 bp = Blueprint('prosodic', __name__)
 logger = logging.getLogger(__name__)
 
 
 @bp.route('/api/prosodic', methods=['POST'])
+@limiter.limit(RATE_LIMIT_PROSODIC)
 def prosodic_detection():
     """
     Prosodic sarcasm detection endpoint.
@@ -28,10 +34,13 @@ def prosodic_detection():
     Max file size: 50MB (aligned with nginx client_max_body_size)
     
     Request: multipart/form-data with 'audio' file
-    Response: { "id": "uuid", "value": 0.0-1.0 }
+    Response: { "id": "uuid", "value": 0.0-1.0, "reliable": true/false }
+    
+    The 'reliable' field indicates whether the prediction came from the actual
+    ML model (true) or is a fallback/random value due to model unavailability (false).
     """
     if 'audio' not in request.files:
-        return jsonify({'error': 'Missing required file: audio'}), 400
+        return jsonify({'error': UserError.AUDIO_MISSING}), 400
     
     audio_file = request.files['audio']
     
@@ -60,7 +69,8 @@ def prosodic_detection():
         # Check minimum length (at least 0.1 seconds)
         min_samples = int(TARGET_SAMPLE_RATE * 0.1)
         if len(waveform) < min_samples:
-            return jsonify({'error': 'Audio too short for analysis (minimum 0.1 seconds)'}), 400
+            logger.warning(f"[PROSODIC] Audio too short: {len(waveform)} samples (min: {min_samples})")
+            return jsonify({'error': UserError.AUDIO_TOO_SHORT}), 400
         
         # Extract embedding
         embedding = extract_embedding(waveform)
@@ -70,15 +80,16 @@ def prosodic_detection():
         score, is_real = prosodic_predict(embedding)
         
     except Exception as e:
-        logger.error(f"[PROSODIC ERROR] Audio processing failed: {e}")
-        # Fallback to random on error
-        import random
-        score = random.random()
+        # Log detailed error internally (may contain sensitive info)
+        logger.error(f"[PROSODIC ERROR] Audio processing failed: {type(e).__name__}: {e}")
+        # Fallback to neutral score on error (0.5 = uncertain)
+        score = 0.5
         is_real = False
-        logger.warning(f"[PROSODIC FALLBACK] Using random score due to error: {score:.4f}")
+        logger.warning("[PROSODIC FALLBACK] Using fallback score due to error")
     
     return jsonify({
         'id': str(uuid.uuid4()),
-        'value': score
+        'value': score,
+        'reliable': is_real
     })
 

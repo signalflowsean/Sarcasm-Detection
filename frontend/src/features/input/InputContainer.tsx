@@ -32,7 +32,7 @@ const InputContainer = () => {
         }
       } catch (error) {
         // Fallback if transition fails
-        console.warn('View Transition failed:', error);
+        if (import.meta.env.DEV) console.warn('View Transition failed:', error);
         setDisplayValue(value);
       }
     } else {

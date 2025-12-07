@@ -10,11 +10,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
 export type ProsodicResponse = {
   id: string;
   value: number; // 0.0–1.0 inclusive
+  reliable: boolean; // true if from real ML model, false if fallback
 };
 
 export type LexicalResponse = {
   id: string;
   value: number; // 0.0–1.0 inclusive
+  reliable: boolean; // true if from real ML model, false if fallback
 };
 
 // Map MIME types to file extensions for upload filename

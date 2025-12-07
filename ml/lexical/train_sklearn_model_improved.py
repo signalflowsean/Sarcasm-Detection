@@ -3,6 +3,11 @@ Improved scikit-learn text classification model for sarcasm detection.
 Uses hyperparameter tuning and compares multiple classifiers to maximize accuracy.
 
 Run: python train_sklearn_model_improved.py
+
+Data: Uses the News Headlines Sarcasm dataset. The script will:
+  1. First check for local data in ./data/sarcasm.json
+  2. If not found, download from Google Cloud Storage
+  3. Cache the downloaded data locally for future runs
 """
 
 import urllib.request
@@ -10,6 +15,7 @@ import json
 import pickle
 import re
 import numpy as np
+from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
@@ -30,21 +36,57 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.2
 CV_FOLDS = 5
 
+# Paths
+SCRIPT_DIR = Path(__file__).parent
+DATA_DIR = SCRIPT_DIR / "data"
+LOCAL_DATA_PATH = DATA_DIR / "sarcasm.json"
+REMOTE_DATA_URL = "https://storage.googleapis.com/learning-datasets/sarcasm.json"
+
 # =============================================================================
 # Data Loading & Preprocessing
 # =============================================================================
 
-def download_dataset():
-    """Download the sarcasm dataset from Google Cloud Storage."""
-    url = "https://storage.googleapis.com/learning-datasets/sarcasm.json"
-    output_path = "/tmp/sarcasm.json"
-    print("📥 Downloading dataset...")
-    urllib.request.urlretrieve(url, output_path)
+def load_dataset():
+    """
+    Load the sarcasm dataset, preferring local cache over remote download.
     
-    with open(output_path, 'r') as f:
-        datastore = json.load(f)
+    Priority:
+      1. Local file at ./data/sarcasm.json (fastest, works offline)
+      2. Download from Google Cloud Storage (fallback, caches locally)
     
-    return datastore
+    Returns:
+        List of dictionaries with 'headline' and 'is_sarcastic' keys
+    """
+    # Check for local data first
+    if LOCAL_DATA_PATH.exists():
+        print(f"📁 Loading local dataset from {LOCAL_DATA_PATH}")
+        with open(LOCAL_DATA_PATH, 'r') as f:
+            datastore = json.load(f)
+        print(f"   ✓ Loaded {len(datastore):,} samples from local cache")
+        return datastore
+    
+    # Download from remote URL
+    print(f"📥 Local data not found at {LOCAL_DATA_PATH}")
+    print(f"   Downloading from {REMOTE_DATA_URL}...")
+    
+    try:
+        # Ensure data directory exists
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Download to local cache
+        urllib.request.urlretrieve(REMOTE_DATA_URL, LOCAL_DATA_PATH)
+        print(f"   ✓ Downloaded and cached to {LOCAL_DATA_PATH}")
+        
+        with open(LOCAL_DATA_PATH, 'r') as f:
+            datastore = json.load(f)
+        
+        return datastore
+        
+    except Exception as e:
+        print(f"   ✗ Download failed: {e}")
+        print(f"\n   To fix this, manually download the dataset:")
+        print(f"   curl -o {LOCAL_DATA_PATH} {REMOTE_DATA_URL}")
+        raise RuntimeError(f"Failed to load sarcasm dataset: {e}")
 
 
 def preprocess_text(text):
@@ -255,7 +297,7 @@ def cross_validate_model(pipeline, X, y, model_name="Model"):
     cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy', n_jobs=-1)
     
-    print(f"   {model_name}: CV Accuracy = {scores.mean():.4f} (+/- {scores.std()*2:.4f})")
+    print(f"   {model_name}: CV Accuracy = {scores.mean():.4f} (±{scores.std()*2:.4f})")
     return scores.mean()
 
 
@@ -269,7 +311,7 @@ def main():
     print("=" * 60)
     
     # Load data
-    datastore = download_dataset()
+    datastore = load_dataset()
     sentences = [item['headline'] for item in datastore]
     labels = [item['is_sarcastic'] for item in datastore]
     

@@ -294,12 +294,14 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         sendProsodicAudio(state.audioBlob),
         state.transcript.trim()
           ? sendLexicalText(state.transcript.trim())
-          : Promise.resolve({ id: 'no-text', value: 0 }),
+          : Promise.resolve({ id: 'no-text', value: 0, reliable: true }),
       ])
-      // Pass both values to detection provider
+      // Pass both values to detection provider, including reliability info
       setDetectionResult({
         lexical: lexicalResponse.value,
         prosodic: prosodicResponse.value,
+        lexicalReliable: lexicalResponse.reliable,
+        prosodicReliable: prosodicResponse.reliable,
       })
       // Successfully sent - discard the recording to allow a new one
       discardRecording()

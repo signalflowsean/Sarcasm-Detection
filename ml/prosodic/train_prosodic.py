@@ -26,6 +26,7 @@ from sklearn.metrics import (
     roc_auc_score,
     confusion_matrix
 )
+from sklearn.model_selection import GridSearchCV
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent
@@ -71,7 +72,68 @@ def load_embeddings(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     return X, y
 
 
-def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
+def tune_hyperparameters(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
+    """
+    Tune LogisticRegression hyperparameters using GridSearchCV.
+    
+    Args:
+        X: Feature matrix
+        y: Labels
+        n_folds: Number of cross-validation folds
+    
+    Returns:
+        best_params: Dictionary of best hyperparameters
+        best_score: Best cross-validation score
+    """
+    print(f"\n{'='*60}")
+    print(f"Hyperparameter Tuning ({n_folds}-fold GridSearchCV)")
+    print('='*60)
+    
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs', n_jobs=-1))
+    ])
+    
+    # Parameter grid to search
+    param_grid = {
+        'classifier__C': [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
+        'classifier__class_weight': [None, 'balanced'],
+    }
+    
+    cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    
+    grid_search = GridSearchCV(
+        pipeline,
+        param_grid,
+        cv=cv,
+        scoring='f1_weighted',
+        n_jobs=-1,
+        verbose=1,
+        return_train_score=True
+    )
+    
+    print("\nSearching parameter grid...")
+    grid_search.fit(X, y)
+    
+    print(f"\n✓ Best Parameters: {grid_search.best_params_}")
+    print(f"✓ Best CV F1 Score: {grid_search.best_score_:.4f}")
+    
+    # Show top 5 results
+    results_df = pd.DataFrame(grid_search.cv_results_)
+    results_df = results_df.sort_values('rank_test_score')
+    
+    print("\nTop 5 Configurations:")
+    for i, row in results_df.head(5).iterrows():
+        C = row['param_classifier__C']
+        cw = row['param_classifier__class_weight']
+        score = row['mean_test_score']
+        std = row['std_test_score']
+        print(f"  C={C:<5} class_weight={str(cw):<10} → F1={score:.4f} (±{std*2:.4f})")
+    
+    return grid_search.best_params_, grid_search.best_score_
+
+
+def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 5, C: float = 1.0, class_weight=None):
     """
     Evaluate the model using stratified k-fold cross-validation.
     Uses the same 5-fold approach as the original MUStARD paper.
@@ -80,6 +142,8 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
         X: Feature matrix
         y: Labels
         n_folds: Number of folds (default 5, same as MUStARD)
+        C: Regularization parameter (from hyperparameter tuning)
+        class_weight: Class weight parameter (from hyperparameter tuning)
     
     Returns:
         Dictionary of mean scores
@@ -91,10 +155,12 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('classifier', LogisticRegression(
-            max_iter=500,
-            C=1.0,
+            max_iter=1000,
+            C=C,
+            class_weight=class_weight,
             random_state=42,
-            solver='lbfgs'
+            solver='lbfgs',
+            n_jobs=-1  # Parallelize across CPU cores
         ))
     ])
     
@@ -106,11 +172,12 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
     f1_macro_scores = cross_val_score(pipeline, X, y, cv=cv, scoring='f1_macro')
     roc_auc_scores = cross_val_score(pipeline, X, y, cv=cv, scoring='roc_auc')
     
+    print(f"\nUsing C={C}, class_weight={class_weight}")
     print(f"\nMetrics across {n_folds} folds:")
-    print(f"  Accuracy:         {accuracy_scores.mean():.4f} (+/- {accuracy_scores.std()*2:.4f})")
-    print(f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (+/- {f1_weighted_scores.std()*2:.4f})")
-    print(f"  Macro F1:         {f1_macro_scores.mean():.4f} (+/- {f1_macro_scores.std()*2:.4f})")
-    print(f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (+/- {roc_auc_scores.std()*2:.4f})")
+    print(f"  Accuracy:         {accuracy_scores.mean():.4f} (±{accuracy_scores.std()*2:.4f})")
+    print(f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (±{f1_weighted_scores.std()*2:.4f})")
+    print(f"  Macro F1:         {f1_macro_scores.mean():.4f} (±{f1_macro_scores.std()*2:.4f})")
+    print(f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (±{roc_auc_scores.std()*2:.4f})")
     
     return {
         'accuracy': accuracy_scores.mean(),
@@ -120,13 +187,15 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
     }
 
 
-def train_final_model(X: np.ndarray, y: np.ndarray) -> Pipeline:
+def train_final_model(X: np.ndarray, y: np.ndarray, C: float = 1.0, class_weight=None) -> Pipeline:
     """
     Train the final model on all data for production use.
     
     Args:
         X: Feature matrix
         y: Labels
+        C: Regularization parameter (from hyperparameter tuning)
+        class_weight: Class weight parameter (from hyperparameter tuning)
     
     Returns:
         Trained pipeline (scaler + classifier)
@@ -136,20 +205,21 @@ def train_final_model(X: np.ndarray, y: np.ndarray) -> Pipeline:
     print('='*60)
     
     # Create pipeline: StandardScaler + LogisticRegression
-    # This matches the pattern from train_sklearn_model.py
+    # Uses tuned hyperparameters from GridSearchCV
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('classifier', LogisticRegression(
-            max_iter=500,
-            C=1.0,
+            max_iter=1000,
+            C=C,
             random_state=42,
             solver='lbfgs',
-            class_weight=None  # Dataset is balanced
+            class_weight=class_weight,
+            n_jobs=-1  # Parallelize across CPU cores
         ))
     ])
     
     # Train on all data
-    print(f"\nTraining on {len(X)} samples...")
+    print(f"\nTraining on {len(X)} samples with C={C}, class_weight={class_weight}...")
     pipeline.fit(X, y)
     
     # Report training accuracy
@@ -167,7 +237,7 @@ def train_final_model(X: np.ndarray, y: np.ndarray) -> Pipeline:
     return pipeline
 
 
-def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
+def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2, C: float = 1.0, class_weight=None):
     """
     Evaluate on a held-out test set for final performance estimate.
     
@@ -175,6 +245,8 @@ def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
         X: Feature matrix
         y: Labels
         test_size: Fraction of data to use for testing
+        C: Regularization parameter (inverse of regularization strength)
+        class_weight: Weights for classes (None or 'balanced')
     """
     print(f"\n{'='*60}")
     print(f"Hold-out Evaluation ({int((1-test_size)*100)}/{int(test_size*100)} split)")
@@ -191,7 +263,7 @@ def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
     # Train
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('classifier', LogisticRegression(max_iter=500, C=1.0, random_state=42))
+        ('classifier', LogisticRegression(max_iter=1000, C=C, class_weight=class_weight, random_state=42, n_jobs=-1))
     ])
     pipeline.fit(X_train, y_train)
     
@@ -279,14 +351,21 @@ def main():
     X, y = load_embeddings(df)
     print(f"✓ Loaded embeddings: shape {X.shape}")
     
-    # Evaluate with cross-validation (MUStARD uses 5-fold)
-    cv_scores = evaluate_with_cross_validation(X, y, n_folds=5)
+    # Tune hyperparameters with GridSearchCV
+    best_params, best_score = tune_hyperparameters(X, y, n_folds=5)
     
-    # Evaluate on hold-out set
-    evaluate_holdout(X, y, test_size=0.2)
+    # Extract best hyperparameters
+    best_C = best_params['classifier__C']
+    best_class_weight = best_params['classifier__class_weight']
     
-    # Train final model on all data
-    pipeline = train_final_model(X, y)
+    # Evaluate with cross-validation using tuned hyperparameters
+    cv_scores = evaluate_with_cross_validation(X, y, n_folds=5, C=best_C, class_weight=best_class_weight)
+    
+    # Evaluate on hold-out set using tuned hyperparameters
+    evaluate_holdout(X, y, test_size=0.2, C=best_C, class_weight=best_class_weight)
+    
+    # Train final model on all data with tuned hyperparameters
+    pipeline = train_final_model(X, y, C=best_C, class_weight=best_class_weight)
     
     # Show sample predictions
     test_predictions(pipeline, df)

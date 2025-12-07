@@ -320,7 +320,7 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     } catch (err) {
       // Log but don't show user-facing error - peaks are optional for enhanced waveform
       // The recording/playback still works without them
-      console.error('Failed to compute waveform peaks:', err)
+      if (import.meta.env.DEV) console.error('Failed to compute waveform peaks:', err)
     }
   }, [getDecodingAudioContext, drawPeaks])
 

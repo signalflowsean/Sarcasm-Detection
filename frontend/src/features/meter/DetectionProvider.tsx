@@ -11,6 +11,8 @@ import { useWhichInput } from './useWhichInput';
 export type DetectionValues = {
   lexical: number;
   prosodic: number;
+  lexicalReliable?: boolean;
+  prosodicReliable?: boolean;
 };
 
 export type DetectionContextType = {
@@ -25,6 +27,8 @@ export type DetectionContextType = {
   prosodicValue: number;
   // Main needle value (average of lexical and prosodic)
   mainValue: number;
+  // Whether predictions are reliable (from real ML model vs fallback)
+  isReliable: boolean;
   // Trigger a new detection with the given values
   setDetectionResult: (values: Partial<DetectionValues>) => void;
   // Set loading state (called when API request starts)
@@ -42,6 +46,7 @@ const defaultContext: DetectionContextType = {
   lexicalValue: 0,
   prosodicValue: 0,
   mainValue: 0,
+  isReliable: true,
   setDetectionResult: () => {},
   setLoading: () => {},
   reset: () => {},
@@ -100,6 +105,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   const [cableAnimating, setCableAnimating] = useState(false);
   const [lexicalValue, setLexicalValue] = useState(0);
   const [prosodicValue, setProsodicValue] = useState(0);
+  const [isReliable, setIsReliable] = useState(true);
 
   // Get current input mode for 'h' key behavior
   const { value: inputMode } = useWhichInput();
@@ -180,6 +186,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       if (values.prosodic !== undefined) {
         setProsodicValue(values.prosodic);
       }
+      
+      // Update reliability - unreliable if ANY prediction is unreliable
+      const lexicalReliable = values.lexicalReliable ?? true;
+      const prosodicReliable = values.prosodicReliable ?? true;
+      setIsReliable(lexicalReliable && prosodicReliable);
 
       // Transition to holding result state
       setState(DetectionState.HOLDING_RESULT);
@@ -208,15 +219,20 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     setCableAnimating(false);
     setLexicalValue(0);
     setProsodicValue(0);
+    setIsReliable(true);
     setState(DetectionState.IDLE);
   };
 
-  // DEV MODE: Trigger a test detection by calling real endpoints
+  // DEV MODE ONLY: Trigger a test detection by calling real endpoints
+  // Only available in development builds (gated by import.meta.env.DEV)
   // Behavior depends on current input mode:
   // - 'audio': calls both prosodic and lexical endpoints
   // - 'text': calls only lexical endpoint
   // - 'off': does nothing
   const triggerTestDetection = async () => {
+    // Fail fast: entire function is dev-only
+    if (!import.meta.env.DEV) return;
+    
     // Don't trigger if already in a detection cycle
     if (isLoading || state !== DetectionState.IDLE) {
       console.log('🔧 Dev mode: Detection already in progress, skipping');
@@ -243,13 +259,23 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
           sendProsodicAudio(testAudio),
           sendLexicalText(testPhrase),
         ]);
-        console.log(`🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}%, Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}%`);
-        setDetectionResult({ lexical: lexicalResponse.value, prosodic: prosodicResponse.value }); 
+        console.log(`🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}% (reliable: ${lexicalResponse.reliable}), Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}% (reliable: ${prosodicResponse.reliable})`);
+        setDetectionResult({ 
+          lexical: lexicalResponse.value, 
+          prosodic: prosodicResponse.value,
+          lexicalReliable: lexicalResponse.reliable,
+          prosodicReliable: prosodicResponse.reliable,
+        }); 
       } else {
         // Text mode: call only lexical endpoint
         const response = await sendLexicalText(testPhrase);
-        console.log(`🔧 Dev mode: Result - Lexical: ${(response.value * 100).toFixed(1)}%`);
-        setDetectionResult({ lexical: response.value, prosodic: 0 });
+        console.log(`🔧 Dev mode: Result - Lexical: ${(response.value * 100).toFixed(1)}% (reliable: ${response.reliable})`);
+        setDetectionResult({ 
+          lexical: response.value, 
+          prosodic: 0,
+          lexicalReliable: response.reliable,
+          prosodicReliable: true, // Not used in text mode
+        });
       }
     } catch (error) {
       console.error('🔧 Dev mode: API call failed:', error);
@@ -257,8 +283,12 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     }
   };
 
-  // DEV MODE: Listen for 'h' key to trigger test detection
+  // DEV MODE ONLY: Listen for 'h' key to trigger test detection
+  // Only registered in development builds to avoid leaking dev functionality
   useEffect(() => {
+    // Skip entirely in production builds
+    if (!import.meta.env.DEV) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only trigger on 'h' key, ignore if typing in an input
       if (e.key === 'h' && 
@@ -268,12 +298,13 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    console.log('🔧 Dev mode enabled: Press "h" to trigger test detection');
+    if (import.meta.env.DEV) console.log('🔧 Dev mode enabled: Press "h" to trigger test detection');
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputMode, isLoading, state]);
 
   const contextValue: DetectionContextType = {
     state,
@@ -282,6 +313,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     lexicalValue,
     prosodicValue,
     mainValue,
+    isReliable,
     setDetectionResult,
     setLoading,
     reset,

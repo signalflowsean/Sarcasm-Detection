@@ -1,19 +1,26 @@
 """
 Lexical (text-based) sarcasm detection endpoint.
+
+Security: Error messages returned to users are sanitized.
 """
 
 import time
 import uuid
+import logging
 
 from flask import Blueprint, request, jsonify
 
-from config import MAX_TEXT_LENGTH, API_DELAY_SECONDS
+from config import MAX_TEXT_LENGTH, API_DELAY_SECONDS, RATE_LIMIT_LEXICAL
 from models import lexical_predict
+from extensions import limiter
+from errors import UserError
 
 bp = Blueprint('lexical', __name__)
+logger = logging.getLogger(__name__)
 
 
 @bp.route('/api/lexical', methods=['POST'])
+@limiter.limit(RATE_LIMIT_LEXICAL)
 def lexical_detection():
     """
     Lexical sarcasm detection endpoint.
@@ -22,19 +29,24 @@ def lexical_detection():
     Max text length: 10,000 characters
     
     Request body: { "text": "string" }
-    Response: { "id": "uuid", "value": 0.0-1.0 }
+    Response: { "id": "uuid", "value": 0.0-1.0, "reliable": true/false }
+    
+    The 'reliable' field indicates whether the prediction came from the actual
+    ML model (true) or is a fallback/random value due to model unavailability (false).
     """
     data = request.get_json()
     
     if not data or 'text' not in data:
-        return jsonify({'error': 'Missing required field: text'}), 400
+        return jsonify({'error': UserError.TEXT_MISSING}), 400
     
     text = data['text']
     if not isinstance(text, str) or not text.strip():
-        return jsonify({'error': 'Text must be a non-empty string'}), 400
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
     
     if len(text) > MAX_TEXT_LENGTH:
-        return jsonify({'error': f'Text exceeds maximum length of {MAX_TEXT_LENGTH:,} characters'}), 400
+        # Log actual length internally
+        logger.warning(f"[LEXICAL] Text too long: {len(text)} chars (max: {MAX_TEXT_LENGTH})")
+        return jsonify({'error': UserError.TEXT_TOO_LONG}), 400
     
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:
@@ -45,6 +57,7 @@ def lexical_detection():
     
     return jsonify({
         'id': str(uuid.uuid4()),
-        'value': score
+        'value': score,
+        'reliable': is_real
     })
 
