@@ -47,41 +47,35 @@ def prosodic_detection():
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
     
-    # Try to use the real prosodic model
-    models_loaded = load_prosodic_models()
-    
-    if models_loaded:
-        try:
-            # Decode audio
-            waveform, sr = decode_audio(audio_bytes)
-            logger.debug(f"Decoded audio: {len(waveform)} samples at {sr}Hz")
-            
-            # Preprocess (mono, 16kHz, normalized)
-            waveform = preprocess_audio(waveform, sr)
-            logger.debug(f"Preprocessed audio: {len(waveform)} samples")
-            
-            # Check minimum length (at least 0.1 seconds)
-            min_samples = int(TARGET_SAMPLE_RATE * 0.1)
-            if len(waveform) < min_samples:
-                return jsonify({'error': 'Audio too short for analysis (minimum 0.1 seconds)'}), 400
-            
-            # Extract embedding
-            embedding = extract_embedding(waveform)
-            logger.debug(f"Extracted embedding: shape {embedding.shape}")
-            
-            # Predict sarcasm score
-            score = prosodic_predict(embedding)
-            
-        except Exception as e:
-            logger.error(f"Error during prosodic prediction: {e}")
-            # Fallback to random on error
-            import random
-            score = random.random()
-    else:
-        # Fallback to random if model not loaded
+    # Process audio and get prediction
+    try:
+        # Decode audio
+        waveform, sr = decode_audio(audio_bytes)
+        logger.info(f"Decoded audio: {len(waveform)} samples at {sr}Hz")
+        
+        # Preprocess (mono, 16kHz, normalized)
+        waveform = preprocess_audio(waveform, sr)
+        logger.debug(f"Preprocessed audio: {len(waveform)} samples")
+        
+        # Check minimum length (at least 0.1 seconds)
+        min_samples = int(TARGET_SAMPLE_RATE * 0.1)
+        if len(waveform) < min_samples:
+            return jsonify({'error': 'Audio too short for analysis (minimum 0.1 seconds)'}), 400
+        
+        # Extract embedding
+        embedding = extract_embedding(waveform)
+        logger.debug(f"Extracted embedding: shape {embedding.shape}")
+        
+        # Predict sarcasm score (returns score and whether it's a real prediction)
+        score, is_real = prosodic_predict(embedding)
+        
+    except Exception as e:
+        logger.error(f"[PROSODIC ERROR] Audio processing failed: {e}")
+        # Fallback to random on error
         import random
-        logger.warning("Prosodic model not available, returning random score")
         score = random.random()
+        is_real = False
+        logger.warning(f"[PROSODIC FALLBACK] Using random score due to error: {score:.4f}")
     
     return jsonify({
         'id': str(uuid.uuid4()),

@@ -40,7 +40,8 @@ def lexical_detection():
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
     
-    score = lexical_predict(text)
+    # Returns (score, is_real_prediction)
+    score, is_real = lexical_predict(text)
     
     return jsonify({
         'id': str(uuid.uuid4()),

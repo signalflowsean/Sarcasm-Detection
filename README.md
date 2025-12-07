@@ -250,6 +250,23 @@ docker-compose up --build frontend
 docker-compose up --build backend
 ```
 
+### Build Arguments
+
+The backend Dockerfile supports build arguments for cache management:
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `WAV2VEC_CACHE_BUST` | `1` | Increment to force re-download of Wav2Vec2 model |
+| `WAV2VEC_MODEL` | `facebook/wav2vec2-base-960h` | Hugging Face model to use for audio embeddings |
+
+```bash
+# Force re-download of Wav2Vec2 model (e.g., after model update)
+docker-compose build --build-arg WAV2VEC_CACHE_BUST=2 backend
+
+# Use a different Wav2Vec2 model
+docker-compose build --build-arg WAV2VEC_MODEL=facebook/wav2vec2-large backend
+```
+
 ## Deployment (Railway)
 
 The application is deployed on [Railway](https://railway.app) with frontend and backend as separate services in one project.

@@ -15,7 +15,7 @@ from .loader import (
 logger = logging.getLogger(__name__)
 
 
-def lexical_predict(text: str) -> float:
+def lexical_predict(text: str) -> tuple[float, bool]:
     """
     Predict sarcasm score from text using the lexical model.
     
@@ -23,7 +23,7 @@ def lexical_predict(text: str) -> float:
         text: Input text to analyze.
         
     Returns:
-        Sarcasm score between 0.0 and 1.0.
+        tuple: (score between 0.0 and 1.0, is_real_prediction)
         Falls back to random score if model unavailable.
     """
     model = get_lexical_model()
@@ -31,16 +31,20 @@ def lexical_predict(text: str) -> float:
     if model is not None:
         try:
             score = float(model.predict_proba([text.strip()])[0][1])
-            logger.debug(f"Lexical prediction for '{text[:50]}...': {score:.4f}")
-            return score
+            logger.info(f"[LEXICAL MODEL] Prediction: {score:.4f}")
+            return score, True
         except Exception as e:
-            logger.error(f"Error during lexical prediction: {e}")
+            logger.error(f"[LEXICAL MODEL] Error during prediction: {e}")
+    else:
+        logger.warning("[LEXICAL MODEL] Model not loaded")
     
     # Fallback to random if model not loaded or error
-    return random.random()
+    fallback_score = random.random()
+    logger.warning(f"[LEXICAL FALLBACK] Using random score: {fallback_score:.4f}")
+    return fallback_score, False
 
 
-def prosodic_predict(embedding: np.ndarray) -> float:
+def prosodic_predict(embedding: np.ndarray) -> tuple[float, bool]:
     """
     Predict sarcasm score from audio embedding using the prosodic model.
     
@@ -48,7 +52,7 @@ def prosodic_predict(embedding: np.ndarray) -> float:
         embedding: Wav2Vec2 embedding array of shape (768,).
         
     Returns:
-        Sarcasm score between 0.0 and 1.0.
+        tuple: (score between 0.0 and 1.0, is_real_prediction)
         Falls back to random score if model unavailable.
     """
     # Ensure models are loaded
@@ -59,13 +63,15 @@ def prosodic_predict(embedding: np.ndarray) -> float:
         try:
             embedding_2d = embedding.reshape(1, -1)
             score = float(model.predict_proba(embedding_2d)[0, 1])
-            logger.debug(f"Prosodic prediction: {score:.4f}")
-            return score
+            logger.info(f"[PROSODIC MODEL] Prediction: {score:.4f}")
+            return score, True
         except Exception as e:
-            logger.error(f"Error during prosodic prediction: {e}")
+            logger.error(f"[PROSODIC MODEL] Error during prediction: {e}")
     else:
-        logger.warning("Prosodic model not available, returning random score")
+        logger.warning("[PROSODIC MODEL] Model not loaded")
     
     # Fallback to random if model not loaded or error
-    return random.random()
+    fallback_score = random.random()
+    logger.warning(f"[PROSODIC FALLBACK] Using random score: {fallback_score:.4f}")
+    return fallback_score, False
 
