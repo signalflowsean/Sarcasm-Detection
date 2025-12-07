@@ -1,0 +1,691 @@
+id,audio_path,label,speaker,show,utterance,embedding_path
+1_60,audio_wav/1_60.wav,1,SHELDON,BBT,It's just a privilege to watch your mind at work.,embeddings/1_60.npy
+1_70,audio_wav/1_70.wav,1,PENNY,BBT,I don't think I'll be able to stop thinking about it.,embeddings/1_70.npy
+1_80,audio_wav/1_80.wav,0,SHELDON,BBT,"Since it's not bee season, you can have my epinephrine.",embeddings/1_80.npy
+1_90,audio_wav/1_90.wav,0,SHELDON,BBT,"Lois Lane is falling, accelerating at an initial rate of 32 feet per second per second. Superman swoops down to save her by reaching out two arms of steel. Miss Lane, who is now traveling at approximately 120 miles an hour, hits them and is immediately sliced into three equal pieces.",embeddings/1_90.npy
+1_105,audio_wav/1_105.wav,1,SHELDON,BBT,I'm just inferring this is a couch because the evidence suggests the coffee table is having a tiny garage sale.,embeddings/1_105.npy
+1_162,audio_wav/1_162.wav,0,HOWARD,BBT,"Sheldon, if you were a robot, and I knew and you didn't...",embeddings/1_162.npy
+1_175,audio_wav/1_175.wav,1,SHELDON,BBT,"If you're compiling a mix CD for a double suicide. Oh, I hope that scratching post is for you.",embeddings/1_175.npy
+1_182,audio_wav/1_182.wav,1,SHELDON,BBT,No. The dark crescent-shaped patterns under your arms conceal it nicely.,embeddings/1_182.npy
+1_213,audio_wav/1_213.wav,1,SHELDON,BBT,"How's this? ""Pleased to meet you, Dr. Gablehauser. ""How fortunate for you that the university's ""chosen to hire you, despite the fact ""that you've done no original research in 25 years, ""and instead have written a series of popular books ""that reduce the great concepts of science ""to a series of anecdotes, ""each one dumbed down to accommodate the duration ""of an average bowel movement.",embeddings/1_213.npy
+1_276,audio_wav/1_276.wav,1,LEONARD,BBT,"Yeah, my parents felt that naming me Leonard and putting me in Advanced Placement classes wasn't getting me beaten up enough.",embeddings/1_276.npy
+1_340,audio_wav/1_340.wav,1,RAJ,BBT,"Sure, cut the foreigner in half. There's a billion more where he came from.",embeddings/1_340.npy
+1_410,audio_wav/1_410.wav,0,RAJ,BBT,"Leonard, may I present, live from New Delhi, Dr. and Mrs. V. M. Koothrappali.",embeddings/1_410.npy
+1_427,audio_wav/1_427.wav,1,SHELDON,BBT,"Well, I'm sorry, too, but there's just no room for you in my wallet.",embeddings/1_427.npy
+1_430,audio_wav/1_430.wav,0,RAJ,BBT,"I've got some feelers out. In the meantime, listen to this.",embeddings/1_430.npy
+1_467,audio_wav/1_467.wav,0,SHELDON,BBT,That woman looks exactly like the pictures of Princess Panchali in the book. How often does one see a beloved fictional character come to life?,embeddings/1_467.npy
+1_506,audio_wav/1_506.wav,0,SHELDON,BBT,Not to mention you'd have to power down on saturdays.,embeddings/1_506.npy
+1_507,audio_wav/1_507.wav,1,SHELDON,BBT,"Well, there's always the possibility that a trash can spontaneously formed around the letter but Occam's rasor would suggest that someone threw it out.",embeddings/1_507.npy
+1_533,audio_wav/1_533.wav,0,LEONARD,BBT,"Technically, yes. But, if you'll notice... It's reversible!",embeddings/1_533.npy
+1_536,audio_wav/1_536.wav,1,SHELDON,BBT,Just the latest copy of Applied Particle Physics quarterly.,embeddings/1_536.npy
+1_537,audio_wav/1_537.wav,1,PENNY,BBT,"Oh, you know, that is so weird that yours came and mine didn't.",embeddings/1_537.npy
+1_672,audio_wav/1_672.wav,0,SHELDON,BBT,Do you think Penny will come here and take care of us?,embeddings/1_672.npy
+1_971,audio_wav/1_971.wav,1,HOWARD,BBT,"- Now?! - No, after my tongue has swollen to the size of a brisket!",embeddings/1_971.npy
+1_1001,audio_wav/1_1001.wav,0,RAJ,BBT,"What else? Sell it on eBay as ""slightly used.""",embeddings/1_1001.npy
+1_1003,audio_wav/1_1003.wav,1,HOWARD,BBT,"Good idea, sit with her. Hold her, comfort her. And if the moment feels right, see if you can cop a feel.",embeddings/1_1003.npy
+1_1144,audio_wav/1_1144.wav,1,SHELDON,BBT,"Notify the editors of the Oxford English Dictionary. The word ""plenty"" has been redefined to mean ""two.""",embeddings/1_1144.npy
+1_1180,audio_wav/1_1180.wav,1,SHELDON,BBT,"Oh, please. The only way she could make a contribution to science would be if they resumed sending chimps into space.",embeddings/1_1180.npy
+1_1185,audio_wav/1_1185.wav,0,LEONARD,BBT,I think tonight was a very good start.,embeddings/1_1185.npy
+1_1189,audio_wav/1_1189.wav,0,SHELDON,BBT,"I'm sorry, I am not going back to the Renaissance fair.",embeddings/1_1189.npy
+1_1262,audio_wav/1_1262.wav,0,SHELDON,BBT,You were very clear. As was everyone else at the table.,embeddings/1_1262.npy
+1_1296,audio_wav/1_1296.wav,1,HOWARD,BBT,"They gave him an assistant? If I want a new pen, I have to go to the bank with wire cutters.",embeddings/1_1296.npy
+1_1466,audio_wav/1_1466.wav,1,SHELDON,BBT,"Maybe when I publish it, I'll include an inhaler.",embeddings/1_1466.npy
+1_1470,audio_wav/1_1470.wav,0,PENNY,BBT,I don't know. It just died. I'm getting a bunch of static.,embeddings/1_1470.npy
+1_1478,audio_wav/1_1478.wav,1,HOWARD,BBT,"Sadly, Mrs. Giselle Wolowitz is sensitive to chlorine. Lucky for her I like my fashion models pruny and bug-eyed.",embeddings/1_1478.npy
+1_1484,audio_wav/1_1484.wav,0,SHELDON,BBT,The big deal is that nobody touches food on my plate.,embeddings/1_1484.npy
+1_1549,audio_wav/1_1549.wav,1,HOWARD,BBT,On a dusty highway just outside Bakersfield. Where do you think? On Mars!,embeddings/1_1549.npy
+1_1560,audio_wav/1_1560.wav,1,SHELDON,BBT,How nice. Maybe they can carpool when they visit you in federal prison.,embeddings/1_1560.npy
+1_1627,audio_wav/1_1627.wav,0,PERSON,BBT,"What do you think I did? I discreetly slipped off the other earring, put it in my pocket and then got the hell out of there!",embeddings/1_1627.npy
+1_1638,audio_wav/1_1638.wav,1,LEONARD,BBT,The blunt instrument that will be the focus of my murder trial?,embeddings/1_1638.npy
+1_1666,audio_wav/1_1666.wav,0,LEONARD,BBT,Would it work if I just punched you in the face?,embeddings/1_1666.npy
+1_1678,audio_wav/1_1678.wav,0,RAJ,BBT,Answering the question once and for all why Wolowitz bailed out of medical school.,embeddings/1_1678.npy
+1_1722,audio_wav/1_1722.wav,0,SHELDON,BBT,My aunt Marion gave them to me for my 12th birthday.,embeddings/1_1722.npy
+1_1732,audio_wav/1_1732.wav,1,PERSON,BBT,You were right. Your larynx is terribly inflamed. I've never seen anything like it.,embeddings/1_1732.npy
+1_1772,audio_wav/1_1772.wav,1,HOWARD,BBT,"""Dave."" Sounds like Leonard's got a new BFF.",embeddings/1_1772.npy
+1_1798,audio_wav/1_1798.wav,1,RAJ,BBT,"If you don't like this stuff, let's go next door and build her a bear.",embeddings/1_1798.npy
+1_1803,audio_wav/1_1803.wav,1,LEONARD,BBT,"- Maybe I heard you wrong. A lot of words sound like ""yoga.""",embeddings/1_1803.npy
+1_1931,audio_wav/1_1931.wav,1,LEONARD,BBT,Why don't you just lie down on the floor and swim there?,embeddings/1_1931.npy
+1_1973,audio_wav/1_1973.wav,1,PENNY,BBT,I hope I'm a waitress at the Cheesecake Factory for my whole life.,embeddings/1_1973.npy
+1_1987,audio_wav/1_1987.wav,1,PENNY,BBT,"When I didn't pay my bill, the Department of Water and Power thought I would enjoy the ambience.",embeddings/1_1987.npy
+1_2075,audio_wav/1_2075.wav,0,LEONARD,BBT,There's no hurry. Tell them more about their secret love for each other.,embeddings/1_2075.npy
+1_2119,audio_wav/1_2119.wav,1,PERSON,BBT,"Kind of makes you feel more alive, doesn't it?",embeddings/1_2119.npy
+1_2198,audio_wav/1_2198.wav,1,SHELDON,BBT,"Assuming I can keep up this pace, three hours, 11 minutes. Plus however long it takes to conclude this fairly pointless conversation.",embeddings/1_2198.npy
+1_2216,audio_wav/1_2216.wav,0,LEONARD,BBT,"Excuse me, but what about me? Why don't I get a shot?",embeddings/1_2216.npy
+1_2354,audio_wav/1_2354.wav,1,SHELDON,BBT,"So? Do cocaine smugglers write ""cocaine"" on the box?",embeddings/1_2354.npy
+1_2361,audio_wav/1_2361.wav,0,LEONARD,BBT,Thank you so much for giving me the opportunity to help.,embeddings/1_2361.npy
+1_2420,audio_wav/1_2420.wav,0,LEONARD,BBT,You know this can go on all night. Why don't you just come with us?,embeddings/1_2420.npy
+1_2423,audio_wav/1_2423.wav,0,SHELDON,BBT,Provided he has already read and is familiar with the reestablishment of the DC multiverse.,embeddings/1_2423.npy
+1_2464,audio_wav/1_2464.wav,1,PENNY,BBT,"You think ""coffee,"" means coffee. That is so sweet.",embeddings/1_2464.npy
+1_2575,audio_wav/1_2575.wav,0,SHELDON,BBT,"You don't really believe in that superstition, do you?",embeddings/1_2575.npy
+1_2580,audio_wav/1_2580.wav,1,HOWARD,BBT,"Okay, here's an idea. What if I change my name and go live with my cousin and her husband, Avi, in Israel?",embeddings/1_2580.npy
+1_2614,audio_wav/1_2614.wav,1,LEONARD,BBT,Hardly a day goes by when I don't think about it.,embeddings/1_2614.npy
+1_2616,audio_wav/1_2616.wav,1,LEONARD,BBT,"Sure, maybe a tableau of me trying to pummel you to death.",embeddings/1_2616.npy
+1_2664,audio_wav/1_2664.wav,0,LEONARD,BBT,"Terrific, it's just that... I don't think Penny wants me to go.",embeddings/1_2664.npy
+1_2669,audio_wav/1_2669.wav,0,LEONARD,BBT,What did you mean when you said you were going to miss me?,embeddings/1_2669.npy
+1_2778,audio_wav/1_2778.wav,1,RAJ,BBT,"Ooh, big talk from a man who was once treed by a chicken.",embeddings/1_2778.npy
+1_2792,audio_wav/1_2792.wav,0,PENNY,BBT,"No, I mean, we can always go back to being friends.",embeddings/1_2792.npy
+1_2797,audio_wav/1_2797.wav,1,SHELDON,BBT,It's an iCal download. She can put it right in her phone.,embeddings/1_2797.npy
+1_2819,audio_wav/1_2819.wav,1,SHELDON,BBT,"You know, I've always wanted to go to a Goth nightclub.",embeddings/1_2819.npy
+1_2830,audio_wav/1_2830.wav,0,RAJ,BBT,"No, I'm behind on my Wiki-reading. I'm kind of on a John Grisham kick right now.",embeddings/1_2830.npy
+1_2837,audio_wav/1_2837.wav,0,LEONARD,BBT,"- Chocolate? - No, I don't want any chocolate!",embeddings/1_2837.npy
+1_2842,audio_wav/1_2842.wav,0,HOWARD,BBT,"Oh, you know, Goth stuff. Goth magazines, Goth music.",embeddings/1_2842.npy
+1_2853,audio_wav/1_2853.wav,1,SHELDON,BBT,"Obviously, waitressing at The Cheese Cake Factory is a complex socio-economic activity that requires a great deal of analysis and planning.",embeddings/1_2853.npy
+1_3064,audio_wav/1_3064.wav,1,SHELDON,BBT,When I have enough to destroy all the human toast on the Battlestar known as Galactica.,embeddings/1_3064.npy
+1_3069,audio_wav/1_3069.wav,0,SHELDON,BBT,Seems like an awful lot of trouble to go through for intercourse.,embeddings/1_3069.npy
+1_3125,audio_wav/1_3125.wav,1,HOWARD,BBT,"But if she dumps you, she'll have a new boyfriend by tomorrow morning and you'll have a new girlfriend when you figure out how to build one.",embeddings/1_3125.npy
+1_3177,audio_wav/1_3177.wav,0,RAJ,BBT,"Not a great movie, but look at that beautiful desert.",embeddings/1_3177.npy
+1_3204,audio_wav/1_3204.wav,0,RAJ,BBT,Right. That was so good! Sweety and meaty at the same time.,embeddings/1_3204.npy
+1_3256,audio_wav/1_3256.wav,1,PERSON,BBT,"I'm sorry, fiddling with yourself in the bathtub is a real class act.",embeddings/1_3256.npy
+1_3259,audio_wav/1_3259.wav,1,PERSON,BBT,"No, I mean Princess Leia. Of course I mean Bernadette. She's a wonderful girl and she really likes you.",embeddings/1_3259.npy
+1_3287,audio_wav/1_3287.wav,1,SHELDON,BBT,"Oh, sure. And while we're at it, why don't we put our hands behind our backs, have an old-fashioned eating contest?",embeddings/1_3287.npy
+1_3293,audio_wav/1_3293.wav,1,SHELDON,BBT,Leonard's work is nearly as amazing as third graders growing lima beans in wet paper towels.,embeddings/1_3293.npy
+1_3333,audio_wav/1_3333.wav,0,HOWARD,BBT,"Okay, I got a bone to pick with you.",embeddings/1_3333.npy
+1_3348,audio_wav/1_3348.wav,0,BERNADETTE,BBT,"Raj, you should've seen Leonard's experiment. The interference pattern was so cool when the electron beam was on.",embeddings/1_3348.npy
+1_3371,audio_wav/1_3371.wav,0,PERSON,BBT,"I was going to ask Leonard to do it, but he seemed a bit emotionally unstable and you don't want someone like that operating heavy machinery.",embeddings/1_3371.npy
+1_3419,audio_wav/1_3419.wav,1,PENNY,BBT,"Oh, we don't need to talk about that anymore. Leonard covered it pretty well in the car.",embeddings/1_3419.npy
+1_3476,audio_wav/1_3476.wav,0,LEONARD,BBT,Don't you think looking for a new city to live in is a bit of an overreaction?,embeddings/1_3476.npy
+1_3545,audio_wav/1_3545.wav,1,HOWARD,BBT,"I understand your point, but given a choice, Jews always go with Chinese food.",embeddings/1_3545.npy
+1_3573,audio_wav/1_3573.wav,1,PENNY,BBT,"Well, I always figured it was to study us, discover our weaknesses, and report back to your alien overlords.",embeddings/1_3573.npy
+1_3599,audio_wav/1_3599.wav,0,HOWARD,BBT,Why don't you keep that stuff in the bathroom?,embeddings/1_3599.npy
+1_3649,audio_wav/1_3649.wav,0,PENNY,BBT,"Oh, no, no, I said I'm inviting you to come with me to Stan Lee's house.",embeddings/1_3649.npy
+1_3660,audio_wav/1_3660.wav,1,PENNY,BBT,There a new girlfriend in there? 'Cause you might need one.,embeddings/1_3660.npy
+1_3707,audio_wav/1_3707.wav,1,LEONARD,BBT,"Oh, I'm so glad you asked it like that. You.",embeddings/1_3707.npy
+1_3766,audio_wav/1_3766.wav,1,LEONARD,BBT,Can we please talk about something else? Maybe something vaguely related to life as we know it on this planet?,embeddings/1_3766.npy
+1_3837,audio_wav/1_3837.wav,0,SHELDON,BBT,"Excuse me, I'm thirsty, so I'm going to go to the refrigerator and get myself a refreshing beverage.",embeddings/1_3837.npy
+1_3840,audio_wav/1_3840.wav,0,SHELDON,BBT,"I read a study online that walking after a meal not only aids in digestion, but increases serotonin, and you know me, if there's one thing I like more than a refreshing beverage, it's serotonin. Bye-bye.",embeddings/1_3840.npy
+1_3842,audio_wav/1_3842.wav,0,HOWARD,BBT,"So what, you're just gonna walk up and down the stairs?",embeddings/1_3842.npy
+1_3911,audio_wav/1_3911.wav,0,PERSON,BBT,"That's very thoughtful, but I think I'll finish my coffee first.",embeddings/1_3911.npy
+1_4031,audio_wav/1_4031.wav,1,SHELDON,BBT,"In 1917, when Albert Einstein established the theoretic foundation for the laser in his paper <i>""Zur Quantentheorie der</i> <i>Strahlung,""</i> his fondest hope was that the resultant device be bitchin'.",embeddings/1_4031.npy
+1_4145,audio_wav/1_4145.wav,1,LEONARD,BBT,A lot of people are working on that research. So what is all this?,embeddings/1_4145.npy
+1_4281,audio_wav/1_4281.wav,0,HOWARD,BBT,It was the kind of thing that makes it kind of hard to face her now.,embeddings/1_4281.npy
+1_4286,audio_wav/1_4286.wav,0,SHELDON,BBT,"All right, all right. He can buy his own desk.",embeddings/1_4286.npy
+1_4290,audio_wav/1_4290.wav,0,HOWARD,BBT,I just have a question. Does Bernadette ever talk about me?,embeddings/1_4290.npy
+1_4352,audio_wav/1_4352.wav,0,SHELDON,BBT,He does it all the time. He's a cornucopia of social awkwardness.,embeddings/1_4352.npy
+1_4477,audio_wav/1_4477.wav,0,PERSON,BBT,I just want to ask you a few questions about Howard Wolowitz.,embeddings/1_4477.npy
+1_4544,audio_wav/1_4544.wav,0,AMY,BBT,"Yes. In fact, our menses are synchronized. Penny. Bernadette tells me you're planning a girls' night.",embeddings/1_4544.npy
+1_4552,audio_wav/1_4552.wav,0,AMY,BBT,"...so anyway, to make a long story short, turns out I have an unusually firm cervix.",embeddings/1_4552.npy
+1_4576,audio_wav/1_4576.wav,0,AMY,BBT,"Bernadette dared me to tell a dirty story. ""The Miller's Tale"" by Chaucer is the dirtiest story I know. It would have been hidden in sock drawers if people in the 14th century had worn socks.",embeddings/1_4576.npy
+1_4603,audio_wav/1_4603.wav,0,HOWARD,BBT,Is it possible that she was going for your cheek and you moved and she accidentally got lip? That happens with me and my mom all the time.,embeddings/1_4603.npy
+1_4639,audio_wav/1_4639.wav,0,PERSON,BBT,"Well, I'm just glad you finally found yourself a keeper.",embeddings/1_4639.npy
+1_4743,audio_wav/1_4743.wav,1,HOWARD,BBT,"Oh, and the science dudes want to talk science with you. What do you want to talk about-- rocks, dinosaurs, our friend the beaver?",embeddings/1_4743.npy
+1_4760,audio_wav/1_4760.wav,1,SHELDON,BBT,"In the bedrooms of ten-year- old girls, where they belong.",embeddings/1_4760.npy
+1_4789,audio_wav/1_4789.wav,1,PERSON,BBT,"I don't know. Somebody bigger and... Yeah, sure. Why not you?",embeddings/1_4789.npy
+1_4792,audio_wav/1_4792.wav,0,SHELDON,BBT,"Obviously, we're no longer a Justice League. We have no choice but to switch to our Muppet Baby costumes.",embeddings/1_4792.npy
+1_4850,audio_wav/1_4850.wav,0,SHELDON,BBT,I understand. Your loyalty is admirable. But what if I were to up the ante?,embeddings/1_4850.npy
+1_4949,audio_wav/1_4949.wav,0,RAJ,BBT,"Certainly. I'd like to raise two points. Number one, I think they <i>are</i> talking about penises. And number two, these mimosas are kicking my little brown ass.",embeddings/1_4949.npy
+1_4967,audio_wav/1_4967.wav,1,LEONARD,BBT,We might be starting to zero in on your problem.,embeddings/1_4967.npy
+1_4995,audio_wav/1_4995.wav,1,SHELDON,BBT,"Hey, you taught me something. Who would have thought it?",embeddings/1_4995.npy
+1_5058,audio_wav/1_5058.wav,1,SHELDON,BBT,"An entire dinner to talk about your research? Where you going, the drive-thru at Jack in the Box?",embeddings/1_5058.npy
+1_5109,audio_wav/1_5109.wav,0,RAJ,BBT,"Yeah, but you were just sleeping, because I forboded you to have sex.",embeddings/1_5109.npy
+1_5134,audio_wav/1_5134.wav,1,PENNY,BBT,"Oh, yeah, yeah. It's real great. Today I drove to Van Nuys for an audition I thought was going to be for a cat food commercial. Turned out to be porn.",embeddings/1_5134.npy
+1_5156,audio_wav/1_5156.wav,1,HOWARD,BBT,"That's got to be fun for you, huh? Watching Hofstadter suck the saliva out of your sister's mouth?",embeddings/1_5156.npy
+1_5166,audio_wav/1_5166.wav,1,PENNY,BBT,"Yeah, it's a great time to be alive, isn't it?",embeddings/1_5166.npy
+1_5169,audio_wav/1_5169.wav,0,AMY,BBT,I'm not saying that you're not fun. You're the most fun person I know.,embeddings/1_5169.npy
+1_5211,audio_wav/1_5211.wav,1,AMY,BBT,"Saying that while holding a snowflake is a bit heavy-handed, don't you think?",embeddings/1_5211.npy
+1_5212,audio_wav/1_5212.wav,0,PERSON3,BBT,"I'm sorry, Sheldon bought a loom and learned how to weave?",embeddings/1_5212.npy
+1_5496,audio_wav/1_5496.wav,1,PENNY,BBT,"Okay, Amy, you're being silly. I'm not concerned about who hangs out with who. And I certainly don't have a problem with Leonard's new girlfriend who wears way too much makeup. Ooh, these are cute. Of course if I buy them, I'll have to rent my womb out to a gay couple.",embeddings/1_5496.npy
+1_5571,audio_wav/1_5571.wav,1,SHELDON,BBT,"Yes, I'd like a seven-day course of penicillin, some, uh, syrup of ipecac-- to induce vomiting-- and a mint.",embeddings/1_5571.npy
+1_5572,audio_wav/1_5572.wav,1,SHELDON,BBT,"He drank from Leonard's glass. ""He drank from Leonard's glass""-- the words they'll be carving into my tombstone.",embeddings/1_5572.npy
+1_5580,audio_wav/1_5580.wav,1,HOWARD,BBT,"Right, right, whereas Jewish mothers take a casual, la-di-da approach to their sons.",embeddings/1_5580.npy
+1_5581,audio_wav/1_5581.wav,0,SHELDON,BBT,I gargled with tequila and may have swallowed a teeny bit.,embeddings/1_5581.npy
+1_5617,audio_wav/1_5617.wav,1,SHELDON,BBT,is an event that's like a heart attack.,embeddings/1_5617.npy
+1_5627,audio_wav/1_5627.wav,1,RAJ,BBT,"Your girlfriend and your ex-girlfriend are hanging out together? Oh, yeah, that can only be good for you.",embeddings/1_5627.npy
+1_5679,audio_wav/1_5679.wav,1,SHELDON,BBT,"I'd like to respond to that sarcastically: Yes, I relish the thought of a stranger covering my body with oil and rubbing it.",embeddings/1_5679.npy
+1_5699,audio_wav/1_5699.wav,1,SHELDON,BBT,"Congratulations and welcome temporarily aboard. Here's your I.D. card, your key and your lapel pin. Which Leonard was too cool to wear.",embeddings/1_5699.npy
+1_5751,audio_wav/1_5751.wav,0,BERNADETTE,BBT,Of course you do. You're a cutie pie! Any girl would be lucky to have you!,embeddings/1_5751.npy
+1_5758,audio_wav/1_5758.wav,1,AMY,BBT,"Oh, I could so see you being the face of hemorrhoids.",embeddings/1_5758.npy
+1_5786,audio_wav/1_5786.wav,0,SHELDON,BBT,"All right, so technically it's not a dinner date. I suppose you could call it a, uh, dinfast date. But if you did, you'd open yourself to peer-based mocking, such as, ""Hey, Leonard, how was your dinfast with Priya last night?""",embeddings/1_5786.npy
+1_5880,audio_wav/1_5880.wav,1,AMY,BBT,"When you're done copping a feel, that goes on my wrist.",embeddings/1_5880.npy
+1_5919,audio_wav/1_5919.wav,0,SHELDON,BBT,"Because you don't have a girlfriend? Well, good Lord, if that becomes a reason not to play Dungeons & Dragons, this game's in serious trouble.",embeddings/1_5919.npy
+1_5953,audio_wav/1_5953.wav,0,HOWARD,BBT,Here's some other fun news on the Raj/Emily front. He gave her a pair of diamond earrings and leased her a car.,embeddings/1_5953.npy
+1_5964,audio_wav/1_5964.wav,1,HOWARD,BBT,Smart. Whisper so the deaf chick can't hear you.,embeddings/1_5964.npy
+1_6020,audio_wav/1_6020.wav,1,SHELDON,BBT,You just got off the list. Would you like back on it? This'll just take a moment. It's on a five and a quarter inch floppy.,embeddings/1_6020.npy
+1_6032,audio_wav/1_6032.wav,1,SHELDON,BBT,"You see betrayal in others, but not yourself.",embeddings/1_6032.npy
+1_6039,audio_wav/1_6039.wav,0,BERNADETTE,BBT,I don't know what I'm going to do. I don't want to break up over this.,embeddings/1_6039.npy
+1_6065,audio_wav/1_6065.wav,1,SHELDON,BBT,"Frankly, Mom, I'm encouraged to see how advanced your group has become-- willing to sail out into the ocean without fear of falling off the edge.",embeddings/1_6065.npy
+1_6092,audio_wav/1_6092.wav,0,LEONARD,BBT,"We don't say that, either. I'll make you a list. Oh, that would be mighty white of you.",embeddings/1_6092.npy
+1_6113,audio_wav/1_6113.wav,0,HOWARD,BBT,"So, this spring, I get to go to the International Space Station. Oh, my word, a trip to the heavens.",embeddings/1_6113.npy
+1_6134,audio_wav/1_6134.wav,1,SHELDON,BBT,"No, I'm just allergic to people who get Nobel Prizes for no good reason.",embeddings/1_6134.npy
+1_6165,audio_wav/1_6165.wav,1,SHELDON,BBT,"Yes, there's nothing quite like the slightly widened eyes of mildly startled.",embeddings/1_6165.npy
+1_6183,audio_wav/1_6183.wav,0,RAJ,BBT,You have a thing of paper clips right there.,embeddings/1_6183.npy
+1_6188,audio_wav/1_6188.wav,1,PENNY,BBT,"Oh, my God, that's where I know you from.",embeddings/1_6188.npy
+1_6211,audio_wav/1_6211.wav,0,SHELDON,BBT,"No. You mean this was all a ruse? Oh, how could I be so stu...",embeddings/1_6211.npy
+1_6221,audio_wav/1_6221.wav,1,BERNADETTE,BBT,"Well, if you don't mind looking like an orange traffic cone, great.",embeddings/1_6221.npy
+1_6355,audio_wav/1_6355.wav,1,LEONARD,BBT,"said horrible things about each other in public... all in all, a pretty magical night.",embeddings/1_6355.npy
+1_6370,audio_wav/1_6370.wav,1,SHELDON,BBT,"Oh, of course he is. She's very interesting. Did you know, when she was 14, she severed the webbing between her own toes?",embeddings/1_6370.npy
+1_6426,audio_wav/1_6426.wav,1,SHELDON,BBT,"You know, the holidays are just around the corner. Maybe he wants to see if he can lodge the other testicle up there.",embeddings/1_6426.npy
+1_6427,audio_wav/1_6427.wav,1,PENNY,BBT,Hmm. That's too bad. We could have spent New Year's Eve waiting for the ball to drop.,embeddings/1_6427.npy
+1_6428,audio_wav/1_6428.wav,1,LEONARD,BBT,Sure. You want to see what all the scientists are wearing this year.,embeddings/1_6428.npy
+1_6472,audio_wav/1_6472.wav,1,SHELDON,BBT,You'd think a winner could make a decent cup of cocoa.,embeddings/1_6472.npy
+1_6504,audio_wav/1_6504.wav,1,SHELDON,BBT,"Oh, I see why you're confused. No, her news sounded important, but what you're forgetting is, it was an achievement in the field of biology. That's all about yucky, squishy things.",embeddings/1_6504.npy
+1_6534,audio_wav/1_6534.wav,0,SHELDON,BBT,"No, but maybe she wants a man with a pocket watch.",embeddings/1_6534.npy
+1_6627,audio_wav/1_6627.wav,0,LEONARD,BBT,"Well, yeah, sex with you is pretty great. Have you ever tried it?",embeddings/1_6627.npy
+1_6645,audio_wav/1_6645.wav,0,PERSON1,BBT,"Well, that wady took high-wes pictures of my junk wast night for Cwaigswist.",embeddings/1_6645.npy
+1_6648,audio_wav/1_6648.wav,1,LEONARD,BBT,You mean for a person whose neck massages feel like an eagle is trying to carry you to its nest?,embeddings/1_6648.npy
+1_6683,audio_wav/1_6683.wav,1,HOWARD,BBT,"Yeah, terrific. The other astronauts would love to go hurtling through space with a guy named ""Crash.""",embeddings/1_6683.npy
+1_6766,audio_wav/1_6766.wav,0,SHELDON,BBT,Maybe that's because I'm not being challenged. It's the same reason Einstein failed math.,embeddings/1_6766.npy
+1_6769,audio_wav/1_6769.wav,1,AMY,BBT,"Hope your hands are steady. It's the width of a single hair. But this is just biology, so I'm sure it's no problem for a genius like you.",embeddings/1_6769.npy
+1_6835,audio_wav/1_6835.wav,0,AMY,BBT,"Oh, screw her. She's just lucky we let her hang out with us.",embeddings/1_6835.npy
+1_6860,audio_wav/1_6860.wav,0,SHELDON,BBT,"I'm sorry, it's the bad boy attitude that comes with this hair.",embeddings/1_6860.npy
+1_7047,audio_wav/1_7047.wav,1,LEONARD,BBT,"Also instead of just living in your mother's house, you could actually live inside her body.",embeddings/1_7047.npy
+1_7082,audio_wav/1_7082.wav,0,RAJ,BBT,"...to all the good times we had, like, uh, when we went camping and spent that night telling each other all our secrets. I told him I'm addicted to pedicures and he told me he lost his virginity to his cousin.",embeddings/1_7082.npy
+1_7089,audio_wav/1_7089.wav,1,HOWARD,BBT,"How about you? Did you have a fun night? Yeah, we, uh, made gift bags, had wine, and then went online and saw this.",embeddings/1_7089.npy
+1_7186,audio_wav/1_7186.wav,0,HOWARD,BBT,"Not exactly. Listen, if you don't mind, I'm not really up for chatting. I'm just going to sit here quietly and let my life flash before my eyes.",embeddings/1_7186.npy
+1_7281,audio_wav/1_7281.wav,1,SHELDON,BBT,"Darn. If you weren't busy, I'd ask you to join us.",embeddings/1_7281.npy
+1_7341,audio_wav/1_7341.wav,0,SHELDON,BBT,I am talking to a man in space. If you don't have the (walkie-talkie static) then he might as well be at the Coffee Bean over on Lake Street.,embeddings/1_7341.npy
+1_7357,audio_wav/1_7357.wav,1,LEONARD,BBT,I'm starting to get a sense of it.,embeddings/1_7357.npy
+1_7395,audio_wav/1_7395.wav,1,AMY,BBT,"Well, if that's all it takes, it's a good thing you don't have a dog.",embeddings/1_7395.npy
+1_7400,audio_wav/1_7400.wav,0,PENNY,BBT,"Of course, it is... it's been in the news. And it's a very famous boson.",embeddings/1_7400.npy
+1_7402,audio_wav/1_7402.wav,1,LEONARD,BBT,I didn't know they gave Nobel prizes for making boom-boom in the potty.,embeddings/1_7402.npy
+1_7442,audio_wav/1_7442.wav,0,SHELDON,BBT,"The original title was ""A Rederivation of Maxwell's Equations Regarding Electromagnetism"""" I dumbed it down because some of the more religious people in town were starting to say I was a witch.",embeddings/1_7442.npy
+1_7443,audio_wav/1_7443.wav,0,PENNY,BBT,We've kind of been involved in a five-year experiment.,embeddings/1_7443.npy
+1_7445,audio_wav/1_7445.wav,0,PENNY,BBT,My limbic system wants to take your pants off.,embeddings/1_7445.npy
+1_7449,audio_wav/1_7449.wav,0,RAJ,BBT,"Okay, the NASA Web site says Howard's final descent has begun.",embeddings/1_7449.npy
+1_7487,audio_wav/1_7487.wav,0,HOWARD,BBT,"Yeah, well, Bernadette's a little under the weather and my mom's kind of under my dentist.",embeddings/1_7487.npy
+1_7490,audio_wav/1_7490.wav,0,HOWARD,BBT,"It's okay, you know, we space cowboys don't do what we do for glory and fame. We leave that to your rock stars and your athletes and your Howie Mandels.",embeddings/1_7490.npy
+1_7494,audio_wav/1_7494.wav,0,PERSON,BBT,that sounds a little funny to an American ear.,embeddings/1_7494.npy
+1_7504,audio_wav/1_7504.wav,0,PERSON,BBT,"""To Stuart, your comic book store is out of this world. Just like the guy in this picture was.""",embeddings/1_7504.npy
+1_7575,audio_wav/1_7575.wav,1,HOWARD,BBT,"You're right, the party's fantastic. Please, tell me more. I haven't heard enough about it all week because hearing about that never gets old!",embeddings/1_7575.npy
+1_7593,audio_wav/1_7593.wav,0,SHELDON,BBT,"Amy, I can't just ask Wil Wheaton to leave. He's a minor celebrity. Once you explain who he is, many people recognize him.",embeddings/1_7593.npy
+1_7641,audio_wav/1_7641.wav,0,HOWARD,BBT,"She was just so sad all the time. Yeah, I was the only person who could cheer her up. Well, me and Ben and Jerry.",embeddings/1_7641.npy
+1_7661,audio_wav/1_7661.wav,0,SHELDON,BBT,"Yeah, that was five weeks ago. How much longer is he gonna milk that cow?",embeddings/1_7661.npy
+1_7675,audio_wav/1_7675.wav,0,PENNY,BBT,"Anyway, to this day, I still can't see a box of crayons without crossing my legs.",embeddings/1_7675.npy
+1_7722,audio_wav/1_7722.wav,1,SHELDON,BBT,Exactly what it was half an hour ago. It's like you're not even trying to get better.,embeddings/1_7722.npy
+1_7894,audio_wav/1_7894.wav,0,RAJ,BBT,I did. The guy at the liquor store said this stuff tastes great in coffee.,embeddings/1_7894.npy
+1_7938,audio_wav/1_7938.wav,0,LEONARD,BBT,"Come on, let's just start walking. There's got to be a gas station or something nearby.",embeddings/1_7938.npy
+1_7953,audio_wav/1_7953.wav,1,PERSON,BBT,Why don't you ask Scotty to beam you up?,embeddings/1_7953.npy
+1_8042,audio_wav/1_8042.wav,0,HOWARD,BBT,"No, just me, her and a couple of the big wigs. It's part of a bonus she got.",embeddings/1_8042.npy
+1_8045,audio_wav/1_8045.wav,1,RAJ,BBT,"Dumped her? What, did he use a forklift?",embeddings/1_8045.npy
+1_8052,audio_wav/1_8052.wav,1,PENNY,BBT,Like Burt and Ernie. You guys even teach me stuff about words and numbers.,embeddings/1_8052.npy
+1_8078,audio_wav/1_8078.wav,0,HOWARD,BBT,"Trust me, you're not Jewish. That's how they get you.",embeddings/1_8078.npy
+1_8136,audio_wav/1_8136.wav,1,PERSON,BBT,"Yeah, I'm really looking forward to it. In fact, there's no place I would rather be than here.",embeddings/1_8136.npy
+1_8159,audio_wav/1_8159.wav,0,LEONARD,BBT,And I'm cool with surprises. But nothing on a Jumbotron. I don't want to cry on a big screen like that.,embeddings/1_8159.npy
+1_8185,audio_wav/1_8185.wav,0,BERNADETTE,BBT,We could go to Red Lobster and talk about it. We're all thinking it. I just had the decency to wait for him to leave.,embeddings/1_8185.npy
+1_8217,audio_wav/1_8217.wav,0,RAJ,BBT,"Go out with me on one date, and I promise you, you'll see.",embeddings/1_8217.npy
+1_8407,audio_wav/1_8407.wav,1,SHELDON,BBT,"Oh, sure, what a wonderful idea. And after that, I'll make up my own rules of oral hygiene. You know, instead of flossing, I'll rub pudding on my gums. I'm going to get the number of the SyFy Channel and give them what for.",embeddings/1_8407.npy
+1_8417,audio_wav/1_8417.wav,0,HOWARD,BBT,"Oh, I think we were looking at creepy in the rearview mirror when I put up that camera.",embeddings/1_8417.npy
+1_8452,audio_wav/1_8452.wav,1,PERSON,BBT,I think I'm gonna go. Thank you for the burrito and the pork rinds and the 20-minute lecture on why monster trucks are better than regular trucks.,embeddings/1_8452.npy
+1_8505,audio_wav/1_8505.wav,0,RAJ,BBT,"A lane frequented by liars. Like you, you big liar!",embeddings/1_8505.npy
+1_8717,audio_wav/1_8717.wav,1,BERNADETTE,BBT,Because you're in the right lane behind a bus and you won't go around it? I'm sure she finds it charming.,embeddings/1_8717.npy
+1_8746,audio_wav/1_8746.wav,1,AMY,BBT,"I enjoyed it. When you told me I was going to be ""losing my virginity,"" I didn't think you meant showing me <i>Raiders of the Lost Ark</i> for the first time.",embeddings/1_8746.npy
+1_8749,audio_wav/1_8749.wav,1,AMY,BBT,It was very entertaining... despite the glaring story problem.,embeddings/1_8749.npy
+1_8827,audio_wav/1_8827.wav,1,PENNY,BBT,How do you not tear off his clothes and take him right here on this table?,embeddings/1_8827.npy
+1_8837,audio_wav/1_8837.wav,0,SHELDON,BBT,"Not as relieved as I'm about to be. It's a brave new world, little lady.",embeddings/1_8837.npy
+1_9003,audio_wav/1_9003.wav,0,SHELDON,BBT,"I'm not going to bother him, I'm going to talk to him.",embeddings/1_9003.npy
+1_9009,audio_wav/1_9009.wav,0,SHELDON,BBT,"- No, no, no. I'm really good at this. All right, give me a hint. Does it involve difficulty initiating a stream of anything?",embeddings/1_9009.npy
+1_9087,audio_wav/1_9087.wav,1,LEONARD,BBT,"Why? Because I got an ugly, itchy sweater, and my brother got a car? No, I was her favorite.",embeddings/1_9087.npy
+1_9245,audio_wav/1_9245.wav,0,SHELDON,BBT,Can we talk about something else? Do you know that I yodel?,embeddings/1_9245.npy
+1_9594,audio_wav/1_9594.wav,0,SHELDON,BBT,I can't believe we wasted all that time on our Hulk costumes.,embeddings/1_9594.npy
+1_9668,audio_wav/1_9668.wav,0,SHELDON,BBT,"People usually start a meeting with a joke, but you go ahead-- end with one.",embeddings/1_9668.npy
+1_9963,audio_wav/1_9963.wav,0,PERSON,BBT,What do you think I was gonna do at home?,embeddings/1_9963.npy
+1_9971,audio_wav/1_9971.wav,1,HOWARD,BBT,I was gonna say we pick up a cake or a pie. But an insult to her faith is always thoughtful.,embeddings/1_9971.npy
+1_9972,audio_wav/1_9972.wav,1,PENNY,BBT,"Ooh, I'm gonna check the fridge, and see if there are any clues inside a beer.",embeddings/1_9972.npy
+1_9993,audio_wav/1_9993.wav,1,PENNY,BBT,"Well, my beer isn't flat and my rack's not saggy. So far, the future's great.",embeddings/1_9993.npy
+1_10004,audio_wav/1_10004.wav,0,SHELDON,BBT,"And of those few months, how long have you been a demented sex pervert?",embeddings/1_10004.npy
+1_10009,audio_wav/1_10009.wav,0,PENNY,BBT,"Let the dead man talk. So, why do you think that?",embeddings/1_10009.npy
+1_10190,audio_wav/1_10190.wav,0,SHELDON,BBT,"Well, now that I've given up string theory, I'm struggling to find my next area of focus. So, in your professional opinion, which of these areas do you think is the most promising?",embeddings/1_10190.npy
+1_10462,audio_wav/1_10462.wav,1,HOWARD,BBT,"You know, if you're really serious about that, I hear there are some exciting opportunities in home care for the old and fat.",embeddings/1_10462.npy
+1_10495,audio_wav/1_10495.wav,1,AMY,BBT,"And if it turns out you don't... - you and I could live together. - You and... Oh, sure.",embeddings/1_10495.npy
+1_10496,audio_wav/1_10496.wav,1,SHELDON,BBT,"- You and... Oh, sure. And while we're at it, why don't we get engaged, too? Why don't we get a little house, start a family? Enjoy our sunset years together? Do you hear yourself, woman?!",embeddings/1_10496.npy
+1_10748,audio_wav/1_10748.wav,1,AMY,BBT,"There they go, fighting again. You'd never hear her talk that way to Sauvignon Blanc.",embeddings/1_10748.npy
+1_10797,audio_wav/1_10797.wav,0,AMY,BBT,"I'm with him three years, nothing. She's with two minutes, and he's taking his pants off.",embeddings/1_10797.npy
+1_10810,audio_wav/1_10810.wav,0,SHELDON,BBT,I'll give you a plan right now. Step one: open comic book store. Step two: start rumor this comic book store gives you genital warts.,embeddings/1_10810.npy
+1_10829,audio_wav/1_10829.wav,1,SHELDON,BBT,"On the bright side, that Oxford study was right. One friend down. I wonder who you're going to lose next.",embeddings/1_10829.npy
+1_10849,audio_wav/1_10849.wav,0,HOWARD,BBT,That's how much buying a comic book store means to me.,embeddings/1_10849.npy
+1_10853,audio_wav/1_10853.wav,0,PENNY,BBT,"Okay, sit down. Listen, Emily, what happened between me and Raj was a long time ago. It was,",embeddings/1_10853.npy
+1_10857,audio_wav/1_10857.wav,0,RAJ,BBT,It's true-- you're both gorgeous. Kind of says something about the man who could bed you both.,embeddings/1_10857.npy
+1_10859,audio_wav/1_10859.wav,0,HOWARD,BBT,I don't need a reason-- it's my house.,embeddings/1_10859.npy
+1_10890,audio_wav/1_10890.wav,1,RAJ,BBT,"Boy, when you met Bernadette, the field of robotics really took a hit.",embeddings/1_10890.npy
+1_10977,audio_wav/1_10977.wav,0,HOWARD,BBT,Let's not talk about this in front of our friends.,embeddings/1_10977.npy
+1_11006,audio_wav/1_11006.wav,1,PENNY,BBT,Maybe it's a good thing we came here. It's like a lesson in what not to do.,embeddings/1_11006.npy
+1_11021,audio_wav/1_11021.wav,1,PENNY,BBT,"Same as all of us, getting out of a car without underwear.",embeddings/1_11021.npy
+1_11042,audio_wav/1_11042.wav,0,BERNADETTE,BBT,"Because no one wants to see Neil deGrasse Tyson in a wet T-shirt, bent over the hood of a Porsche.",embeddings/1_11042.npy
+1_11046,audio_wav/1_11046.wav,0,HOWARD,BBT,"Wow, he really went where no man has gone before.",embeddings/1_11046.npy
+1_11051,audio_wav/1_11051.wav,0,PERSON,BBT,"Well, he said it was a tribble. It could be a toupee, but either way, it's pretty cool.",embeddings/1_11051.npy
+1_11055,audio_wav/1_11055.wav,1,LEONARD,BBT,"Ah, that's a good question. Apparently someone was being awfully flirty while not wearing their engagement ring, causing another someone to show up here thinking the first someone might be available.",embeddings/1_11055.npy
+1_11098,audio_wav/1_11098.wav,1,BERNADETTE,BBT,"Wow, you still have it? I just assumed it was balled up in the corner of a barn somewhere.",embeddings/1_11098.npy
+1_11120,audio_wav/1_11120.wav,0,SHELDON,BBT,"Next time I might be in a rush, it's good to have a few in the bank.",embeddings/1_11120.npy
+1_11177,audio_wav/1_11177.wav,1,SHELDON,BBT,I'm listening to you snore. I'm wondering how I'll ever sleep without it.,embeddings/1_11177.npy
+1_11201,audio_wav/1_11201.wav,0,AMY,BBT,"He probably got a new one. Finish your breakfast. Look, there's an entire section of my dashboard that doesn't have any syrup on it.",embeddings/1_11201.npy
+1_11224,audio_wav/1_11224.wav,1,HOWARD,BBT,And here I am in the trap. You just keep talking. I'm gonna chew my leg off.,embeddings/1_11224.npy
+1_11232,audio_wav/1_11232.wav,1,BERNADETTE,BBT,"And I love that I work and do all the cleaning, and you're okay with that.",embeddings/1_11232.npy
+1_11236,audio_wav/1_11236.wav,0,SHELDON,BBT,"Oh, you're hardly out of the woods, no. You still run the risk of infection, a blood clot, the possibility that an inattentive surgeon let a barn spider lay eggs in your nose.",embeddings/1_11236.npy
+1_11242,audio_wav/1_11242.wav,1,BERNADETTE,BBT,"I love that you take pride in your looks, even when I have to pee in the morning, and you're in there spending an hour on your hair.",embeddings/1_11242.npy
+1_11243,audio_wav/1_11243.wav,1,HOWARD,BBT,I love that you're too good to pee in the kitchen sink.,embeddings/1_11243.npy
+1_11253,audio_wav/1_11253.wav,0,SHELDON,BBT,"So as they say, all good things must come to an end.",embeddings/1_11253.npy
+1_11257,audio_wav/1_11257.wav,0,HOWARD,BBT,Doesn't Professor Abbott's family want any of this stuff?,embeddings/1_11257.npy
+1_11306,audio_wav/1_11306.wav,0,HOWARD,BBT,"I guess the sad truth is, not everyone will accomplish something great. Some of us may just have to find meaning in the little moments that make up life.",embeddings/1_11306.npy
+1_11322,audio_wav/1_11322.wav,1,PENNY,BBT,"You know what? That was almost on topic. I'm gonna say, ""Good job, Sheldon.""",embeddings/1_11322.npy
+1_11378,audio_wav/1_11378.wav,1,HOWARD,BBT,Are you sure a dummy like me can handle something as complicated as a blanket?,embeddings/1_11378.npy
+1_11439,audio_wav/1_11439.wav,1,PENNY,BBT,"No, you're right, we should do what you do. Have our mom send us pants from the Walmart in Houston.",embeddings/1_11439.npy
+1_11485,audio_wav/1_11485.wav,0,PENNY,BBT,Is that why you had to take him to Office Depot last night?,embeddings/1_11485.npy
+1_11526,audio_wav/1_11526.wav,0,SHELDON,BBT,"As you may know, I've been experimenting with elevated anxiety levels, and I thought, what better way to increase my discomfort than to subject myself to an evening of tasteless uncensored crotch talk?",embeddings/1_11526.npy
+1_11529,audio_wav/1_11529.wav,0,SHELDON,BBT,"And how difficult it is to do when she's bloated, cranky and crampy?",embeddings/1_11529.npy
+1_11609,audio_wav/1_11609.wav,0,RAJ,BBT,"I've, uh, created some other user accounts so I can post positive comments about their paper.",embeddings/1_11609.npy
+1_11697,audio_wav/1_11697.wav,1,PENNY,BBT,The answer's in this puzzle box. Let's see if you can open it.,embeddings/1_11697.npy
+1_11699,audio_wav/1_11699.wav,1,RAJ,BBT,"No, Stuart picked out those throw pillows all on his own.",embeddings/1_11699.npy
+1_11723,audio_wav/1_11723.wav,0,RAJ,BBT,"Not much, but he seemed to be in a pretty good place.",embeddings/1_11723.npy
+1_11736,audio_wav/1_11736.wav,0,PERSON,BBT,"I don't know, perhaps somebody took it off the carousel by mistake?",embeddings/1_11736.npy
+1_11773,audio_wav/1_11773.wav,1,PENNY,BBT,This is why I've been saying we should keep champagne on ice.,embeddings/1_11773.npy
+1_11885,audio_wav/1_11885.wav,1,PERSON,BBT,"Yeah, turns out half a dozen menorahs really sets a mood.",embeddings/1_11885.npy
+1_11889,audio_wav/1_11889.wav,0,BERNADETTE,BBT,"Yeah, we just want to have the kind of dinner that we've all had here so many times before.",embeddings/1_11889.npy
+1_11901,audio_wav/1_11901.wav,1,SHELDON,BBT,"Yeah, good for you, Leonard. That's a lovely little notion. Kind of like, I wish I could talk to my uncle in Chicago. Yeah, now stand back while I invent the telephone. Hello? Oh, hold on. Leonard, it's your uncle. He says you just got burned.",embeddings/1_11901.npy
+1_11913,audio_wav/1_11913.wav,1,HOWARD,BBT,It's why my people wandered the desert for 40 years. Took that long to walk it off.,embeddings/1_11913.npy
+1_11924,audio_wav/1_11924.wav,1,HOWARD,BBT,"All right, Amy's in charge of pricing and being 75.",embeddings/1_11924.npy
+1_11928,audio_wav/1_11928.wav,0,AMY,BBT,"And if I had a friend, they might have told me that.",embeddings/1_11928.npy
+1_12002,audio_wav/1_12002.wav,0,SHELDON,BBT,Then buckle up; you're in for a cranky night.,embeddings/1_12002.npy
+1_12083,audio_wav/1_12083.wav,0,HOWARD,BBT,"Oh, just put it in your mouth and pop it like a zit.",embeddings/1_12083.npy
+1_12202,audio_wav/1_12202.wav,1,LEONARD,BBT,"No need to. As soon as she flies into California airspace, I'll feel a disturbance in the Force.",embeddings/1_12202.npy
+1_12275,audio_wav/1_12275.wav,0,PERSON,BBT,"Uh, no. I overheard Bernadette tell Howard she was making him a meat loaf, and you don't have to not ask me twice.",embeddings/1_12275.npy
+1_12320,audio_wav/1_12320.wav,0,RAJ,BBT,"Oh, yes, we've got the moon and the trees and... Elizabeth McNulty, who apparently died when she was the same age I am.",embeddings/1_12320.npy
+1_12331,audio_wav/1_12331.wav,0,PENNY,BBT,"Wow, there's a Denny's in Vegas you can actually get married in.",embeddings/1_12331.npy
+2_223,audio_wav/2_223.wav,1,CHANDLER,FRIENDS,"I guess he wants to do a little dance, you know, make a little love. Well pretty much get down to that.",embeddings/2_223.npy
+2_370,audio_wav/2_370.wav,1,CHANDLER,FRIENDS,You have to stop the Q-Tip when there is resistance,embeddings/2_370.npy
+2_556,audio_wav/2_556.wav,1,CHANDLER,FRIENDS,"Joey if I go first, I want to be looking for my keys",embeddings/2_556.npy
+2_484,audio_wav/2_484.wav,1,ROSS,FRIENDS,Yes yes it is! In Prison!!,embeddings/2_484.npy
+2_498,audio_wav/2_498.wav,1,CHANDLER,FRIENDS,"Uh, so how many cameras are actually on you.",embeddings/2_498.npy
+2_494,audio_wav/2_494.wav,1,CHANDLER,FRIENDS,But younger than some buildings!,embeddings/2_494.npy
+2_477,audio_wav/2_477.wav,0,CHANDLER,FRIENDS,"And then and then you clicked it again, she's dressed. She is a business woman, she is walking down the street and oh oh oh she's naked.",embeddings/2_477.npy
+2_35,audio_wav/2_35.wav,0,CHANDLER,FRIENDS,Oh no donÕt go. I have scared you. I have said too much. I am hopeless and awkward and desperate for love.,embeddings/2_35.npy
+2_279,audio_wav/2_279.wav,1,MONICA,FRIENDS,Sounds like she has got the whole package!,embeddings/2_279.npy
+2_377,audio_wav/2_377.wav,1,CHANDLER,FRIENDS,Yeah either that or gloria estefan was right eventually the rhythm is going to get you,embeddings/2_377.npy
+2_595,audio_wav/2_595.wav,0,CHANDLER,FRIENDS,I'd miss you if I broke up with you. Just trying to be supportive.,embeddings/2_595.npy
+2_464,audio_wav/2_464.wav,1,CHANDLER,FRIENDS,"Oh, uh, no thanks. I just had an M&M.",embeddings/2_464.npy
+2_408,audio_wav/2_408.wav,1,CHANDLER,FRIENDS,"Okay, but if you are not coming back soon, there is pretty much nothing I can do about it",embeddings/2_408.npy
+2_574,audio_wav/2_574.wav,0,JOEY,FRIENDS,You can't do anything.,embeddings/2_574.npy
+2_409,audio_wav/2_409.wav,0,CHANDLER,FRIENDS,I'll catch you guys later.,embeddings/2_409.npy
+2_549,audio_wav/2_549.wav,0,MONICA,FRIENDS,Really?,embeddings/2_549.npy
+2_598,audio_wav/2_598.wav,1,CHANDLER,FRIENDS,"Our balcony? Seriously? That's so funny because I told Monica we should put lights on our balcony. - And she said - ""No no, its too cold, nobody will go out there.""  - I said ""Maybe if we put some lights out there they will"".",embeddings/2_598.npy
+2_73,audio_wav/2_73.wav,1,CHANDLER,FRIENDS,"Oh my god, you almost gave me a heart attack!",embeddings/2_73.npy
+2_374,audio_wav/2_374.wav,1,CHANDLER,FRIENDS,Janice? Janice?,embeddings/2_374.npy
+2_297,audio_wav/2_297.wav,1,CHANDLER,FRIENDS,"I am sorry, it was a one time thing. I was very drunk and it was someone else's subconscious",embeddings/2_297.npy
+2_286,audio_wav/2_286.wav,1,CHANDLER,FRIENDS,"And sometimes I would want you to steal third, and I'll go like this.",embeddings/2_286.npy
+2_509,audio_wav/2_509.wav,1,CHANDLER,FRIENDS,Crazy bitch!,embeddings/2_509.npy
+2_508,audio_wav/2_508.wav,1,CHANDLER,FRIENDS,"Yes, the doctor's say if they remove it, he will die!",embeddings/2_508.npy
+2_472,audio_wav/2_472.wav,0,CHANDLER,FRIENDS,And I just won a million dollars!,embeddings/2_472.npy
+2_227,audio_wav/2_227.wav,1,CHANDLER,FRIENDS,You sure he is going to be able to crack that code?,embeddings/2_227.npy
+2_226,audio_wav/2_226.wav,1,CHANDLER,FRIENDS,"These people find out that a spelling game is going over there, there will be nobody left at our party.",embeddings/2_226.npy
+2_478,audio_wav/2_478.wav,1,CHANDLER,FRIENDS,"Oh, wait a minute, I have no one.",embeddings/2_478.npy
+2_372,audio_wav/2_372.wav,1,CHANDLER,FRIENDS,Actually I yesterday I was smoking again. Today I am smoking still.,embeddings/2_372.npy
+2_241,audio_wav/2_241.wav,1,CHANDLER,FRIENDS,"Oh I do. Oh no, wait a minute, I took it out of my shirt when I put it on this morning.",embeddings/2_241.npy
+2_109,audio_wav/2_109.wav,1,CHANDLER,FRIENDS,"I thought if I littered, that crying Indian might come by and save us.",embeddings/2_109.npy
+2_389,audio_wav/2_389.wav,1,MONICA,FRIENDS,Huh! Whats dufus speled backwards?,embeddings/2_389.npy
+2_449,audio_wav/2_449.wav,1,CHANDLER,FRIENDS,"Oh no, now its not gonna make any sense",embeddings/2_449.npy
+2_50,audio_wav/2_50.wav,1,CHANDLER,FRIENDS,"Nope, that patch is no good.",embeddings/2_50.npy
+2_84,audio_wav/2_84.wav,1,CHANDLER,FRIENDS,"If that doesn't keep kids in school, what will?",embeddings/2_84.npy
+2_322,audio_wav/2_322.wav,0,CHANDLER,FRIENDS,"Hey, my father's house does that.",embeddings/2_322.npy
+2_416,audio_wav/2_416.wav,1,CHANDLER,FRIENDS,Were you so late because you were burying this woman?,embeddings/2_416.npy
+2_124,audio_wav/2_124.wav,1,CHANDLER,FRIENDS,I am so confused as to what we have been doing so far.,embeddings/2_124.npy
+2_206,audio_wav/2_206.wav,1,CHANDLER,FRIENDS,A tshirt that says - I don't belong here.,embeddings/2_206.npy
+2_204,audio_wav/2_204.wav,1,CHANDLER,FRIENDS,"Oh Oh, I am convinced!",embeddings/2_204.npy
+2_380,audio_wav/2_380.wav,0,CHANDLER,FRIENDS,Oh just like give a minute to wake up for this  ...  Ha ha! You lost the ring. You the worst best man ever!,embeddings/2_380.npy
+2_622,audio_wav/2_622.wav,1,CHANDLER,FRIENDS,"Pheebs, you may know this, you know strange things. What is the boiling point of brain?",embeddings/2_622.npy
+2_583,audio_wav/2_583.wav,1,CHANDLER,FRIENDS,And the bunny got away!,embeddings/2_583.npy
+2_456,audio_wav/2_456.wav,1,CHANDLER,FRIENDS,And you are gonna make them all disappear.,embeddings/2_456.npy
+2_461,audio_wav/2_461.wav,1,CHANDLER,FRIENDS,"Wow you look just like your son, Mrs. Tribbiani",embeddings/2_461.npy
+2_152,audio_wav/2_152.wav,1,ROSS,FRIENDS,Your makeup?,embeddings/2_152.npy
+2_15,audio_wav/2_15.wav,1,CHANDLER,FRIENDS,I'm sorry man there is never a good time to have to .. Stop catching on fire.,embeddings/2_15.npy
+2_421,audio_wav/2_421.wav,1,CHANDLER,FRIENDS,Joey's got a really bad hernia but its nothing that a laser eye surgery wont fix,embeddings/2_421.npy
+2_586,audio_wav/2_586.wav,1,CHANDLER,FRIENDS,"See now that I see crying over, but Bambi, is a cartoon.",embeddings/2_586.npy
+2_160,audio_wav/2_160.wav,0,CHANDLER,FRIENDS,"Because his penis was too big. I am sorry, thatÕs the kind of thing I do.",embeddings/2_160.npy
+2_39,audio_wav/2_39.wav,1,CHANDLER,FRIENDS,"Oh hurry up, I want to sign that.",embeddings/2_39.npy
+2_66,audio_wav/2_66.wav,1,CHANDLER,FRIENDS,"Nice jon Joe, you are quite the craftsman!",embeddings/2_66.npy
+2_310,audio_wav/2_310.wav,1,CHANDLER,FRIENDS,Well thank God your livelihood doesn't depend on it.,embeddings/2_310.npy
+2_345,audio_wav/2_345.wav,1,CHANDLER,FRIENDS,Oh I left them in my bulldozer .. I don't have tools!,embeddings/2_345.npy
+2_581,audio_wav/2_581.wav,1,CHANDLER,FRIENDS,"We were wondering what was taking so long with the gift, but now we understand you were doing this.",embeddings/2_581.npy
+2_518,audio_wav/2_518.wav,1,CHANDLER,FRIENDS,Oh tons. I am quite the woodsman.,embeddings/2_518.npy
+2_450,audio_wav/2_450.wav,1,CHANDLER,FRIENDS,If only there was something in your head to control the things you say.,embeddings/2_450.npy
+2_567,audio_wav/2_567.wav,1,CHANDLER,FRIENDS,"Well yes Ross, pressing my third nipple opens the delivery entrance to the magical land of Narnia.",embeddings/2_567.npy
+2_115,audio_wav/2_115.wav,1,CHANDLER,FRIENDS,"I am sorry, we donÕt have your sheep.",embeddings/2_115.npy
+2_183,audio_wav/2_183.wav,1,CHANDLER,FRIENDS,"No, rabies.",embeddings/2_183.npy
+2_104,audio_wav/2_104.wav,1,CHANDLER,FRIENDS,Was that place the sun?,embeddings/2_104.npy
+2_288,audio_wav/2_288.wav,1,CHANDLER,FRIENDS,Maybe he was nervous.,embeddings/2_288.npy
+2_420,audio_wav/2_420.wav,1,CHANDLER,FRIENDS,"No you are not Chandler, we still love you Chandler",embeddings/2_420.npy
+2_49,audio_wav/2_49.wav,0,JOEY,FRIENDS,We got a box.,embeddings/2_49.npy
+2_433,audio_wav/2_433.wav,1,CHANDLER,FRIENDS,I was saying the actual words,embeddings/2_433.npy
+2_428,audio_wav/2_428.wav,0,CHANDLER,FRIENDS,His legs flail about as if independent from his body,embeddings/2_428.npy
+2_1,audio_wav/2_1.wav,0,CHANDLER,FRIENDS,"Yes you can. You're thinking about time, you can't go back in time.",embeddings/2_1.npy
+2_168,audio_wav/2_168.wav,1,CHANDLER,FRIENDS,Did I wake you?,embeddings/2_168.npy
+2_155,audio_wav/2_155.wav,1,CHANDLER,FRIENDS,Great! Now we can do laundry all night. All night laundry!,embeddings/2_155.npy
+2_2,audio_wav/2_2.wav,1,CHANDLER,FRIENDS,"ThatÕs a good one too Pheebs, now all that I have to do is find a plane load of people whose resolution is to plummet to their deaths",embeddings/2_2.npy
+2_120,audio_wav/2_120.wav,1,CHANDLER,FRIENDS,"You know some might find it amusing, I myself find it regular.",embeddings/2_120.npy
+2_487,audio_wav/2_487.wav,1,CHANDLER,FRIENDS,"And Hornswoggle? What? Are you dating a character from ""Fraggle Rock""? Ahh.",embeddings/2_487.npy
+2_280,audio_wav/2_280.wav,1,CHANDLER,FRIENDS,"Joey ate my last stick of gum, so I killed him. Do you think that was wrong?",embeddings/2_280.npy
+2_447,audio_wav/2_447.wav,1,CHANDLER,FRIENDS,It was an accident. Not like I was across the street with a telescope and a box of donuts.,embeddings/2_447.npy
+2_148,audio_wav/2_148.wav,1,CHANDLER,FRIENDS,"Hey, that's Joincidence with a C",embeddings/2_148.npy
+2_532,audio_wav/2_532.wav,1,CHANDLER,FRIENDS,"The Jamestown colony of Virginia. You see King George is giving us the land, so.",embeddings/2_532.npy
+2_443,audio_wav/2_443.wav,1,CHANDLER,FRIENDS,"Dear god, this parachute is a knapsack",embeddings/2_443.npy
+2_475,audio_wav/2_475.wav,1,CHANDLER,FRIENDS,"Oh yeah ok, including the waffles last week, you now owe me, seventeen zillion dollars.",embeddings/2_475.npy
+2_92,audio_wav/2_92.wav,1,CHANDLER,FRIENDS,"No, no, I am just looking for a man to draw on me with chalk.",embeddings/2_92.npy
+2_258,audio_wav/2_258.wav,1,CHANDLER,FRIENDS,"I am telling you, when she leaned back, I could see her brain",embeddings/2_258.npy
+2_376,audio_wav/2_376.wav,1,CHANDLER,FRIENDS,Me? I am gonna die alone!,embeddings/2_376.npy
+2_114,audio_wav/2_114.wav,1,CHANDLER,FRIENDS,Spanish midgets wrestling Julie! Okay yes I see how they got there.,embeddings/2_114.npy
+2_246,audio_wav/2_246.wav,1,CHANDLER,FRIENDS,"Well, it will probably slow me down at first. But once I am used to the extra weight, I ll get back on track.",embeddings/2_246.npy
+2_268,audio_wav/2_268.wav,0,CHANDLER,FRIENDS,"A lonely grey couch. "" O look "" cried Ned. And then the kingdom was his. The End.",embeddings/2_268.npy
+2_221,audio_wav/2_221.wav,0,CHANDLER,FRIENDS,See Joe that's why your parents told you not to jump on your bed!,embeddings/2_221.npy
+2_369,audio_wav/2_369.wav,1,CHANDLER,FRIENDS,"I just have to do one thing, really quickly, its not a big thing  ...  GET UP||",embeddings/2_369.npy
+2_103,audio_wav/2_103.wav,1,CHANDLER,FRIENDS,"No, this is just part of a daredevil game that I play called wait until last moment before I burst and die",embeddings/2_103.npy
+2_457,audio_wav/2_457.wav,1,CHANDLER,FRIENDS,"Yes, we all know how cruel a parent can be, about the flatness of a child's pillow.",embeddings/2_457.npy
+2_112,audio_wav/2_112.wav,1,CHANDLER,FRIENDS,I think this is probably why Damone smokes in his cell alone.,embeddings/2_112.npy
+2_174,audio_wav/2_174.wav,1,CHANDLER,FRIENDS,Oh! Satan's minions at work again?,embeddings/2_174.npy
+2_490,audio_wav/2_490.wav,1,CHANDLER,FRIENDS,"Maybe it's a contest, you know? Like ""Collect all five"".",embeddings/2_490.npy
+2_430,audio_wav/2_430.wav,1,CHANDLER,FRIENDS,I guess you would know that or else we would be in a predicament room,embeddings/2_430.npy
+2_434,audio_wav/2_434.wav,1,CHANDLER,FRIENDS,We can? Ok I am trying that.,embeddings/2_434.npy
+2_541,audio_wav/2_541.wav,1,CHANDLER,FRIENDS,Oh yeah right. And what would my opening line be? Excuse me,embeddings/2_541.npy
+2_392,audio_wav/2_392.wav,1,CHANDLER,FRIENDS,Ah you see perfect might be a problem. Had you said co-dependent or self-destructive.,embeddings/2_392.npy
+2_187,audio_wav/2_187.wav,1,CHANDLER,FRIENDS,That's so funny because you look more like Joey Tribbiani man slash woman.,embeddings/2_187.npy
+2_113,audio_wav/2_113.wav,1,CHANDLER,FRIENDS,"No, no the actual cartoon character .. Of course the baloon.",embeddings/2_113.npy
+2_323,audio_wav/2_323.wav,1,CHANDLER,FRIENDS,That monkey has got a Ross on its ass!,embeddings/2_323.npy
+2_137,audio_wav/2_137.wav,0,CHANDLER,FRIENDS,"Okay, but If he asks, I am not going to lie.",embeddings/2_137.npy
+2_294,audio_wav/2_294.wav,1,CHANDLER,FRIENDS,"Oh, um, I don't care!",embeddings/2_294.npy
+2_359,audio_wav/2_359.wav,1,CHANDLER,FRIENDS,"You know once you are inside, you don't have to knock anymore.",embeddings/2_359.npy
+2_141,audio_wav/2_141.wav,1,CHANDLER,FRIENDS,We think it was trying to spell out monkey.,embeddings/2_141.npy
+2_283,audio_wav/2_283.wav,1,CHANDLER,FRIENDS,Dee. The sarcastic sister from What's Happening.,embeddings/2_283.npy
+2_24,audio_wav/2_24.wav,1,CHANDLER,FRIENDS,"Uh, okay. The fifth dentist caved and not they're all recommending Trident?",embeddings/2_24.npy
+2_197,audio_wav/2_197.wav,1,CHANDLER,FRIENDS,Ah your own brand of vigilante justice.,embeddings/2_197.npy
+2_493,audio_wav/2_493.wav,1,CHANDLER,FRIENDS,Did you tell her about the magical night that starts with the flush of every toilet?,embeddings/2_493.npy
+2_573,audio_wav/2_573.wav,1,CHANDLER,FRIENDS,"Oh I see, I thought you just really really liked your new couch.",embeddings/2_573.npy
+2_440,audio_wav/2_440.wav,1,MONICA,FRIENDS,"No its not big, not at all. Kind of the same lines as, I don't know, having a third nipple!",embeddings/2_440.npy
+2_105,audio_wav/2_105.wav,1,CHANDLER,FRIENDS,Why? You never look down in the shower?  Oh please I am allowed one joke in the monkey is penis genre.,embeddings/2_105.npy
+2_3,audio_wav/2_3.wav,1,CHANDLER,FRIENDS,And I think my testicles may be in here too,embeddings/2_3.npy
+2_71,audio_wav/2_71.wav,1,JOEY,FRIENDS,"ThatÕs good, just keep rubbing your head. That will turn back time",embeddings/2_71.npy
+2_20,audio_wav/2_20.wav,0,CHANDLER,FRIENDS,My duties?  All right.,embeddings/2_20.npy
+2_463,audio_wav/2_463.wav,0,JOEY,FRIENDS,Ok!,embeddings/2_463.npy
+2_602,audio_wav/2_602.wav,0,CHANDLER,FRIENDS,No way!,embeddings/2_602.npy
+2_88,audio_wav/2_88.wav,0,RACHEL,FRIENDS,Oh.,embeddings/2_88.npy
+2_172,audio_wav/2_172.wav,1,CHANDLER,FRIENDS,The whole thing! Can we go?,embeddings/2_172.npy
+2_86,audio_wav/2_86.wav,0,CHANDLER,FRIENDS,"Great! Okay, here.",embeddings/2_86.npy
+2_154,audio_wav/2_154.wav,0,PHOEBE,FRIENDS,"Okay, does this look like a garbage can to you?",embeddings/2_154.npy
+2_557,audio_wav/2_557.wav,0,ROSS,FRIENDS,"Oh my God, wh-what happened?",embeddings/2_557.npy
+2_163,audio_wav/2_163.wav,1,RACHEL,FRIENDS,"Oh boy, I just can't watch. It's too scary!",embeddings/2_163.npy
+2_87,audio_wav/2_87.wav,0,ROSS,FRIENDS,Yeah it would!,embeddings/2_87.npy
+2_240,audio_wav/2_240.wav,0,JOEY,FRIENDS,No!,embeddings/2_240.npy
+2_267,audio_wav/2_267.wav,0,RACHEL,FRIENDS,Really!?,embeddings/2_267.npy
+2_278,audio_wav/2_278.wav,0,PERSON,FRIENDS,: Yeah.,embeddings/2_278.npy
+2_284,audio_wav/2_284.wav,0,MONICA,FRIENDS,What?  Why?,embeddings/2_284.npy
+2_340,audio_wav/2_340.wav,0,PHOEBE,FRIENDS,Oh! Oop!,embeddings/2_340.npy
+2_536,audio_wav/2_536.wav,0,CHANDLER,FRIENDS,What a baby.,embeddings/2_536.npy
+2_588,audio_wav/2_588.wav,0,JOEY,FRIENDS,I talk to you and nothin'.,embeddings/2_588.npy
+2_448,audio_wav/2_448.wav,0,MONICA,FRIENDS,Do you still wanna call  'em? I wanna call  'em.,embeddings/2_448.npy
+2_79,audio_wav/2_79.wav,0,RACHEL,FRIENDS,"I'm just gonna throw it out, it's probably just a bunch of shampoo and...",embeddings/2_79.npy
+2_191,audio_wav/2_191.wav,0,JOEY,FRIENDS,"So, you're just Bing?",embeddings/2_191.npy
+2_99,audio_wav/2_99.wav,0,RACHEL,FRIENDS,"All right, cut, let's pick again, pick again.",embeddings/2_99.npy
+2_208,audio_wav/2_208.wav,0,JOEY,FRIENDS,It's that whole sensitive thing.,embeddings/2_208.npy
+2_119,audio_wav/2_119.wav,0,ROSS,FRIENDS,Yeah. What-what should I do?,embeddings/2_119.npy
+2_406,audio_wav/2_406.wav,1,ROSS,FRIENDS,For what? For letting you throw me out of your office?,embeddings/2_406.npy
+2_423,audio_wav/2_423.wav,1,MONICA,FRIENDS,Like I have nothing better to do!,embeddings/2_423.npy
+2_55,audio_wav/2_55.wav,0,PERSON,FRIENDS,"Oh hey, great, you're up. Rachel, this is my sister Krista. Krista, this is Rachel.",embeddings/2_55.npy
+2_77,audio_wav/2_77.wav,0,MONICA,FRIENDS,"Umm, excuse me, we switched apartments. You can't eat are food anymore, that-that gravy train had ended.",embeddings/2_77.npy
+2_147,audio_wav/2_147.wav,0,MONICA,FRIENDS,"Well, we're trying to find someone to perform our wedding and they're all either boring or annoying or y'know, can't stop staring at the ladies.",embeddings/2_147.npy
+2_559,audio_wav/2_559.wav,0,MONICA,FRIENDS,What?!?!,embeddings/2_559.npy
+2_444,audio_wav/2_444.wav,0,RACHEL,FRIENDS,"Ross-Ross, you have no idea what this means to me!",embeddings/2_444.npy
+2_299,audio_wav/2_299.wav,0,CHANDLER,FRIENDS,What would you give to a kid if he wanted a ticket to play with?,embeddings/2_299.npy
+2_313,audio_wav/2_313.wav,1,JOEY,FRIENDS,"Oh sure, go with the sissy.",embeddings/2_313.npy
+2_125,audio_wav/2_125.wav,0,ROSS,FRIENDS,I mean if you hadn't initiated it I-I-I know I would've.,embeddings/2_125.npy
+2_552,audio_wav/2_552.wav,0,ROSS,FRIENDS,DANGER,embeddings/2_552.npy
+2_181,audio_wav/2_181.wav,0,JOEY,FRIENDS,Yeah! Look!,embeddings/2_181.npy
+2_107,audio_wav/2_107.wav,0,JOEY,FRIENDS,You'd better act surprised.,embeddings/2_107.npy
+2_347,audio_wav/2_347.wav,0,MONICA,FRIENDS,Well what are you gonna do when he finds out he wasn't even asked?!,embeddings/2_347.npy
+2_495,audio_wav/2_495.wav,0,RACHEL,FRIENDS,"Okay, you guys, just relax.  I doooo.",embeddings/2_495.npy
+2_525,audio_wav/2_525.wav,0,RACHEL,FRIENDS,"Y'know what I mean, like dubbies?",embeddings/2_525.npy
+2_186,audio_wav/2_186.wav,1,CHANDLER,FRIENDS,"Excellent hole, Joe.",embeddings/2_186.npy
+2_506,audio_wav/2_506.wav,0,RACHEL,FRIENDS,"Oh my God!! Ohh, that is it! I'm leaving! You are just a horrible person!",embeddings/2_506.npy
+2_486,audio_wav/2_486.wav,0,RACHEL,FRIENDS,"Anyway, they want to take us out Saturday night! What do you say?",embeddings/2_486.npy
+2_149,audio_wav/2_149.wav,0,MONICA,FRIENDS,Thank you.,embeddings/2_149.npy
+2_150,audio_wav/2_150.wav,0,PERSON,FRIENDS,"Take your shirt off, and let's see what we're dealing with here.  What are you doing?",embeddings/2_150.npy
+2_12,audio_wav/2_12.wav,0,PERSON,FRIENDS,I studied for a year in Barcelona.,embeddings/2_12.npy
+2_611,audio_wav/2_611.wav,1,RACHEL,FRIENDS,Just tell me how.,embeddings/2_611.npy
+2_429,audio_wav/2_429.wav,1,PHOEBE,FRIENDS,"I really, really enjoyed it. Very exotic.",embeddings/2_429.npy
+2_127,audio_wav/2_127.wav,0,JOEY,FRIENDS,"When? Today? Some, not a lot.",embeddings/2_127.npy
+2_36,audio_wav/2_36.wav,0,ROSS,FRIENDS,"The big deal is I don't want naked, greasy strangers in my apartment when I want to kick back with a puzzle,beer! Cold beer.",embeddings/2_36.npy
+2_173,audio_wav/2_173.wav,0,ROSS,FRIENDS,We- we had our first fight this morning.,embeddings/2_173.npy
+2_295,audio_wav/2_295.wav,0,PERSON,FRIENDS,Nobody sees the king!,embeddings/2_295.npy
+2_356,audio_wav/2_356.wav,0,PERSON,FRIENDS,Yeah.,embeddings/2_356.npy
+2_38,audio_wav/2_38.wav,0,CHANDLER,FRIENDS,It's not a real game! I made it up!,embeddings/2_38.npy
+2_431,audio_wav/2_431.wav,0,JOEY,FRIENDS,I'm never gonna get to meet her anyway.,embeddings/2_431.npy
+2_13,audio_wav/2_13.wav,0,RACHEL,FRIENDS,"All right, let's do it.",embeddings/2_13.npy
+2_482,audio_wav/2_482.wav,0,PHOEBE,FRIENDS,"Y'know you, you just stop being such a wuss and get those off and you come with us and watch naked girls dance around!!",embeddings/2_482.npy
+2_193,audio_wav/2_193.wav,0,PERSON,FRIENDS,"Yeah, a slice of cheesecake and-and a date if you're given'  'em out.",embeddings/2_193.npy
+2_203,audio_wav/2_203.wav,0,ROSS,FRIENDS,It's not funny!,embeddings/2_203.npy
+2_426,audio_wav/2_426.wav,0,JOEY,FRIENDS,"Are you kidding? I love that guy!  Morning's here! Morning is here,",embeddings/2_426.npy
+2_357,audio_wav/2_357.wav,1,PHOEBE,FRIENDS,"Stating the obvious, but thank you. And it's not weird is it.",embeddings/2_357.npy
+2_590,audio_wav/2_590.wav,0,RACHEL,FRIENDS,"Yeah, I don't think so Joe.",embeddings/2_590.npy
+2_316,audio_wav/2_316.wav,0,RACHEL,FRIENDS,"Yeah, I'm fine.",embeddings/2_316.npy
+2_8,audio_wav/2_8.wav,0,JOEY,FRIENDS,"It's white plastic, with a handle, and it fits onto a stroller.",embeddings/2_8.npy
+2_343,audio_wav/2_343.wav,0,ROSS,FRIENDS,"So to sum up, I'm Professor Geller.",embeddings/2_343.npy
+2_334,audio_wav/2_334.wav,0,JOEY,FRIENDS,"When they're hungry enough, they'll come in.",embeddings/2_334.npy
+2_367,audio_wav/2_367.wav,0,MONICA,FRIENDS,"Well, don't  'cha wanna?",embeddings/2_367.npy
+2_51,audio_wav/2_51.wav,0,CHANDLER,FRIENDS,"Well, I believe the piece of furniture was fine until your little breakfast adventure with Angela Delvecchio",embeddings/2_51.npy
+2_282,audio_wav/2_282.wav,1,RACHEL,FRIENDS,What-wh-what so we'll just stay married forever?,embeddings/2_282.npy
+2_225,audio_wav/2_225.wav,0,ROSS,FRIENDS,"I don't know, something girlie.",embeddings/2_225.npy
+2_514,audio_wav/2_514.wav,0,ROSS,FRIENDS,What's going on?!  That's what's going on!!,embeddings/2_514.npy
+2_272,audio_wav/2_272.wav,0,JOEY,FRIENDS,Weā€™re not peeking?,embeddings/2_272.npy
+2_43,audio_wav/2_43.wav,1,CHANDLER,FRIENDS,"Well, y'know I'm 29. I mean who needs a savings account.",embeddings/2_43.npy
+2_575,audio_wav/2_575.wav,1,PHOEBE,FRIENDS,Why? Because she can sing and play guitar and do both at the same time?,embeddings/2_575.npy
+2_339,audio_wav/2_339.wav,0,ROSS,FRIENDS,Thank you.,embeddings/2_339.npy
+2_69,audio_wav/2_69.wav,0,MONICA,FRIENDS,Cover yourself up!,embeddings/2_69.npy
+2_217,audio_wav/2_217.wav,0,RACHEL,FRIENDS,Ohhh!!!!,embeddings/2_217.npy
+2_213,audio_wav/2_213.wav,0,RACHEL,FRIENDS,"Wait, wait, Chandler, this is what you're havin' for Thanksgiving dinner?",embeddings/2_213.npy
+2_96,audio_wav/2_96.wav,0,ROSS,FRIENDS,I don't think so. Hello?  When you get in there,embeddings/2_96.npy
+2_188,audio_wav/2_188.wav,0,MONICA,FRIENDS,You had no relationship!!,embeddings/2_188.npy
+2_29,audio_wav/2_29.wav,0,RACHEL,FRIENDS,It was like months ago.,embeddings/2_29.npy
+2_177,audio_wav/2_177.wav,1,PERSON,FRIENDS,I can show you an ID if you want?,embeddings/2_177.npy
+2_358,audio_wav/2_358.wav,0,ROSS,FRIENDS,"I do not always have to be,okay, okay.",embeddings/2_358.npy
+2_263,audio_wav/2_263.wav,0,MONICA,FRIENDS,Wow! Imagine what our kids would look like!,embeddings/2_263.npy
+2_446,audio_wav/2_446.wav,0,JOEY,FRIENDS,"I'd love to show ya, but I just tucked her in.",embeddings/2_446.npy
+2_594,audio_wav/2_594.wav,0,ROSS,FRIENDS,I can't believe it.  Can I tell you something? I'm a little mad at him now.,embeddings/2_594.npy
+2_535,audio_wav/2_535.wav,0,ROSS,FRIENDS,"So, I'm sorry I just don't think we should go away together yet.",embeddings/2_535.npy
+2_617,audio_wav/2_617.wav,1,CHANDLER,FRIENDS,And protected them from a tornado?,embeddings/2_617.npy
+2_210,audio_wav/2_210.wav,0,PERSON,FRIENDS,When are you coming home?,embeddings/2_210.npy
+2_234,audio_wav/2_234.wav,0,PHOEBE,FRIENDS,"See, there you go, the cleansing works!",embeddings/2_234.npy
+2_162,audio_wav/2_162.wav,0,PERSON,FRIENDS,"Ow, ow, ow, ow, leg cramp, leg cramp, leg cramp.",embeddings/2_162.npy
+2_437,audio_wav/2_437.wav,0,CHANDLER,FRIENDS,"Oh yeah. First off all, chasing the Churo guy isn't jogging.",embeddings/2_437.npy
+2_341,audio_wav/2_341.wav,1,PERSON,FRIENDS,"Well, I'd gotten Judy pregnant. I still don't know how that happened.",embeddings/2_341.npy
+2_318,audio_wav/2_318.wav,1,PHOEBE,FRIENDS,Was it not pain-free?,embeddings/2_318.npy
+2_579,audio_wav/2_579.wav,0,MONICA,FRIENDS,No!,embeddings/2_579.npy
+2_250,audio_wav/2_250.wav,1,PHOEBE,FRIENDS,"Oh, you say someone's name enough, they turn around.",embeddings/2_250.npy
+2_194,audio_wav/2_194.wav,0,JOEY,FRIENDS,"And it came out, ""Squatternut buash?""",embeddings/2_194.npy
+2_78,audio_wav/2_78.wav,0,CHANDLER,FRIENDS,"I didn't know you and Carol were getting divorced, I'm sorry.",embeddings/2_78.npy
+2_337,audio_wav/2_337.wav,0,MONICA,FRIENDS,"Uh, listen, I need that broiling pan that Joey borrowed the other day.",embeddings/2_337.npy
+2_435,audio_wav/2_435.wav,0,JOEY,FRIENDS,"Me too! There's a game on Tuesday, do you wanna go?",embeddings/2_435.npy
+2_419,audio_wav/2_419.wav,0,PHOEBE,FRIENDS,Uh-huh!,embeddings/2_419.npy
+2_564,audio_wav/2_564.wav,0,CHANDLER,FRIENDS,"And, uh, I don't know if you got any of that, but I would really like a copy of the tape.",embeddings/2_564.npy
+2_261,audio_wav/2_261.wav,0,CHANDLER,FRIENDS,"Oh, no, no. I just meant hypothetically.",embeddings/2_261.npy
+2_422,audio_wav/2_422.wav,0,JOEY,FRIENDS,"Well, I like it. Here you go.",embeddings/2_422.npy
+2_627,audio_wav/2_627.wav,0,PERSON,FRIENDS,"Whoa, whoa, whoa.",embeddings/2_627.npy
+2_445,audio_wav/2_445.wav,0,PHOEBE,FRIENDS,Okay?,embeddings/2_445.npy
+2_585,audio_wav/2_585.wav,0,ROSS,FRIENDS,"You and I, we're interfacing.",embeddings/2_585.npy
+2_91,audio_wav/2_91.wav,0,MONICA,FRIENDS,"Alright, I'm gonna go pick up a few things for the trip.",embeddings/2_91.npy
+2_560,audio_wav/2_560.wav,1,PHOEBE,FRIENDS,So now I have to go so he'll think that I'm totally ok with seeing him!,embeddings/2_560.npy
+2_425,audio_wav/2_425.wav,0,MONICA,FRIENDS,And did he?,embeddings/2_425.npy
+2_53,audio_wav/2_53.wav,0,RACHEL,FRIENDS,You're gonna have to tell me how you did that.,embeddings/2_53.npy
+2_481,audio_wav/2_481.wav,0,ROSS,FRIENDS,All right.,embeddings/2_481.npy
+2_293,audio_wav/2_293.wav,0,PHOEBE,FRIENDS,No,embeddings/2_293.npy
+2_248,audio_wav/2_248.wav,1,CHANDLER,FRIENDS,"I mean, you and I we're just, y'know, we're nothing, we're goofin' around.",embeddings/2_248.npy
+2_56,audio_wav/2_56.wav,0,PHOEBE,FRIENDS,"Uh-huh, well! But umm, still I'm-I'm mad at you.",embeddings/2_56.npy
+2_260,audio_wav/2_260.wav,1,CHANDLER,FRIENDS,"Okay, are you aware unagi  is an eel?",embeddings/2_260.npy
+2_134,audio_wav/2_134.wav,0,CHANDLER,FRIENDS,Paper cut!,embeddings/2_134.npy
+2_488,audio_wav/2_488.wav,0,CHANDLER,FRIENDS,"Just a sec, give me a minute to wake up for this,Ah-ha-ha!!",embeddings/2_488.npy
+2_542,audio_wav/2_542.wav,1,JOEY,FRIENDS,"Uh, Rachel's here, so good luck man, let me know how it works out.",embeddings/2_542.npy
+2_504,audio_wav/2_504.wav,1,PHOEBE,FRIENDS,"All right, okay, well, apparently not!",embeddings/2_504.npy
+2_54,audio_wav/2_54.wav,1,RACHEL,FRIENDS,"That's easy for you to say, you weren't almost just killed.",embeddings/2_54.npy
+2_300,audio_wav/2_300.wav,0,PHOEBE,FRIENDS,I don't think you could ever do that.,embeddings/2_300.npy
+2_387,audio_wav/2_387.wav,0,CHANDLER,FRIENDS,"Yes, I know, but her friend sounds like such a...",embeddings/2_387.npy
+2_569,audio_wav/2_569.wav,0,PHOEBE,FRIENDS,Chandler?,embeddings/2_569.npy
+2_530,audio_wav/2_530.wav,0,PERSON,FRIENDS,"Uh, I'm gonna kill myself!",embeddings/2_530.npy
+2_48,audio_wav/2_48.wav,0,JOEY,FRIENDS,"Thanks, but I kinda have a problem to deal with here.",embeddings/2_48.npy
+2_253,audio_wav/2_253.wav,0,PHOEBE,FRIENDS,Yeah!,embeddings/2_253.npy
+2_555,audio_wav/2_555.wav,0,ROSS,FRIENDS,Hey! It's starting to snow.,embeddings/2_555.npy
+2_42,audio_wav/2_42.wav,0,PERSON1,FRIENDS,"Look, please, please don't go anywhere, okay?",embeddings/2_42.npy
+2_441,audio_wav/2_441.wav,0,ROSS,FRIENDS,"He's right, even if it's to say something complementary.",embeddings/2_441.npy
+2_218,audio_wav/2_218.wav,0,JOEY,FRIENDS,"Hey, does somebody wanna hand me one of those tiles.",embeddings/2_218.npy
+2_415,audio_wav/2_415.wav,0,PERSON,FRIENDS,"Chloe, switch with me, there's some guys here that got a crush on you.",embeddings/2_415.npy
+2_473,audio_wav/2_473.wav,0,PERSON,FRIENDS,I'm the supply manager.,embeddings/2_473.npy
+2_537,audio_wav/2_537.wav,0,ROSS,FRIENDS,What did you want to show us? Because all I can see is this bitchin van,embeddings/2_537.npy
+2_397,audio_wav/2_397.wav,0,ROSS,FRIENDS,You still love me?,embeddings/2_397.npy
+2_572,audio_wav/2_572.wav,0,RACHEL,FRIENDS,No! I'm so happy for them!,embeddings/2_572.npy
+2_243,audio_wav/2_243.wav,0,CHANDLER,FRIENDS,"Look I never should have kissed your girlfriend, but I'm",embeddings/2_243.npy
+2_474,audio_wav/2_474.wav,1,CHANDLER,FRIENDS,Lovely,embeddings/2_474.npy
+2_245,audio_wav/2_245.wav,0,PERSON,FRIENDS,"Well ah, I've been doing a lot of thinking, and I look at my life",embeddings/2_245.npy
+2_176,audio_wav/2_176.wav,0,CHANDLER,FRIENDS,I'm the ruptured spleen.,embeddings/2_176.npy
+2_58,audio_wav/2_58.wav,0,PHOEBE,FRIENDS,Why?,embeddings/2_58.npy
+2_427,audio_wav/2_427.wav,0,RACHEL,FRIENDS,"Oh-oh, that's a risky little game!",embeddings/2_427.npy
+2_534,audio_wav/2_534.wav,0,PHOEBE,FRIENDS,"Oh, come on!",embeddings/2_534.npy
+2_626,audio_wav/2_626.wav,0,PHOEBE,FRIENDS,"Cause all I ever get to do now is pregnant stuff, it just bums me out.",embeddings/2_626.npy
+2_607,audio_wav/2_607.wav,0,PERSON,FRIENDS,Hey.,embeddings/2_607.npy
+2_33,audio_wav/2_33.wav,0,RACHEL,FRIENDS,"This-this, no, oh no, no-no-no, this is not,that's-that's not what it is.",embeddings/2_33.npy
+2_44,audio_wav/2_44.wav,0,JOEY,FRIENDS,"Whoa, maybe I was!",embeddings/2_44.npy
+2_189,audio_wav/2_189.wav,1,CHANDLER,FRIENDS,"Yeah okay, I was just talking to the guys. Just look at them I mean, is it okay if they come visit?",embeddings/2_189.npy
+2_232,audio_wav/2_232.wav,0,PHOEBE,FRIENDS,"Well, umm, my Mom's friend, Phoebe, is actually my birth Mom.",embeddings/2_232.npy
+2_400,audio_wav/2_400.wav,0,CHANDLER,FRIENDS,"Anyway, I should go, one of the lifeguards was just about to dismantle a nuclear device.",embeddings/2_400.npy
+2_230,audio_wav/2_230.wav,0,CHANDLER,FRIENDS,"Okay, Janice. Janice. You gotta give me Janice. That wasn't about being picky.",embeddings/2_230.npy
+2_180,audio_wav/2_180.wav,0,PHOEBE,FRIENDS,That oughta do it.,embeddings/2_180.npy
+2_270,audio_wav/2_270.wav,0,JOEY,FRIENDS,Hey.,embeddings/2_270.npy
+2_550,audio_wav/2_550.wav,1,CHANDLER,FRIENDS,All right I'll have one.,embeddings/2_550.npy
+2_454,audio_wav/2_454.wav,0,PERSON,FRIENDS,"Ross umm, there's something that I've got to tell you, there's-there's someone else.",embeddings/2_454.npy
+2_151,audio_wav/2_151.wav,1,CHANDLER,FRIENDS,"Yeah, I mean, it would be rude to them for us to leave now.",embeddings/2_151.npy
+2_439,audio_wav/2_439.wav,0,PERSON,FRIENDS,"Twenty-one hours, you're a hero.",embeddings/2_439.npy
+2_385,audio_wav/2_385.wav,0,RACHEL,FRIENDS,"No, I know, but I,he just went on.",embeddings/2_385.npy
+2_547,audio_wav/2_547.wav,0,CHANDLER,FRIENDS,"Okay, now much have you won so far?",embeddings/2_547.npy
+2_65,audio_wav/2_65.wav,0,PHOEBE,FRIENDS,It's my friends.,embeddings/2_65.npy
+2_251,audio_wav/2_251.wav,0,MONICA,FRIENDS,No!! You have been screwing us all day!,embeddings/2_251.npy
+2_205,audio_wav/2_205.wav,0,RACHEL,FRIENDS,"I did not mean to touch that,I mean",embeddings/2_205.npy
+2_405,audio_wav/2_405.wav,0,ROSS,FRIENDS,I'm supposed to teach a graduate seminar there in ten minutes.,embeddings/2_405.npy
+2_375,audio_wav/2_375.wav,0,ROSS,FRIENDS,I was thkinking about maybe going into the Robot.,embeddings/2_375.npy
+2_72,audio_wav/2_72.wav,0,ROSS,FRIENDS,Oh well. It probably would've been the most constructive solution.,embeddings/2_72.npy
+2_353,audio_wav/2_353.wav,0,JOEY,FRIENDS,"Nothing. It's just old and dingy, that's all.",embeddings/2_353.npy
+2_517,audio_wav/2_517.wav,0,PHOEBE,FRIENDS,Yeah?,embeddings/2_517.npy
+2_521,audio_wav/2_521.wav,0,JOEY,FRIENDS,Uh-huh!,embeddings/2_521.npy
+2_499,audio_wav/2_499.wav,0,PHOEBE,FRIENDS,The end.,embeddings/2_499.npy
+2_317,audio_wav/2_317.wav,0,PERSON,FRIENDS,"Ah, oh, hang on a second. Come in, come in. All right, so think about it, and call me back.",embeddings/2_317.npy
+2_393,audio_wav/2_393.wav,0,CHANDLER,FRIENDS,Pheebs?,embeddings/2_393.npy
+2_254,audio_wav/2_254.wav,1,PHOEBE,FRIENDS,"Yeah. Yeah, that's what you need a good .. pill.",embeddings/2_254.npy
+2_407,audio_wav/2_407.wav,0,JOEY,FRIENDS,Hey!,embeddings/2_407.npy
+2_94,audio_wav/2_94.wav,0,ROSS,FRIENDS,"Can't do it, can you?",embeddings/2_94.npy
+2_198,audio_wav/2_198.wav,0,ROSS,FRIENDS,"Yeah, she's fired.",embeddings/2_198.npy
+2_365,audio_wav/2_365.wav,0,JOEY,FRIENDS,"Nope. Op, wait! There he goes.",embeddings/2_365.npy
+2_301,audio_wav/2_301.wav,0,CHANDLER,FRIENDS,"Hey, do you know a six-letter word for red?",embeddings/2_301.npy
+2_540,audio_wav/2_540.wav,0,JOEY,FRIENDS,Okay?,embeddings/2_540.npy
+2_302,audio_wav/2_302.wav,0,PHOEBE,FRIENDS,I know but it's so hard! Nothing rhymes with your stupid name!,embeddings/2_302.npy
+2_305,audio_wav/2_305.wav,0,JOEY,FRIENDS,Take a couple deep breaths.,embeddings/2_305.npy
+2_27,audio_wav/2_27.wav,0,MONICA,FRIENDS,"No no, you don't have to fly back, really.",embeddings/2_27.npy
+2_196,audio_wav/2_196.wav,0,PHOEBE,FRIENDS,What?,embeddings/2_196.npy
+2_264,audio_wav/2_264.wav,0,PHOEBE,FRIENDS,Okay?,embeddings/2_264.npy
+2_615,audio_wav/2_615.wav,0,PERSON,FRIENDS,"Hi, Joey. Well well, look what you brought. Very nice.",embeddings/2_615.npy
+2_111,audio_wav/2_111.wav,0,RACHEL,FRIENDS,What was that?!,embeddings/2_111.npy
+2_202,audio_wav/2_202.wav,0,PHOEBE,FRIENDS,Yeah?,embeddings/2_202.npy
+2_577,audio_wav/2_577.wav,0,ROSS,FRIENDS,"On the other hand in um, in about seven months you're gonna have something that you're gonna love more than any guy you've ever gone out with.",embeddings/2_577.npy
+2_467,audio_wav/2_467.wav,0,RACHEL,FRIENDS,That is the coast guard!,embeddings/2_467.npy
+2_526,audio_wav/2_526.wav,0,PERSON1,FRIENDS,"Ah well, this is the living room.",embeddings/2_526.npy
+2_257,audio_wav/2_257.wav,0,PHOEBE,FRIENDS,"Oh, hey, look, I found coffee! Okay, let's skedaddle.",embeddings/2_257.npy
+2_259,audio_wav/2_259.wav,0,PERSON1,FRIENDS,"I wasn't by myself. I had a doctor, a nurse, and a helper guy. So, did you see who won the game?",embeddings/2_259.npy
+2_609,audio_wav/2_609.wav,0,PERSON,FRIENDS,I just called a friend of mine.,embeddings/2_609.npy
+2_31,audio_wav/2_31.wav,1,RACHEL,FRIENDS,"Even if people are on it!""",embeddings/2_31.npy
+2_371,audio_wav/2_371.wav,0,ROSS,FRIENDS,I-I'm really sorry. It's just that I,embeddings/2_371.npy
+2_531,audio_wav/2_531.wav,0,JOEY,FRIENDS,"Yeah well that's because uh .. I stayed in my room. Yeah, you don't want to look in my hamper.",embeddings/2_531.npy
+2_315,audio_wav/2_315.wav,1,RACHEL,FRIENDS,"I guess you'd know that, being one of the two of us, though, right?",embeddings/2_315.npy
+2_413,audio_wav/2_413.wav,0,PHOEBE,FRIENDS,Some guy bought it. I'm sorry. I tired to stop it but they put me in jail!,embeddings/2_413.npy
+2_548,audio_wav/2_548.wav,1,PERSON,FRIENDS,"Almost! But first, we gotta start.",embeddings/2_548.npy
+2_128,audio_wav/2_128.wav,1,CHANDLER,FRIENDS,You building a post office?,embeddings/2_128.npy
+2_326,audio_wav/2_326.wav,0,ROSS,FRIENDS,Stick to the list.,embeddings/2_326.npy
+2_247,audio_wav/2_247.wav,1,ROSS,FRIENDS,Uh yes! Thank you.,embeddings/2_247.npy
+2_576,audio_wav/2_576.wav,0,PHOEBE,FRIENDS,And then for forgetting to invite you to it.,embeddings/2_576.npy
+2_146,audio_wav/2_146.wav,0,PHOEBE,FRIENDS,"So Ross, how umm, how did it go with Bonnie?",embeddings/2_146.npy
+2_458,audio_wav/2_458.wav,0,MONICA,FRIENDS,What are you up too?,embeddings/2_458.npy
+2_522,audio_wav/2_522.wav,0,PERSON,FRIENDS,Yes it is.,embeddings/2_522.npy
+2_30,audio_wav/2_30.wav,0,ROSS,FRIENDS,So how'd it go?,embeddings/2_30.npy
+2_171,audio_wav/2_171.wav,0,MONICA,FRIENDS,What is the matter with your face?!,embeddings/2_171.npy
+2_97,audio_wav/2_97.wav,1,RACHEL,FRIENDS,It would be nice to have a little guarantee though.,embeddings/2_97.npy
+2_228,audio_wav/2_228.wav,0,PERSON,FRIENDS,Then we went to this bar and he hooked us up with all these women!,embeddings/2_228.npy
+2_7,audio_wav/2_7.wav,0,MONICA,FRIENDS,I've never loved anybody as much as I love you.,embeddings/2_7.npy
+2_553,audio_wav/2_553.wav,0,JOEY,FRIENDS,"No just, nobody press on my stomach.",embeddings/2_553.npy
+2_291,audio_wav/2_291.wav,0,ROSS,FRIENDS,"Umm, would you please excuse me for a moment?",embeddings/2_291.npy
+2_319,audio_wav/2_319.wav,0,RACHEL,FRIENDS,No.,embeddings/2_319.npy
+2_314,audio_wav/2_314.wav,0,MONICA,FRIENDS,Am I out of control?,embeddings/2_314.npy
+2_410,audio_wav/2_410.wav,1,ROSS,FRIENDS,If you wanna put a label on it.,embeddings/2_410.npy
+2_166,audio_wav/2_166.wav,0,JOEY,FRIENDS,But I'm the host!,embeddings/2_166.npy
+2_558,audio_wav/2_558.wav,1,CHANDLER,FRIENDS,I can see it from right here. It'll cost you one husband.,embeddings/2_558.npy
+2_289,audio_wav/2_289.wav,1,MONICA,FRIENDS,"Nooo! No, that's not true. No, best time ever! Yeah, you rocked my world!",embeddings/2_289.npy
+2_118,audio_wav/2_118.wav,0,RACHEL,FRIENDS,"Seriously, it's moving!",embeddings/2_118.npy
+2_28,audio_wav/2_28.wav,0,MONICA,FRIENDS,"Carol called me to thank me for the lasagna, I asked, she told me.",embeddings/2_28.npy
+2_562,audio_wav/2_562.wav,0,JOEY,FRIENDS,"Look now, Phoebe remember, hey, their just fulfilling their Christmas....",embeddings/2_562.npy
+2_231,audio_wav/2_231.wav,0,ROSS,FRIENDS,"No, no, no, it's flattery.",embeddings/2_231.npy
+2_388,audio_wav/2_388.wav,0,CHANDLER,FRIENDS,"Yeah, she couldn't live without the Chan Love.",embeddings/2_388.npy
+2_102,audio_wav/2_102.wav,1,DOROTHY,GOLDENGIRLS,No Blanche she is upset because they keep changing the taste of coke.,embeddings/2_102.npy
+2_351,audio_wav/2_351.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, she is depressed because Marvel had manners on only once a week",embeddings/2_351.npy
+2_350,audio_wav/2_350.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, I am nervous because Sonny Bono gets elected mayor of Palm Springs, he is gonna make all the postmens wear leather bell bottoms and a fur vest.",embeddings/2_350.npy
+2_587,audio_wav/2_587.wav,1,DOROTHY,GOLDENGIRLS,"Oh yes Blanche, about a half hour ago. But now I have hidden her again so you can find her.",embeddings/2_587.npy
+2_612,audio_wav/2_612.wav,1,DOROTHY,GOLDENGIRLS,"I don't know Rose, maybe Marry Poppins has an Italian cousin.",embeddings/2_612.npy
+2_89,audio_wav/2_89.wav,1,DOROTHY,GOLDENGIRLS,On the home shopping network,embeddings/2_89.npy
+2_599,audio_wav/2_599.wav,1,DOROTHY,GOLDENGIRLS,No I am upset because crocodin turbs are wearing darker colors.,embeddings/2_599.npy
+2_182,audio_wav/2_182.wav,1,DOROTHY,GOLDENGIRLS,The liberarche marquee at Caesar's palace,embeddings/2_182.npy
+2_292,audio_wav/2_292.wav,1,DOROTHY,GOLDENGIRLS,"No, she is going to sit here where itÕs a 112 degrees and eat enchiladas.",embeddings/2_292.npy
+2_489,audio_wav/2_489.wav,1,DOROTHY,GOLDENGIRLS,"No, its because I cannot make any sense of those commercials for obsession.",embeddings/2_489.npy
+2_390,audio_wav/2_390.wav,1,DOROTHY,GOLDENGIRLS,"No, I am depressed becaues Phillis George left the morning news.",embeddings/2_390.npy
+2_378,audio_wav/2_378.wav,1,DOROTHY,GOLDENGIRLS,"No Blanche, with a venus fly trap",embeddings/2_378.npy
+2_9,audio_wav/2_9.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, go to the corner and open a stand",embeddings/2_9.npy
+2_144,audio_wav/2_144.wav,1,DOROTHY,GOLDENGIRLS,Lords of Arabia,embeddings/2_144.npy
+2_479,audio_wav/2_479.wav,1,DOROTHY,GOLDENGIRLS,No I am worried she might be Phir Resuda's,embeddings/2_479.npy
+2_45,audio_wav/2_45.wav,1,DOROTHY,GOLDENGIRLS,"Oh ma no, it was a little girl selling girl scout toilets.",embeddings/2_45.npy
+2_507,audio_wav/2_507.wav,1,DOROTHY,GOLDENGIRLS,"No, I haven't taken her out of the trunk of the car yet.",embeddings/2_507.npy
+2_398,audio_wav/2_398.wav,1,DOROTHY,GOLDENGIRLS,"Rose, you should sit here and watch her hack herself to death",embeddings/2_398.npy
+2_281,audio_wav/2_281.wav,1,DOROTHY,GOLDENGIRLS,"Ofcourse no Ma, I am referring to Carrey Grant, he is living in the broom closet.",embeddings/2_281.npy
+2_591,audio_wav/2_591.wav,0,DOROTHY,GOLDENGIRLS,"How about stopping by new years eve with three naked women, throwing up in the pool, passing out in the punch bowl, and relieving yourself in the linen closet?",embeddings/2_591.npy
+2_462,audio_wav/2_462.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, at a pie eating contest.",embeddings/2_462.npy
+2_505,audio_wav/2_505.wav,1,DOROTHY,GOLDENGIRLS,To feed the cat Rose.,embeddings/2_505.npy
+2_74,audio_wav/2_74.wav,1,DOROTHY,GOLDENGIRLS,Show them your slides of Hawaii,embeddings/2_74.npy
+2_126,audio_wav/2_126.wav,1,DOROTHY,GOLDENGIRLS,No I am upset because Joe Piscapo didn't get the lead role in rain man.,embeddings/2_126.npy
+2_158,audio_wav/2_158.wav,1,DOROTHY,GOLDENGIRLS,A bucket of chicked. I hope you like it extra flat and crispy,embeddings/2_158.npy
+2_255,audio_wav/2_255.wav,1,DOROTHY,GOLDENGIRLS,It's a musical Rose,embeddings/2_255.npy
+2_502,audio_wav/2_502.wav,1,DOROTHY,GOLDENGIRLS,I'm worried about whether Michael Jackson will be able to buy the remains of the elephant man.,embeddings/2_502.npy
+2_11,audio_wav/2_11.wav,1,DOROTHY,GOLDENGIRLS,His cappucino maker.,embeddings/2_11.npy
+2_135,audio_wav/2_135.wav,1,DOROTHY,GOLDENGIRLS,"No, she I supset because Jimmy Swaager can't cover his motel bill",embeddings/2_135.npy
+2_442,audio_wav/2_442.wav,1,DOROTHY,GOLDENGIRLS,No itÕs the rose in the kitchen thing.,embeddings/2_442.npy
+2_342,audio_wav/2_342.wav,1,DOROTHY,GOLDENGIRLS,"In what Blanche, dog years?",embeddings/2_342.npy
+2_492,audio_wav/2_492.wav,1,ROSE,GOLDENGIRLS,"I'm sorry Sophia, but in Dorothy's defence, it sure sounds a lot like her.",embeddings/2_492.npy
+2_512,audio_wav/2_512.wav,1,DOROTHY,GOLDENGIRLS,Because it wears a little sunbrella Rose.,embeddings/2_512.npy
+2_121,audio_wav/2_121.wav,1,DOROTHY,GOLDENGIRLS,What was I doing? My ben gazara in person?,embeddings/2_121.npy
+2_129,audio_wav/2_129.wav,1,DOROTHY,GOLDENGIRLS,What are these? Claws?,embeddings/2_129.npy
+2_222,audio_wav/2_222.wav,1,DOROTHY,GOLDENGIRLS,"The little man who lives in there, who turns the light on and off will tell you.",embeddings/2_222.npy
+2_604,audio_wav/2_604.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, I am developing pictures from the magellan space probe",embeddings/2_604.npy
+2_352,audio_wav/2_352.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, it stands alone.",embeddings/2_352.npy
+2_344,audio_wav/2_344.wav,1,DOROTHY,GOLDENGIRLS,A hand puppet Rose.,embeddings/2_344.npy
+2_465,audio_wav/2_465.wav,1,DOROTHY,GOLDENGIRLS,"No Rose, that you should do.",embeddings/2_465.npy
+2_471,audio_wav/2_471.wav,1,MEMBER-GIRL,SARCASMOHOLICS,Amazing.,embeddings/2_471.npy
+2_361,audio_wav/2_361.wav,1,MEMBER-GIRL,SARCASMOHOLICS,Nooo,embeddings/2_361.npy
+2_190,audio_wav/2_190.wav,1,MODERATOR,SARCASMOHOLICS,Well scott I am sure we are all really really looking forward to hear your story.,embeddings/2_190.npy
+2_271,audio_wav/2_271.wav,1,MODERATOR,SARCASMOHOLICS,Sarcasm? Noo.,embeddings/2_271.npy
+2_306,audio_wav/2_306.wav,1,MODERATOR,SARCASMOHOLICS,"No, no no, I just mediate the gorup. I just give up every Tuesday of my life to help these screwups for the good of my health",embeddings/2_306.npy
+2_209,audio_wav/2_209.wav,1,MEMBER-GIRL,SARCASMOHOLICS,Really?,embeddings/2_209.npy
+2_312,audio_wav/2_312.wav,1,MEMBER-GIRL,SARCASMOHOLICS,Sarcasm? At a sarcasmoholics meeting?,embeddings/2_312.npy
+2_485,audio_wav/2_485.wav,1,MEMBER-BOY,SARCASMOHOLICS,You got off to a really good start with the group.,embeddings/2_485.npy
+2_527,audio_wav/2_527.wav,1,MEMBER-GIRL,SARCASMOHOLICS,We thought you were just here for the company. He is a sarcasmoholic Stewart.,embeddings/2_527.npy
+2_596,audio_wav/2_596.wav,1,MEMBER-BOY,SARCASMOHOLICS,Noooo. Really?,embeddings/2_596.npy
+2_123,audio_wav/2_123.wav,1,MODERATOR,SARCASMOHOLICS,Nooo!,embeddings/2_123.npy
+2_140,audio_wav/2_140.wav,1,MODERATOR,SARCASMOHOLICS,Sarcastic? Us? Nooo.,embeddings/2_140.npy
+2_338,audio_wav/2_338.wav,1,MODERATOR,SARCASMOHOLICS,And I am sure every person here really really wants you to join our group.,embeddings/2_338.npy
+2_381,audio_wav/2_381.wav,1,MODERATOR,SARCASMOHOLICS,Noo..,embeddings/2_381.npy
+2_511,audio_wav/2_511.wav,1,CHANDLER,FRIENDS,"You said you spent all that money because those boots go with skirts, dresses and pants. What do you plan on wearing? A Chicken suit?",embeddings/2_511.npy
+2_287,audio_wav/2_287.wav,1,CHANDLER,FRIENDS,"Oh I am sorry, do you need a break?",embeddings/2_287.npy
+2_161,audio_wav/2_161.wav,1,CHANDLER,FRIENDS,I can see it from right here. It'll cost you one husband.,embeddings/2_161.npy
+2_589,audio_wav/2_589.wav,1,CHANDLER,FRIENDS,Well why don't you check in one of my saddle bags while I chew on a bale of hay.,embeddings/2_589.npy
+2_523,audio_wav/2_523.wav,1,CHANDLER,FRIENDS,"Well, I'm a headhunter. I hook up out of work Soviet scientists with rogue third-world nations. Hi Rasputin!",embeddings/2_523.npy
+2_491,audio_wav/2_491.wav,1,CHANDLER,FRIENDS,"Let me think! Let me think! Oh, I don't care.",embeddings/2_491.npy
+2_170,audio_wav/2_170.wav,1,CHANDLER,FRIENDS,The British are coming?,embeddings/2_170.npy
+2_500,audio_wav/2_500.wav,1,MONICA,FRIENDS,Oh my God I love that! - Really? - NO!,embeddings/2_500.npy
+2_303,audio_wav/2_303.wav,1,CHANDLER,FRIENDS,No thanks Josephine!,embeddings/2_303.npy
+2_570,audio_wav/2_570.wav,0,CHANDLER,FRIENDS,"Oh my god, where are all the men?",embeddings/2_570.npy
+2_178,audio_wav/2_178.wav,1,CHANDLER,FRIENDS,"This is so good, that I am gonna enjoy it in the balcony. I can enjoy my view, whilst I enjoy my desert.",embeddings/2_178.npy
+2_438,audio_wav/2_438.wav,1,CHANDLER,FRIENDS,Really? Struck down in the prime of life.,embeddings/2_438.npy
+2_167,audio_wav/2_167.wav,1,CHANDLER,FRIENDS,"I am not freaking out, why would I be freaking out? A woman named Hildy called and said we will get married, but that happens everyday",embeddings/2_167.npy
+2_373,audio_wav/2_373.wav,1,CHANDLER,FRIENDS,I was making a coconut phone with a professor.,embeddings/2_373.npy
+2_623,audio_wav/2_623.wav,1,CHANDLER,FRIENDS,What do you know? Its a treat for the eyes and the ears.,embeddings/2_623.npy
+2_131,audio_wav/2_131.wav,0,CHANDLER,FRIENDS,I really don't wanna sit with Allen Iverson over there .,embeddings/2_131.npy
+2_236,audio_wav/2_236.wav,1,CHANDLER,FRIENDS,"Gee, if only she were one and had no idea what a birthday was.",embeddings/2_236.npy
+2_546,audio_wav/2_546.wav,1,CHANDLER,FRIENDS,"Oh sure, she was probably up all night excited about the party she knows is happening.",embeddings/2_546.npy
+2_242,audio_wav/2_242.wav,1,CHANDLER,FRIENDS,Are you still enjoying your nap?,embeddings/2_242.npy
+2_169,audio_wav/2_169.wav,1,CHANDLER,FRIENDS,"Hes not right for the part, and if I suggest him my bosses are going to think I am an idiot. And thatÕs something they should learn on their own.",embeddings/2_169.npy
+2_235,audio_wav/2_235.wav,0,CHANDLER,FRIENDS,"Oh yeah he has a caretaker his older brother, Ernie. You can't make this stuff up!",embeddings/2_235.npy
+2_34,audio_wav/2_34.wav,1,CHANDLER,FRIENDS,Is it me or the greetings gone downhill around here?,embeddings/2_34.npy
+2_608,audio_wav/2_608.wav,1,CHANDLER,FRIENDS,"You are right, by saying nice, I am virtually licking her.",embeddings/2_608.npy
+2_524,audio_wav/2_524.wav,1,CHANDLER,FRIENDS,"Yes and we are ""very"" excited about it.",embeddings/2_524.npy

@@ -1,0 +1,75 @@
+# ===========================================
+# Raw ML Data (too large for git)
+# ===========================================
+# Video files (~1.7GB)
+ml/prosodic/data/raw/
+
+# Extracted audio files
+ml/prosodic/data/processed/audio_wav/
+
+# Embedding files
+ml/prosodic/data/processed/embeddings/
+
+# Large media files anywhere
+*.mp4
+*.mkv
+*.avi
+*.webm
+
+# Keep these small files (useful for reproducibility):
+# - ml/prosodic/data/processed/mustard_index.csv
+# - ml/prosodic/data/processed/mustard_index_with_embeddings.csv
+
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+.eggs/
+pip-log.txt
+
+# ===========================================
+# IDE & Editors
+# ===========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# ===========================================
+# OS Generated
+# ===========================================
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+
+# ===========================================
+# Node
+# ===========================================
+node_modules/
+.npm
+.pnpm-store/
+
+# ===========================================
+# Build Artifacts
+# ===========================================
+# Note: frontend/dist/ is committed for deployment
+build/
+
+# ===========================================
+# Logs & Temp
+# ===========================================
+*.log
+tmp/
+temp/
+

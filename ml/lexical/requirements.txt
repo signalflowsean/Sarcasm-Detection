@@ -1,0 +1,17 @@
+# Dependencies for lexical sarcasm detection training
+
+# Core ML
+scikit-learn>=1.0.0
+numpy>=1.24.0
+
+# Deep learning (optional, for Keras/HuggingFace models)
+tensorflow>=2.16.0
+keras>=3.10.0
+transformers>=4.30.0
+torch>=2.0.0
+datasets>=2.14.0
+
+# Utilities
+matplotlib>=3.8.0
+pandas>=1.5.0
+

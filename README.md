@@ -29,13 +29,13 @@ The Sarcasm Detector analyzes input through two detection modes:
 │    │  ┌────────────┬────────────────┐   │                 │
 │    │  │  /api/     │  /api/prosodic │   │                 │
 │    │  │  lexical   │                │   │                 │
-│    │  └────────────┴────────────────┘   │                 │
-│    └──────────────────┬──────────────────┘                 │
-│                       │                                     │
-│    ┌──────────────────▼──────────────────┐                 │
-│    │      ML Model (TensorFlow/Keras)    │                 │
-│    │         sarcasm_model.keras         │                 │
-│    └─────────────────────────────────────┘                 │
+│    │  └──────┬─────┴───────┬────────┘   │                 │
+│    │         │             │            │                 │
+│    │    ┌────▼────┐   ┌────▼────┐      │                 │
+│    │    │ TF-IDF  │   │Wav2Vec2 │      │                 │
+│    │    │+ LogReg │   │+ LogReg │      │                 │
+│    │    └─────────┘   └─────────┘      │                 │
+│    └────────────────────────────────────┘                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -75,30 +75,60 @@ npm run dev
 
 ```
 Sarcasm-Detection/
-├── backend/              # Flask API server
-│   ├── app.py           # Main application & API endpoints
-│   ├── Dockerfile       # Backend container configuration
-│   └── requirements.txt # Python dependencies
+├── backend/                    # Flask API server
+│   ├── app.py                 # Main application & API endpoints
+│   ├── sarcasm_model.pkl      # Trained lexical model
+│   ├── prosodic_model.pkl     # Trained prosodic model
+│   ├── Dockerfile             # Backend container configuration
+│   └── requirements.txt       # Python dependencies
 │
-├── frontend/            # React + TypeScript + Vite application
+├── frontend/                   # React + TypeScript + Vite application
 │   ├── src/
 │   │   ├── features/
-│   │   │   ├── input/   # Text & audio input components
-│   │   │   └── meter/   # VU meter display components
-│   │   ├── App.tsx      # Main application component
-│   │   └── main.tsx     # Application entry point
-│   ├── Dockerfile       # Frontend container configuration
-│   └── nginx.conf       # Production server configuration
+│   │   │   ├── input/         # Text & audio input components
+│   │   │   └── meter/         # VU meter display components
+│   │   ├── App.tsx            # Main application component
+│   │   └── main.tsx           # Application entry point
+│   ├── Dockerfile             # Frontend container configuration
+│   └── nginx.conf             # Production server configuration
 │
-├── ml/                  # Machine learning model & training
-│   ├── lexical_sarcasm_detection__create.py  # Model training script
-│   ├── lexical_sarcasm_detection__run.py     # Model inference script
-│   ├── sarcasm_model.keras                   # Trained model weights
-│   └── requirements.txt                      # ML dependencies
+├── ml/                         # Machine learning training pipelines
+│   ├── lexical/               # Text-based sarcasm detection
+│   │   ├── train_sklearn_model.py  # TF-IDF + LogReg (production)
+│   │   ├── inference.py       # Test utility
+│   │   └── README.md          # Detailed documentation
+│   ├── prosodic/              # Audio-based sarcasm detection
+│   │   ├── mustard_prepare.py     # Dataset preparation
+│   │   ├── mustard_embeddings.py  # Wav2Vec2 embedding extraction
+│   │   ├── train_prosodic.py      # Model training
+│   │   ├── inference.py           # Test utility
+│   │   └── README.md              # Detailed documentation
+│   └── README.md              # ML overview
 │
-├── docker-compose.yml   # Multi-container orchestration
-└── README.md           # This file
+├── docker-compose.yml         # Multi-container orchestration
+└── README.md                  # This file
 ```
+
+## Model Training
+
+Pre-trained models are included in `backend/`. To retrain from scratch:
+
+```bash
+# Lexical model (quick, auto-downloads data)
+cd ml/lexical
+pip install -r requirements.txt
+python train_sklearn_model.py
+
+# Prosodic model (requires ~2GB video download)
+cd ml/prosodic
+pip install -r requirements.txt
+brew install ffmpeg  # or: sudo apt install ffmpeg
+python mustard_prepare.py      # Download & extract audio
+python mustard_embeddings.py   # Extract Wav2Vec2 embeddings
+python train_prosodic.py       # Train classifier
+```
+
+See [ml/README.md](ml/README.md) for detailed documentation.
 
 ## API Endpoints
 
@@ -152,7 +182,8 @@ Health check endpoint for container orchestration.
 |-------|------------|
 | Frontend | React 19, TypeScript, Vite, React Router |
 | Backend | Flask, Flask-CORS, Gunicorn |
-| ML | TensorFlow 2.16, Keras 3.10 |
+| ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
+| ML (Prosodic) | Wav2Vec2 (HuggingFace) + scikit-learn |
 | Infrastructure | Docker, Docker Compose, Nginx |
 
 ## Development
@@ -217,6 +248,23 @@ docker-compose up --build
 # Or rebuild a specific service
 docker-compose up --build frontend
 docker-compose up --build backend
+```
+
+### Build Arguments
+
+The backend Dockerfile supports build arguments for cache management:
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `WAV2VEC_CACHE_BUST` | `1` | Increment to force re-download of Wav2Vec2 model |
+| `WAV2VEC_MODEL` | `facebook/wav2vec2-base-960h` | Hugging Face model to use for audio embeddings |
+
+```bash
+# Force re-download of Wav2Vec2 model (e.g., after model update)
+docker-compose build --build-arg WAV2VEC_CACHE_BUST=2 backend
+
+# Use a different Wav2Vec2 model
+docker-compose build --build-arg WAV2VEC_MODEL=facebook/wav2vec2-large backend
 ```
 
 ## Deployment (Railway)

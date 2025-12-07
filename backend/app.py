@@ -3,244 +3,59 @@ Flask backend for Sarcasm Detection API.
 Provides endpoints for lexical (text-based) and prosodic (audio-based) sarcasm detection.
 """
 
-import os
-import random
-import time
-import uuid
-import logging
-import pickle
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_cors import CORS
 
-# Environment configuration
-FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
-IS_PRODUCTION = FLASK_ENV == 'production'
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO if IS_PRODUCTION else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Load the lexical sarcasm detection model (scikit-learn pipeline saved as pickle)
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'sarcasm_model.pkl')
-
-lexical_model = None
-if os.path.exists(MODEL_PATH):
-    logger.info(f"Loading lexical model from: {MODEL_PATH}")
-    with open(MODEL_PATH, 'rb') as f:
-        lexical_model = pickle.load(f)
-    logger.info("Lexical model loaded successfully")
-else:
-    logger.warning(f"Could not find lexical model at {MODEL_PATH} - lexical endpoint will return mock data")
-
-app = Flask(__name__)
-
-# CORS configuration: restrict origins in production
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
-if CORS_ORIGINS == '*':
-    CORS(app)  # Allow all origins (development)
-else:
-    CORS(app, origins=CORS_ORIGINS.split(','))  # Restrict to specified origins
-
-# Artificial delay in seconds to showcase loading animations
-# Defaults to 0 in production, 1.2 in development
-API_DELAY_SECONDS = float(os.environ.get('API_DELAY_SECONDS', '0' if IS_PRODUCTION else '1.2'))
-
-# Text input validation constants
-MAX_TEXT_LENGTH = 10000  # Maximum characters for lexical analysis
-
-# Audio file validation constants (aligned with nginx client_max_body_size of 50M)
-MAX_AUDIO_SIZE_MB = 50
-MAX_AUDIO_SIZE_BYTES = MAX_AUDIO_SIZE_MB * 1024 * 1024
-
-# Allowed audio MIME types and their corresponding extensions
-ALLOWED_AUDIO_TYPES = {
-    'audio/wav': ['.wav'],
-    'audio/x-wav': ['.wav'],
-    'audio/wave': ['.wav'],
-    'audio/mpeg': ['.mp3'],
-    'audio/mp3': ['.mp3'],
-    'audio/webm': ['.webm'],
-    'audio/ogg': ['.ogg', '.oga'],
-    'audio/flac': ['.flac'],
-    'audio/x-flac': ['.flac'],
-    'audio/mp4': ['.m4a', '.mp4'],
-    'audio/x-m4a': ['.m4a'],
-    'audio/aac': ['.aac'],
-}
-
-ALLOWED_EXTENSIONS = {'.wav', '.mp3', '.webm', '.ogg', '.oga', '.flac', '.m4a', '.mp4', '.aac'}
-
-# Audio file magic bytes for content validation
-# Format: (offset, magic_bytes)
-AUDIO_MAGIC_BYTES = {
-    'wav': (0, b'RIFF'),          # RIFF header (followed by WAVE at offset 8)
-    'mp3_id3': (0, b'ID3'),       # MP3 with ID3 tag
-    'mp3_sync': (0, b'\xff\xfb'), # MP3 frame sync
-    'mp3_sync2': (0, b'\xff\xfa'),
-    'mp3_sync3': (0, b'\xff\xf3'),
-    'mp3_sync4': (0, b'\xff\xf2'),
-    'ogg': (0, b'OggS'),          # Ogg container
-    'flac': (0, b'fLaC'),         # FLAC
-    'webm': (0, b'\x1a\x45\xdf\xa3'),  # WebM/Matroska
-    'm4a': (4, b'ftyp'),          # MP4/M4A (ftyp at offset 4)
-}
+from config import CORS_ORIGINS, IS_PRODUCTION, logger
+from routes import lexical_bp, prosodic_bp, health_bp
 
 
-def validate_audio_file(audio_file):
+def preload_models():
     """
-    Validates an uploaded audio file for type, size, and content.
-    
-    Args:
-        audio_file: FileStorage object from Flask request.files
-        
-    Returns:
-        tuple: (is_valid: bool, error_message: str or None)
+    Preload ML models at startup to avoid timeout on first request.
+    Wav2Vec2 is ~360MB and takes 20-30s to download on first load.
     """
-    # Check filename exists
-    if not audio_file.filename:
-        return False, 'No audio file provided'
+    from models.loader import load_lexical_model, load_prosodic_models
     
-    # Check file extension
-    filename = audio_file.filename.lower()
-    ext = os.path.splitext(filename)[1]
-    if ext not in ALLOWED_EXTENSIONS:
-        return False, f'Invalid file extension. Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'
+    logger.info("Preloading ML models...")
     
-    # Check content-type header
-    content_type = audio_file.content_type
-    if content_type and content_type not in ALLOWED_AUDIO_TYPES:
-        # Be lenient with content-type since browsers can be inconsistent
-        # but log it for debugging
-        logger.warning(f'Unexpected content-type: {content_type} for file: {filename}')
+    # Lexical model is small and fast
+    load_lexical_model()
     
-    # Check file size
-    audio_file.seek(0, 2)  # Seek to end
-    file_size = audio_file.tell()
-    audio_file.seek(0)  # Reset to beginning
-    
-    if file_size == 0:
-        return False, 'Audio file is empty'
-    
-    if file_size > MAX_AUDIO_SIZE_BYTES:
-        return False, f'File size exceeds maximum limit of {MAX_AUDIO_SIZE_MB}MB'
-    
-    # Validate file content (magic bytes)
-    header = audio_file.read(12)  # Read enough bytes for all checks
-    audio_file.seek(0)  # Reset for later processing
-    
-    if len(header) < 4:
-        return False, 'File too small to be valid audio'
-    
-    is_valid_audio = False
-    for format_name, (offset, magic) in AUDIO_MAGIC_BYTES.items():
-        if len(header) >= offset + len(magic):
-            if header[offset:offset + len(magic)] == magic:
-                is_valid_audio = True
-                # Additional check for WAV: verify WAVE signature
-                if format_name == 'wav' and len(header) >= 12:
-                    if header[8:12] != b'WAVE':
-                        continue  # Not actually a WAV file
-                break
-    
-    if not is_valid_audio:
-        return False, 'File does not appear to be valid audio data'
-    
-    return True, None
-
-
-@app.route('/api/lexical', methods=['POST'])
-def lexical_detection():
-    """
-    Lexical sarcasm detection endpoint.
-    Accepts JSON with 'text' field, returns sarcasm score 0-1.
-    
-    Max text length: 10,000 characters
-    
-    Request body: { "text": "string" }
-    Response: { "id": "uuid", "value": 0.0-1.0 }
-    """
-    data = request.get_json()
-    
-    if not data or 'text' not in data:
-        return jsonify({'error': 'Missing required field: text'}), 400
-    
-    text = data['text']
-    if not isinstance(text, str) or not text.strip():
-        return jsonify({'error': 'Text must be a non-empty string'}), 400
-    
-    if len(text) > MAX_TEXT_LENGTH:
-        return jsonify({'error': f'Text exceeds maximum length of {MAX_TEXT_LENGTH:,} characters'}), 400
-    
-    # Artificial delay to showcase loading animations
-    if API_DELAY_SECONDS > 0:
-        time.sleep(API_DELAY_SECONDS)
-    
-    # Use the actual lexical model for prediction
-    if lexical_model is not None:
-        try:
-            # Get probability of sarcastic class
-            score = float(lexical_model.predict_proba([text.strip()])[0][1])
-            logger.debug(f"Lexical prediction for '{text[:50]}...': {score:.4f}")
-        except Exception as e:
-            logger.error(f"Error during lexical prediction: {e}")
-            # Fallback to random on error
-            score = random.random()
+    # Prosodic model includes Wav2Vec2 (~360MB) - this takes time
+    logger.info("Loading Wav2Vec2 model (this may take 20-30 seconds on first run)...")
+    if load_prosodic_models():
+        logger.info("All models preloaded successfully!")
     else:
-        # Fallback to random if model not loaded
-        score = random.random()
-    
-    return jsonify({
-        'id': str(uuid.uuid4()),
-        'value': score
-    })
+        logger.warning("Prosodic models failed to preload - will retry on first request")
 
 
-@app.route('/api/prosodic', methods=['POST'])
-def prosodic_detection():
+def create_app():
     """
-    Prosodic sarcasm detection endpoint.
-    Accepts audio file upload, returns sarcasm score 0-1.
-    
-    Supported formats: WAV, MP3, WebM, OGG, FLAC, M4A, AAC
-    Max file size: 50MB (aligned with nginx client_max_body_size)
-    
-    Request: multipart/form-data with 'audio' file
-    Response: { "id": "uuid", "value": 0.0-1.0 }
+    Flask application factory.
+    Creates and configures the Flask app with CORS and routes.
     """
-    if 'audio' not in request.files:
-        return jsonify({'error': 'Missing required file: audio'}), 400
+    app = Flask(__name__)
     
-    audio_file = request.files['audio']
+    # CORS configuration: restrict origins in production
+    if CORS_ORIGINS == '*':
+        CORS(app)  # Allow all origins (development)
+    else:
+        CORS(app, origins=CORS_ORIGINS.split(','))  # Restrict to specified origins
     
-    # Validate audio file (type, size, and content)
-    is_valid, error_message = validate_audio_file(audio_file)
-    if not is_valid:
-        return jsonify({'error': error_message}), 400
+    # Register blueprints
+    app.register_blueprint(lexical_bp)
+    app.register_blueprint(prosodic_bp)
+    app.register_blueprint(health_bp)
     
-    # Read the audio data (for future processing)
-    # audio_data = audio_file.read()
-    
-    # Artificial delay to showcase loading animations
-    if API_DELAY_SECONDS > 0:
-        time.sleep(API_DELAY_SECONDS)
-    
-    # TODO: Replace with actual ML model inference
-    # For now, return random value to match mock behavior
-    score = random.random()
-    
-    return jsonify({
-        'id': str(uuid.uuid4()),
-        'value': score
-    })
+    return app
 
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint for container orchestration."""
-    return jsonify({'status': 'healthy'})
+# Preload models before creating app (happens once with gunicorn --preload)
+preload_models()
+
+# Create the app instance
+app = create_app()
 
 
 if __name__ == '__main__':
@@ -248,4 +63,3 @@ if __name__ == '__main__':
     debug_mode = not IS_PRODUCTION
     logger.info(f"Starting Flask app in {'production' if IS_PRODUCTION else 'development'} mode")
     app.run(host='0.0.0.0', port=5000, debug=debug_mode)
-

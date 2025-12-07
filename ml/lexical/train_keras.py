@@ -57,7 +57,9 @@ history = model.fit(
     verbose=2
 )
 
-model.save('sarcasm_model.keras')
+from pathlib import Path
+SCRIPT_DIR = Path(__file__).parent
+model.save(SCRIPT_DIR / 'sarcasm_model.keras')
 
 sentences = ["granny starting to fear spiders in the garden might be real", "the dog has really soft fur and is very friendly"]
 sentences_tensor = tf.constant(sentences)
