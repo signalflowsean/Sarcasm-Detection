@@ -9,7 +9,6 @@ Usage:
     python inference.py path/to/audio.mp3 --verbose
 """
 
-import sys
 import argparse
 import pickle
 import numpy as np

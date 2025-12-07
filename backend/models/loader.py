@@ -21,7 +21,9 @@ _wav2vec_processor = None
 _wav2vec_model = None
 _torch_available = False
 
-# Try to import PyTorch and transformers
+# Try to import PyTorch and transformers for prosodic (audio-based) detection.
+# Wav2Vec2 converts audio into embeddings that capture prosodic cues (tone, pitch, rhythm).
+# Wrapped in try/except for graceful degradation—if not installed, prosodic endpoint returns mock data.
 try:
     import torch
     from transformers import Wav2Vec2Processor, Wav2Vec2Model

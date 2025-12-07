@@ -124,6 +124,23 @@ def extract_embedding(
     return embedding.cpu().numpy()
 
 
+def resolve_path(path_str: str, base_dir: Path) -> Path:
+    """
+    Resolve a path that may be relative or absolute.
+    
+    Args:
+        path_str: Path string (relative or absolute)
+        base_dir: Base directory for resolving relative paths
+    
+    Returns:
+        Resolved absolute Path
+    """
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return base_dir / path
+
+
 def process_dataset(df: pd.DataFrame, processor, model, device) -> pd.DataFrame:
     """
     Process all audio files and extract embeddings.
@@ -135,7 +152,7 @@ def process_dataset(df: pd.DataFrame, processor, model, device) -> pd.DataFrame:
         device: Torch device
     
     Returns:
-        Updated DataFrame with 'embedding_path' column
+        Updated DataFrame with 'embedding_path' column (relative paths)
     """
     EMBEDDINGS_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -146,17 +163,20 @@ def process_dataset(df: pd.DataFrame, processor, model, device) -> pd.DataFrame:
     
     for _, row in tqdm(df.iterrows(), total=len(df), desc="Extracting embeddings"):
         item_id = row['id']
-        audio_path = row['audio_path']
+        # Resolve audio_path (handles both relative and legacy absolute paths)
+        audio_path = resolve_path(row['audio_path'], PROCESSED_DIR)
         embedding_path = EMBEDDINGS_DIR / f"{item_id}.npy"
+        # Store relative path for portability
+        relative_embedding_path = embedding_path.relative_to(PROCESSED_DIR)
         
         # Skip if already processed
         if embedding_path.exists():
-            embedding_paths.append(str(embedding_path))
+            embedding_paths.append(str(relative_embedding_path))
             continue
         
         try:
             # Load audio
-            waveform = load_audio(audio_path)
+            waveform = load_audio(str(audio_path))
             
             # Skip very short audio (< 0.1 seconds)
             if len(waveform) < TARGET_SAMPLE_RATE * 0.1:
@@ -170,7 +190,7 @@ def process_dataset(df: pd.DataFrame, processor, model, device) -> pd.DataFrame:
             
             # Save embedding
             np.save(embedding_path, embedding)
-            embedding_paths.append(str(embedding_path))
+            embedding_paths.append(str(relative_embedding_path))
             
         except Exception as e:
             print(f"\n  ✗ Failed to process {item_id}: {e}")
@@ -205,16 +225,18 @@ def main():
     df = pd.read_csv(INDEX_PATH)
     print(f"✓ Loaded {len(df)} samples")
     
-    # Check for audio files
-    existing_audio = df['audio_path'].apply(lambda p: Path(p).exists()).sum()
+    # Check for audio files (resolving relative paths)
+    existing_audio = df['audio_path'].apply(
+        lambda p: resolve_path(p, PROCESSED_DIR).exists()
+    ).sum()
     print(f"✓ Found {existing_audio}/{len(df)} audio files")
     
     if existing_audio == 0:
         print("✗ No audio files found. Please run mustard_prepare.py first")
         return
     
-    # Filter to only samples with audio
-    df = df[df['audio_path'].apply(lambda p: Path(p).exists())]
+    # Filter to only samples with audio (resolving relative paths)
+    df = df[df['audio_path'].apply(lambda p: resolve_path(p, PROCESSED_DIR).exists())]
     
     # Load model
     processor, model, device = load_model()

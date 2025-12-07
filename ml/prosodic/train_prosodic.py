@@ -36,6 +36,25 @@ BACKEND_DIR = SCRIPT_DIR.parent.parent / "backend"
 OUTPUT_MODEL_PATH = BACKEND_DIR / "prosodic_model.pkl"
 
 
+def resolve_path(path_str: str) -> Path:
+    """
+    Resolve a path that may be relative or absolute.
+    
+    Relative paths are resolved relative to PROCESSED_DIR.
+    Absolute paths (for backward compatibility) are used as-is.
+    
+    Args:
+        path_str: Path string (relative or absolute)
+    
+    Returns:
+        Resolved absolute Path
+    """
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return PROCESSED_DIR / path
+
+
 def load_embeddings(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
     """
     Load all embeddings and labels from the index.
@@ -47,7 +66,7 @@ def load_embeddings(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         X: Embeddings array of shape (n_samples, 768)
         y: Labels array of shape (n_samples,)
     """
-    X = np.array([np.load(path) for path in df['embedding_path']])
+    X = np.array([np.load(resolve_path(path)) for path in df['embedding_path']])
     y = np.array(df['label'])
     return X, y
 
@@ -215,14 +234,14 @@ def test_predictions(pipeline: Pipeline, df: pd.DataFrame, n_samples: int = 5):
     
     print("\n--- Sarcastic Samples (should have high scores) ---")
     for _, row in sarcastic_df.iterrows():
-        embedding = np.load(row['embedding_path']).reshape(1, -1)
+        embedding = np.load(resolve_path(row['embedding_path'])).reshape(1, -1)
         score = pipeline.predict_proba(embedding)[0, 1]
         utterance = row['utterance'][:60] + "..." if len(row['utterance']) > 60 else row['utterance']
         print(f"  [{score:.3f}] \"{utterance}\"")
     
     print("\n--- Non-Sarcastic Samples (should have low scores) ---")
     for _, row in non_sarcastic_df.iterrows():
-        embedding = np.load(row['embedding_path']).reshape(1, -1)
+        embedding = np.load(resolve_path(row['embedding_path'])).reshape(1, -1)
         score = pipeline.predict_proba(embedding)[0, 1]
         utterance = row['utterance'][:60] + "..." if len(row['utterance']) > 60 else row['utterance']
         print(f"  [{score:.3f}] \"{utterance}\"")
@@ -243,9 +262,9 @@ def main():
     print(f"\nLoading index from {INDEX_PATH}...")
     df = pd.read_csv(INDEX_PATH)
     
-    # Filter to samples with valid embeddings
+    # Filter to samples with valid embeddings (handles both relative and absolute paths)
     df = df[df['embedding_path'].notna()]
-    df = df[df['embedding_path'].apply(lambda p: Path(p).exists())]
+    df = df[df['embedding_path'].apply(lambda p: resolve_path(p).exists())]
     
     print(f"✓ Loaded {len(df)} samples with embeddings")
     print(f"  Sarcastic: {(df['label'] == 1).sum()}")

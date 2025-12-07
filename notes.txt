@@ -1,2 +1,0 @@
-- initial pulsing should be stronger
-- overlay on mobile weird

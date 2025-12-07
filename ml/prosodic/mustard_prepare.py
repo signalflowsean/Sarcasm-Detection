@@ -155,7 +155,7 @@ def build_index(annotations_path: Path, splits_path: Path) -> pd.DataFrame:
     
     Returns DataFrame with columns:
         - id: unique identifier (e.g., "1_60")
-        - audio_path: path to extracted WAV file
+        - audio_path: relative path to extracted WAV file (relative to processed dir)
         - label: 1 for sarcastic, 0 for non-sarcastic
         - speaker: character name
         - show: TV show name
@@ -193,9 +193,12 @@ def build_index(annotations_path: Path, splits_path: Path) -> pd.DataFrame:
             missing_count += 1
             continue
         
+        # Store path relative to PROCESSED_DIR for portability
+        relative_audio_path = audio_path.relative_to(PROCESSED_DIR)
+        
         record = {
             'id': item_id,
-            'audio_path': str(audio_path),
+            'audio_path': str(relative_audio_path),
             'label': 1 if item_data.get('sarcasm', False) else 0,
             'speaker': item_data.get('speaker', 'UNKNOWN'),
             'show': item_data.get('show', 'UNKNOWN'),
