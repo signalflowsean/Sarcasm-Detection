@@ -27,6 +27,8 @@ ENV PORT=5000
 EXPOSE $PORT
 
 # Run with gunicorn for production
-# Uses shell form to expand $PORT environment variable
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app
+# --preload: Load app before forking workers (shares model memory, loads once)
+# --timeout 120: Allow 2 minutes for slow requests (audio processing)
+# --workers 2: Two workers for handling concurrent requests
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --preload app:app
 

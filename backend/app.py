@@ -10,6 +10,26 @@ from config import CORS_ORIGINS, IS_PRODUCTION, logger
 from routes import lexical_bp, prosodic_bp, health_bp
 
 
+def preload_models():
+    """
+    Preload ML models at startup to avoid timeout on first request.
+    Wav2Vec2 is ~360MB and takes 20-30s to download on first load.
+    """
+    from models.loader import load_lexical_model, load_prosodic_models
+    
+    logger.info("Preloading ML models...")
+    
+    # Lexical model is small and fast
+    load_lexical_model()
+    
+    # Prosodic model includes Wav2Vec2 (~360MB) - this takes time
+    logger.info("Loading Wav2Vec2 model (this may take 20-30 seconds on first run)...")
+    if load_prosodic_models():
+        logger.info("All models preloaded successfully!")
+    else:
+        logger.warning("Prosodic models failed to preload - will retry on first request")
+
+
 def create_app():
     """
     Flask application factory.
@@ -30,6 +50,9 @@ def create_app():
     
     return app
 
+
+# Preload models before creating app (happens once with gunicorn --preload)
+preload_models()
 
 # Create the app instance
 app = create_app()

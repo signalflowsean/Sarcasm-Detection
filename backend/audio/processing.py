@@ -5,6 +5,9 @@ Handles decoding, preprocessing, and embedding extraction.
 
 import io
 import logging
+import subprocess
+import tempfile
+import os
 import numpy as np
 
 from config import TARGET_SAMPLE_RATE
@@ -30,10 +33,68 @@ def _ensure_imports():
         _sf = sf
 
 
+def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
+    """
+    Decode audio using FFmpeg as a fallback for formats like WebM/Opus.
+    Converts to WAV format which can then be read by soundfile.
+    
+    Args:
+        audio_bytes: Raw audio file bytes.
+        
+    Returns:
+        tuple: (waveform as numpy array, sample_rate)
+        
+    Raises:
+        ValueError: If FFmpeg conversion fails.
+    """
+    _ensure_imports()
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input_audio")
+        output_path = os.path.join(tmpdir, "output.wav")
+        
+        # Write input bytes to temp file
+        with open(input_path, 'wb') as f:
+            f.write(audio_bytes)
+        
+        # Use FFmpeg to convert to WAV (16kHz mono for Wav2Vec2)
+        cmd = [
+            'ffmpeg',
+            '-i', input_path,
+            '-ar', str(TARGET_SAMPLE_RATE),  # 16kHz sample rate
+            '-ac', '1',                       # Mono
+            '-f', 'wav',                      # Output format
+            '-y',                             # Overwrite output
+            output_path
+        ]
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                timeout=30  # 30 second timeout
+            )
+            
+            if result.returncode != 0:
+                error_msg = result.stderr.decode('utf-8', errors='ignore')
+                logger.error(f"FFmpeg conversion failed: {error_msg}")
+                raise ValueError(f"FFmpeg conversion failed: {error_msg[:200]}")
+            
+            # Read the converted WAV file
+            waveform, sr = _sf.read(output_path)
+            logger.debug(f"FFmpeg successfully decoded audio: {len(waveform)} samples at {sr}Hz")
+            return waveform, sr
+            
+        except subprocess.TimeoutExpired:
+            raise ValueError("FFmpeg conversion timed out")
+        except FileNotFoundError:
+            raise ValueError("FFmpeg not found - please install ffmpeg")
+
+
 def decode_audio(audio_bytes: bytes) -> tuple:
     """
-    Decode audio bytes to waveform using soundfile.
-    Handles multiple formats (WAV, FLAC, OGG, etc.)
+    Decode audio bytes to waveform.
+    Tries soundfile first, then falls back to FFmpeg for WebM/Opus and other formats.
     
     Args:
         audio_bytes: Raw audio file bytes.
@@ -51,21 +112,16 @@ def decode_audio(audio_bytes: bytes) -> tuple:
     # Try soundfile first (supports WAV, FLAC, OGG)
     try:
         waveform, sr = _sf.read(audio_buffer)
+        logger.debug(f"soundfile decoded audio: {len(waveform)} samples at {sr}Hz")
         return waveform, sr
     except Exception as e:
-        logger.debug(f"soundfile failed: {e}, trying torchaudio")
+        logger.debug(f"soundfile failed: {e}, trying FFmpeg")
     
-    # Fallback to torchaudio for formats soundfile doesn't handle (MP3, M4A, etc.)
-    audio_buffer.seek(0)
+    # Fallback to FFmpeg for formats soundfile doesn't handle (WebM, MP3, M4A, etc.)
     try:
-        waveform, sr = _torchaudio.load(audio_buffer)
-        # torchaudio returns (channels, samples), convert to (samples,) or (samples, channels)
-        waveform = waveform.numpy()
-        if waveform.ndim == 2:
-            waveform = waveform.T  # (samples, channels)
-        return waveform, sr
+        return _decode_with_ffmpeg(audio_bytes)
     except Exception as e:
-        logger.error(f"torchaudio also failed: {e}")
+        logger.error(f"FFmpeg also failed: {e}")
         raise ValueError(f"Could not decode audio: {e}")
 
 

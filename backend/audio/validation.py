@@ -38,11 +38,14 @@ def validate_audio_file(audio_file) -> tuple:
         return False, f'Invalid file extension. Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'
     
     # Check content-type header
+    # Browser may send "audio/webm;codecs=opus" so we check prefix, not exact match
     content_type = audio_file.content_type
-    if content_type and content_type not in ALLOWED_AUDIO_TYPES:
-        # Be lenient with content-type since browsers can be inconsistent
-        # but log it for debugging
-        logger.warning(f'Unexpected content-type: {content_type} for file: {filename}')
+    if content_type:
+        base_type = content_type.split(';')[0].strip()  # Strip codec info
+        if base_type not in ALLOWED_AUDIO_TYPES:
+            # Be lenient with content-type since browsers can be inconsistent
+            # but log it for debugging
+            logger.warning(f'Unexpected content-type: {content_type} for file: {filename}')
     
     # Check file size
     audio_file.seek(0, 2)  # Seek to end
