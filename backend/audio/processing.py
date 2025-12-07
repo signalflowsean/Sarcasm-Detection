@@ -1,6 +1,9 @@
 """
 Audio processing utilities for prosodic sarcasm detection.
 Handles decoding, preprocessing, and embedding extraction.
+
+Security: Internal error details (FFmpeg output, file paths) are logged
+but not exposed to users. User-facing errors are sanitized.
 """
 
 import io
@@ -11,6 +14,7 @@ import os
 import numpy as np
 
 from config import TARGET_SAMPLE_RATE
+from errors import UserError
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +80,11 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
             )
             
             if result.returncode != 0:
+                # Log detailed FFmpeg error internally (may contain paths, codec info)
                 error_msg = result.stderr.decode('utf-8', errors='ignore')
-                logger.error(f"FFmpeg conversion failed: {error_msg}")
-                raise ValueError(f"FFmpeg conversion failed: {error_msg[:200]}")
+                logger.error(f"[AUDIO] FFmpeg conversion failed: {error_msg[:500]}")
+                # Return sanitized error to user
+                raise ValueError(UserError.AUDIO_DECODE_FAILED)
             
             # Read the converted WAV file
             waveform, sr = _sf.read(output_path)
@@ -86,9 +92,11 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
             return waveform, sr
             
         except subprocess.TimeoutExpired:
-            raise ValueError("FFmpeg conversion timed out")
+            logger.error("[AUDIO] FFmpeg conversion timed out after 30 seconds")
+            raise ValueError(UserError.AUDIO_DECODE_FAILED)
         except FileNotFoundError:
-            raise ValueError("FFmpeg not found - please install ffmpeg")
+            logger.error("[AUDIO] FFmpeg binary not found in PATH")
+            raise ValueError(UserError.AUDIO_DECODE_FAILED)
 
 
 def decode_audio(audio_bytes: bytes) -> tuple:
@@ -120,9 +128,13 @@ def decode_audio(audio_bytes: bytes) -> tuple:
     # Fallback to FFmpeg for formats soundfile doesn't handle (WebM, MP3, M4A, etc.)
     try:
         return _decode_with_ffmpeg(audio_bytes)
+    except ValueError:
+        # Re-raise ValueError (already sanitized in _decode_with_ffmpeg)
+        raise
     except Exception as e:
-        logger.error(f"FFmpeg also failed: {e}")
-        raise ValueError(f"Could not decode audio: {e}")
+        # Log internal error details, return sanitized message
+        logger.error(f"[AUDIO] Decode failed with unexpected error: {type(e).__name__}: {e}")
+        raise ValueError(UserError.AUDIO_DECODE_FAILED)
 
 
 def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
@@ -180,7 +192,8 @@ def extract_embedding(waveform: np.ndarray) -> np.ndarray:
     processor, model = get_wav2vec_components()
     
     if processor is None or model is None:
-        raise RuntimeError("Wav2Vec2 models not available")
+        logger.error("[AUDIO] Wav2Vec2 models not loaded - cannot extract embedding")
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
     
     # Prepare input for Wav2Vec2
     inputs = processor(

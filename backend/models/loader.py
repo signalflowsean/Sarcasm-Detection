@@ -1,6 +1,10 @@
 """
 Model loading and management for sarcasm detection models.
 Handles both lexical (text-based) and prosodic (audio-based) models.
+
+Security: Uses RestrictedUnpickler to only allow trusted scikit-learn and numpy
+classes during deserialization, preventing arbitrary code execution from malicious
+pickle files.
 """
 
 import os
@@ -10,6 +14,142 @@ import logging
 from config import LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH, WAV2VEC_MODEL_NAME
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Secure Pickle Loading (RestrictedUnpickler)
+# ============================================================================
+# 
+# pickle.load() is dangerous because it can execute arbitrary code during
+# deserialization. This RestrictedUnpickler only allows specific trusted
+# modules and classes needed for scikit-learn models.
+#
+# Allowed modules:
+#   - sklearn.* (scikit-learn pipeline, vectorizers, classifiers)
+#   - numpy (arrays used by sklearn)
+#   - scipy.sparse (sparse matrices)
+#   - builtins (basic Python types: dict, list, tuple, etc.)
+# ============================================================================
+
+# Allowlist of trusted modules for model loading
+TRUSTED_MODULES = frozenset([
+    # scikit-learn core
+    'sklearn.pipeline',
+    'sklearn.feature_extraction.text',
+    'sklearn.linear_model',
+    'sklearn.linear_model._logistic',
+    'sklearn.preprocessing',
+    'sklearn.preprocessing._data',
+    'sklearn.base',
+    'sklearn.utils._bunch',
+    'sklearn.utils',
+    # numpy (required by sklearn)
+    'numpy',
+    'numpy.core',
+    'numpy.core.multiarray',
+    'numpy.core.numeric',
+    'numpy._core',
+    'numpy._core.multiarray',
+    'numpy.dtypes',
+    'numpy.random',
+    'numpy.random._pickle',
+    # scipy sparse matrices (used by TF-IDF)
+    'scipy.sparse',
+    'scipy.sparse._csr',
+    'scipy.sparse._csc',
+    'scipy.sparse._arrays',
+    # Python builtins (safe types)
+    'builtins',
+    'collections',
+    # copy_reg for reconstructors
+    'copy_reg',
+    '_codecs',
+])
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """
+    A restricted unpickler that only allows trusted modules.
+    
+    This prevents arbitrary code execution from malicious pickle files by
+    refusing to load classes from untrusted modules.
+    """
+    
+    def find_class(self, module: str, name: str):
+        """
+        Override find_class to restrict which classes can be loaded.
+        
+        Args:
+            module: The module name (e.g., 'sklearn.pipeline')
+            name: The class name (e.g., 'Pipeline')
+            
+        Returns:
+            The class object if trusted
+            
+        Raises:
+            pickle.UnpicklingError: If module is not in the allowlist
+        """
+        # Check if module is in our trusted allowlist
+        if module in TRUSTED_MODULES:
+            return super().find_class(module, name)
+        
+        # Allow sklearn submodules (they all start with sklearn.)
+        if module.startswith('sklearn.'):
+            return super().find_class(module, name)
+        
+        # Reject untrusted modules
+        logger.error(f"[SECURITY] Blocked untrusted module during unpickling: {module}.{name}")
+        raise pickle.UnpicklingError(
+            f"Untrusted module blocked: {module}.{name}. "
+            "Model file may be corrupted or malicious."
+        )
+
+
+def secure_load_pickle(filepath: str):
+    """
+    Securely load a pickle file using RestrictedUnpickler.
+    
+    Args:
+        filepath: Path to the pickle file
+        
+    Returns:
+        The unpickled object
+        
+    Raises:
+        pickle.UnpicklingError: If untrusted classes are found
+        FileNotFoundError: If file doesn't exist
+    """
+    with open(filepath, 'rb') as f:
+        return RestrictedUnpickler(f).load()
+
+
+def validate_sklearn_model(model, model_name: str) -> bool:
+    """
+    Validate that a loaded model is a valid scikit-learn model with expected interface.
+    
+    Args:
+        model: The loaded model object
+        model_name: Name for logging purposes
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    # Check for required sklearn interface
+    if not hasattr(model, 'predict_proba'):
+        logger.error(f"[SECURITY] {model_name} missing predict_proba method")
+        return False
+    
+    if not hasattr(model, 'predict'):
+        logger.error(f"[SECURITY] {model_name} missing predict method")
+        return False
+    
+    # For pipeline models, verify structure
+    if hasattr(model, 'steps'):
+        logger.debug(f"{model_name} is a Pipeline with {len(model.steps)} steps")
+        for step_name, step_obj in model.steps:
+            logger.debug(f"  - {step_name}: {type(step_obj).__name__}")
+    
+    return True
 
 # ============================================================================
 # Model State (module-level singletons)
@@ -60,10 +200,13 @@ def get_wav2vec_components():
 
 def load_lexical_model() -> bool:
     """
-    Load the lexical sarcasm detection model.
+    Load the lexical sarcasm detection model securely.
+    
+    Uses RestrictedUnpickler to prevent arbitrary code execution from
+    malicious pickle files. Only trusted scikit-learn classes are allowed.
     
     Returns:
-        bool: True if model loaded successfully, False otherwise.
+        bool: True if model loaded and validated successfully, False otherwise.
     """
     global _lexical_model
     
@@ -76,10 +219,22 @@ def load_lexical_model() -> bool:
     
     try:
         logger.info(f"Loading lexical model from: {LEXICAL_MODEL_PATH}")
-        with open(LEXICAL_MODEL_PATH, 'rb') as f:
-            _lexical_model = pickle.load(f)
-        logger.info("Lexical model loaded successfully")
+        
+        # Use secure restricted unpickler instead of pickle.load()
+        model = secure_load_pickle(LEXICAL_MODEL_PATH)
+        
+        # Validate the loaded model has expected interface
+        if not validate_sklearn_model(model, "Lexical model"):
+            logger.error("Lexical model validation failed")
+            return False
+        
+        _lexical_model = model
+        logger.info("Lexical model loaded and validated successfully")
         return True
+        
+    except pickle.UnpicklingError as e:
+        logger.error(f"[SECURITY] Lexical model loading blocked: {e}")
+        return False
     except Exception as e:
         logger.error(f"Failed to load lexical model: {e}")
         return False
@@ -111,7 +266,7 @@ def load_prosodic_models() -> bool:
             logger.error(f"Failed to load Wav2Vec2 model: {e}")
             return False
     
-    # Load classifier
+    # Load classifier securely
     if _prosodic_model is None:
         if not os.path.exists(PROSODIC_MODEL_PATH):
             logger.warning(f"Could not find prosodic model at {PROSODIC_MODEL_PATH}")
@@ -119,9 +274,21 @@ def load_prosodic_models() -> bool:
         
         try:
             logger.info(f"Loading prosodic classifier from: {PROSODIC_MODEL_PATH}")
-            with open(PROSODIC_MODEL_PATH, 'rb') as f:
-                _prosodic_model = pickle.load(f)
-            logger.info("Prosodic classifier loaded successfully")
+            
+            # Use secure restricted unpickler instead of pickle.load()
+            model = secure_load_pickle(PROSODIC_MODEL_PATH)
+            
+            # Validate the loaded model has expected interface
+            if not validate_sklearn_model(model, "Prosodic model"):
+                logger.error("Prosodic model validation failed")
+                return False
+            
+            _prosodic_model = model
+            logger.info("Prosodic classifier loaded and validated successfully")
+            
+        except pickle.UnpicklingError as e:
+            logger.error(f"[SECURITY] Prosodic model loading blocked: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to load prosodic classifier: {e}")
             return False

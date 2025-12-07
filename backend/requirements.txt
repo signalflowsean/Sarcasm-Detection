@@ -1,6 +1,7 @@
 # Web framework
 Flask==3.0.0
 flask-cors==4.0.0
+flask-limiter==3.5.0
 gunicorn==21.2.0
 
 # ML dependencies
@@ -8,8 +9,8 @@ scikit-learn==1.6.1
 numpy>=1.24.0
 
 # Prosodic model dependencies (Wav2Vec2)
-torch>=2.0.0
-torchaudio>=2.0.0
+# NOTE: PyTorch is installed separately in Dockerfile using CPU-only wheels
+# to reduce image size from ~4GB to ~1.5GB
 transformers>=4.30.0
 
 # Audio processing

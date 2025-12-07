@@ -1,12 +1,38 @@
-__pycache__
+# Python
+__pycache__/
 *.pyc
 *.pyo
-.git
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
 .gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Docs / Config
 *.md
 .env*
-.vscode
-.idea
-venv
-.venv
+
+# Tests (if any)
+tests/
+test_*.py
+*_test.py
 

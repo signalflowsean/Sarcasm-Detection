@@ -147,7 +147,8 @@ Lexical (text-based) sarcasm detection.
 ```json
 {
   "id": "uuid-string",
-  "value": 0.85
+  "value": 0.85,
+  "reliable": true
 }
 ```
 
@@ -161,9 +162,12 @@ Prosodic (audio-based) sarcasm detection.
 ```json
 {
   "id": "uuid-string",
-  "value": 0.72
+  "value": 0.72,
+  "reliable": true
 }
 ```
+
+> **Note:** The `reliable` field indicates whether the prediction came from the actual ML model (`true`) or is a fallback value due to model unavailability (`false`). When `reliable` is `false`, the UI displays a warning to users.
 
 ### `GET /api/health`
 
@@ -181,7 +185,7 @@ Health check endpoint for container orchestration.
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, TypeScript, Vite, React Router |
-| Backend | Flask, Flask-CORS, Gunicorn |
+| Backend | Flask, Flask-CORS, Flask-Limiter, Gunicorn |
 | ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
 | ML (Prosodic) | Wav2Vec2 (HuggingFace) + scikit-learn |
 | Infrastructure | Docker, Docker Compose, Nginx |
@@ -194,6 +198,11 @@ Health check endpoint for container orchestration.
 |----------|---------|-------------|
 | `API_DELAY_SECONDS` | `2.0` | Artificial delay for showcasing loading animations (set to `0` in production) |
 | `FLASK_ENV` | `production` | Flask environment mode |
+| `RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
+| `RATE_LIMIT_DEFAULT` | `60 per minute` | Default rate limit for all endpoints |
+| `RATE_LIMIT_LEXICAL` | `30 per minute` | Rate limit for text analysis endpoint |
+| `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint |
+| `RATE_LIMIT_STORAGE` | `memory://` | Storage backend (`memory://` or `redis://host:port`) |
 
 ### Running Tests
 
@@ -342,6 +351,46 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 - Wait for TLS certificate to be issued (green checkmark)
 
 > **Important:** When re-adding a custom domain, Railway may provide a new target. Always update your DNS to match.
+
+---
+
+## TODO / Future Improvements
+
+### 🐳 Docker Image Optimization
+**Current size:** ~2.75GB | **Target:** ~1.5-2GB
+
+The backend image is large due to PyTorch (~700MB). Consider migrating to ONNX Runtime for inference:
+- Export Wav2Vec2 model to ONNX format
+- Replace `torch`/`torchaudio` with `onnxruntime` (~150MB)
+- Update `audio/processing.py` to use ONNX inference
+
+### 🎨 CSS Variables Cleanup
+Extract hardcoded "magic numbers" into CSS custom properties for maintainability. See the TODO comment in `frontend/src/index.css` `:root` section for categories:
+- Spacing scale (0.375rem → 1.875rem)
+- Border radii (0.19rem → 0.56rem)  
+- Animation durations (100ms → 500ms)
+- Typography scale
+- Shadow patterns
+
+### 🧪 Testing & CI/CD
+- [ ] Add unit tests for backend (pytest)
+- [ ] Add unit tests for frontend (Vitest)
+- [ ] Add integration tests for API endpoints
+- [ ] Set up ESLint + Prettier for frontend
+- [ ] Set up Ruff/Black for backend linting
+- [ ] Create GitHub Actions workflow for:
+  - Linting on PR
+  - Running tests on PR
+  - Docker build verification
+  - Automated deployment to Railway on merge to main
+
+### 📝 Other Improvements
+- [ ] Add OpenAPI/Swagger documentation for API
+- [ ] Add end-to-end tests (Playwright)
+- [ ] Performance monitoring/logging
+- [ ] Model versioning and A/B testing support
+
+---
 
 ## License
 

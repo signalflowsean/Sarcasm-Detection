@@ -21,7 +21,7 @@ type InputMode = 'text' | 'audio' | 'off';
 
 const MeterSection = () => {
   const { value } = useWhichInput();
-  const { state: detectionState, isLoading, cableAnimating, lexicalValue, prosodicValue, mainValue } = useDetection();
+  const { state: detectionState, isLoading, cableAnimating, lexicalValue, prosodicValue, mainValue, isReliable } = useDetection();
   
   // Derive power state and input mode from rotary switch
   const powerState: PowerState = value === 'off' ? 'off' : 'on';
@@ -142,6 +142,14 @@ const MeterSection = () => {
         <RotarySwitch />
       </div>
       
+      {/* Unreliable prediction warning */}
+      {!isReliable && detectionState === DetectionState.HOLDING_RESULT && (
+        <div className="meter__warning" role="alert">
+          <WarningIcon />
+          <span>Result may be inaccurate — model unavailable</span>
+        </div>
+      )}
+      
       {/* Cable anchor on meter */}
       <div className="detector-jack" data-cable-anchor="meter" aria-hidden="true" />
       {/* Mobile simple cable */}
@@ -245,6 +253,24 @@ const TickMark = ({ size, rotation, label }: TickProps) => {
 
 const NeedleHolder = () => (
   <div className="meter__needle__holder" />
+);
+
+const WarningIcon = () => (
+  <svg 
+    width="16" 
+    height="16" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
 );
 
 type NeedleProps = {

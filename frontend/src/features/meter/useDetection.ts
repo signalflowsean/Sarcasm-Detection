@@ -12,6 +12,7 @@ import type { DetectionContextType } from './DetectionProvider';
  * - lexicalValue: Current lexical meter value (0-1)
  * - prosodicValue: Current prosodic meter value (0-1)
  * - mainValue: Average of lexical and prosodic values
+ * - isReliable: Whether predictions came from real ML models (false = fallback/unavailable)
  * - setDetectionResult: Set the detection values after API responds
  * - setLoading: Set loading state when API call starts
  * - reset: Reset all values to baseline

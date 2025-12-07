@@ -37,6 +37,28 @@ CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 API_DELAY_SECONDS = float(os.environ.get('API_DELAY_SECONDS', '0' if IS_PRODUCTION else '1.2'))
 
 # ============================================================================
+# Rate Limiting Configuration
+# ============================================================================
+# Protects against abuse - ML inference is computationally expensive.
+# Limits are per IP address. Format: "X per Y" (e.g., "10 per minute")
+
+# Default global rate limit (applies to all endpoints)
+RATE_LIMIT_DEFAULT = os.environ.get('RATE_LIMIT_DEFAULT', '60 per minute')
+
+# Lexical endpoint limit (text processing is relatively cheap)
+RATE_LIMIT_LEXICAL = os.environ.get('RATE_LIMIT_LEXICAL', '30 per minute')
+
+# Prosodic endpoint limit (audio + ML inference is expensive)
+RATE_LIMIT_PROSODIC = os.environ.get('RATE_LIMIT_PROSODIC', '10 per minute')
+
+# Storage backend for rate limiting
+# Options: 'memory' (default, single-process), 'redis://host:port' (distributed)
+RATE_LIMIT_STORAGE = os.environ.get('RATE_LIMIT_STORAGE', 'memory://')
+
+# Whether to enable rate limiting (can be disabled for development)
+RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+
+# ============================================================================
 # Model Paths
 # ============================================================================
 

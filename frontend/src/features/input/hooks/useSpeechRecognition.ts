@@ -94,13 +94,13 @@ export function useSpeechRecognition({
       } else if (errorType === 'no-speech') {
         // This is common on mobile when recognition times out without detecting speech
         // Don't show error, just log - the onend handler will restart if still recording
-        console.warn('Speech recognition: No speech detected')
+        if (import.meta.env.DEV) console.warn('Speech recognition: No speech detected')
       } else if (errorType === 'audio-capture') {
         // Audio capture failed - common on mobile when mic access is interrupted
-        console.warn('Speech recognition: Audio capture failed')
+        if (import.meta.env.DEV) console.warn('Speech recognition: Audio capture failed')
       } else if (errorType !== 'aborted') {
         // Log other errors but don't show to user (might be transient)
-        console.warn('Speech recognition error:', errorType)
+        if (import.meta.env.DEV) console.warn('Speech recognition error:', errorType)
       }
     }
 
@@ -124,7 +124,7 @@ export function useSpeechRecognition({
               try {
                 recognition.start()
               } catch (e) {
-                console.warn('Failed to restart speech recognition:', e)
+                if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
               }
             }
           }, delay)
@@ -132,7 +132,7 @@ export function useSpeechRecognition({
           try {
             recognition.start()
           } catch (e) {
-            console.warn('Failed to restart speech recognition:', e)
+            if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
           }
         }
       } else {
@@ -147,7 +147,7 @@ export function useSpeechRecognition({
     try {
       recognition.start()
     } catch (e) {
-      console.warn('Failed to start speech recognition:', e)
+      if (import.meta.env.DEV) console.warn('Failed to start speech recognition:', e)
     }
   }, [speechSupported, isRecordingRef, onTranscriptUpdate, onError])
 
