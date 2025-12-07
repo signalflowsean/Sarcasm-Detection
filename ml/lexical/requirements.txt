@@ -11,7 +11,7 @@ transformers>=4.30.0
 torch>=2.0.0
 datasets>=2.14.0
 accelerate>=0.24.0  # For faster transformer training
-tqdm>=4.65.0        # Progress bars
+# Note: tqdm is already installed as a dependency of transformers/datasets
 
 # Utilities
 matplotlib>=3.8.0

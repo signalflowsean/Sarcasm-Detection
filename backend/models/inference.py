@@ -2,7 +2,6 @@
 Inference functions for sarcasm detection models.
 """
 
-import random
 import logging
 import numpy as np
 
@@ -24,7 +23,7 @@ def lexical_predict(text: str) -> tuple[float, bool]:
         
     Returns:
         tuple: (score between 0.0 and 1.0, is_real_prediction)
-        Falls back to random score if model unavailable.
+        Falls back to neutral 0.5 score if model unavailable.
     """
     model = get_lexical_model()
     
@@ -38,9 +37,10 @@ def lexical_predict(text: str) -> tuple[float, bool]:
     else:
         logger.warning("[LEXICAL MODEL] Model not loaded")
     
-    # Fallback to random if model not loaded or error
-    fallback_score = random.random()
-    logger.warning(f"[LEXICAL FALLBACK] Using random score: {fallback_score:.4f}")
+    # Fallback to neutral score (0.5 = uncertain) if model not loaded or error
+    # Using 0.5 is more honest than random - it indicates "we don't know"
+    fallback_score = 0.5
+    logger.warning("[LEXICAL FALLBACK] Using neutral fallback score (0.5)")
     return fallback_score, False
 
 
@@ -53,7 +53,7 @@ def prosodic_predict(embedding: np.ndarray) -> tuple[float, bool]:
         
     Returns:
         tuple: (score between 0.0 and 1.0, is_real_prediction)
-        Falls back to random score if model unavailable.
+        Falls back to neutral 0.5 score if model unavailable.
     """
     # Ensure models are loaded
     models_loaded = load_prosodic_models()
@@ -70,8 +70,9 @@ def prosodic_predict(embedding: np.ndarray) -> tuple[float, bool]:
     else:
         logger.warning("[PROSODIC MODEL] Model not loaded")
     
-    # Fallback to random if model not loaded or error
-    fallback_score = random.random()
-    logger.warning(f"[PROSODIC FALLBACK] Using random score: {fallback_score:.4f}")
+    # Fallback to neutral score (0.5 = uncertain) if model not loaded or error
+    # Using 0.5 is more honest than random - it indicates "we don't know"
+    fallback_score = 0.5
+    logger.warning("[PROSODIC FALLBACK] Using neutral fallback score (0.5)")
     return fallback_score, False
 

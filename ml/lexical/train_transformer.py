@@ -23,7 +23,6 @@ import json
 import urllib.request
 from pathlib import Path
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
@@ -159,12 +158,11 @@ def add_conversational_examples(texts, labels):
         "We're making good progress",
     ]
     
-    # Add examples multiple times for emphasis
-    for _ in range(3):
-        texts.extend(sarcastic)
-        labels.extend([1] * len(sarcastic))
-        texts.extend(non_sarcastic)
-        labels.extend([0] * len(non_sarcastic))
+    # Add examples once — avoid exact duplication to prevent overfitting on specific phrases
+    texts.extend(sarcastic)
+    labels.extend([1] * len(sarcastic))
+    texts.extend(non_sarcastic)
+    labels.extend([0] * len(non_sarcastic))
     
     return texts, labels
 

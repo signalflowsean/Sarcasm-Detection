@@ -32,18 +32,51 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 # Allowlist of trusted modules for model loading
+# SECURITY: Only explicitly listed modules are allowed - no wildcards or prefixes.
+# If a new sklearn module is needed, add it here after security review.
 TRUSTED_MODULES = frozenset([
-    # scikit-learn core
+    # -------------------------------------------------------------------------
+    # scikit-learn modules (explicitly enumerated for security)
+    # -------------------------------------------------------------------------
+    # Core pipeline
     'sklearn.pipeline',
+    'sklearn._config',
+    'sklearn.base',
+    # Feature extraction (TF-IDF)
     'sklearn.feature_extraction.text',
+    'sklearn.feature_extraction._hash',
+    'sklearn.feature_extraction._stop_words',
+    # Linear models (LogisticRegression)
     'sklearn.linear_model',
     'sklearn.linear_model._logistic',
+    'sklearn.linear_model._base',
+    # SVM (LinearSVC, used in ensemble)
+    'sklearn.svm',
+    'sklearn.svm._base',
+    'sklearn.svm._classes',
+    # Ensemble models (VotingClassifier, etc.)
+    'sklearn.ensemble',
+    'sklearn.ensemble._voting',
+    'sklearn.ensemble._base',
+    'sklearn.ensemble._forest',
+    'sklearn.ensemble._gb',
+    # Calibration (CalibratedClassifierCV wraps SVC)
+    'sklearn.calibration',
+    # Naive Bayes
+    'sklearn.naive_bayes',
+    # Preprocessing (StandardScaler for prosodic model)
     'sklearn.preprocessing',
     'sklearn.preprocessing._data',
-    'sklearn.base',
-    'sklearn.utils._bunch',
+    'sklearn.preprocessing._label',
+    # Utils (internal helpers)
     'sklearn.utils',
-    # numpy (required by sklearn)
+    'sklearn.utils._bunch',
+    'sklearn.utils._tags',
+    'sklearn.utils._param_validation',
+    'sklearn.utils.metadata_routing',
+    # -------------------------------------------------------------------------
+    # numpy (required by sklearn for arrays)
+    # -------------------------------------------------------------------------
     'numpy',
     'numpy.core',
     'numpy.core.multiarray',
@@ -53,12 +86,17 @@ TRUSTED_MODULES = frozenset([
     'numpy.dtypes',
     'numpy.random',
     'numpy.random._pickle',
-    # scipy sparse matrices (used by TF-IDF)
+    # -------------------------------------------------------------------------
+    # scipy sparse matrices (used by TF-IDF vectorizer)
+    # -------------------------------------------------------------------------
     'scipy.sparse',
     'scipy.sparse._csr',
     'scipy.sparse._csc',
     'scipy.sparse._arrays',
-    # Python builtins (safe types)
+    'scipy.sparse._matrix',
+    # -------------------------------------------------------------------------
+    # Python builtins (safe types: dict, list, tuple, set, etc.)
+    # -------------------------------------------------------------------------
     'builtins',
     'collections',
     # copy_reg for reconstructors
@@ -89,16 +127,16 @@ class RestrictedUnpickler(pickle.Unpickler):
         Raises:
             pickle.UnpicklingError: If module is not in the allowlist
         """
-        # Check if module is in our trusted allowlist
+        # SECURITY: Only allow explicitly listed modules - no wildcards or prefix matching
         if module in TRUSTED_MODULES:
             return super().find_class(module, name)
         
-        # Allow sklearn submodules (they all start with sklearn.)
-        if module.startswith('sklearn.'):
-            return super().find_class(module, name)
-        
-        # Reject untrusted modules
-        logger.error(f"[SECURITY] Blocked untrusted module during unpickling: {module}.{name}")
+        # Reject untrusted modules with detailed logging for debugging
+        logger.error(
+            f"[SECURITY] Blocked untrusted module during unpickling: {module}.{name}. "
+            "If this is a legitimate sklearn module needed for your model, "
+            "add it to TRUSTED_MODULES in models/loader.py after security review."
+        )
         raise pickle.UnpicklingError(
             f"Untrusted module blocked: {module}.{name}. "
             "Model file may be corrupted or malicious."

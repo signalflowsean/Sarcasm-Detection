@@ -144,9 +144,15 @@ const MeterSection = () => {
       
       {/* Unreliable prediction warning */}
       {!isReliable && detectionState === DetectionState.HOLDING_RESULT && (
-        <div className="meter__warning" role="alert">
+        <div 
+          className="meter__warning" 
+          role="alert"
+          aria-live="polite"
+          aria-label="Warning: The sarcasm detection result may be inaccurate because the machine learning model is currently unavailable. The displayed score is a fallback estimate."
+        >
           <WarningIcon />
-          <span>Result may be inaccurate — model unavailable</span>
+          <span aria-hidden="true">Result may be inaccurate — model unavailable</span>
+          {/* Screen reader gets more context via aria-label on parent */}
         </div>
       )}
       

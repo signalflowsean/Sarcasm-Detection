@@ -12,21 +12,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ============================================================================
 # Full PyTorch includes CUDA libraries we don't need for CPU inference.
 # CPU-only torch: ~700MB vs ~2GB for full version
-#
-# TODO: Consider ONNX Runtime for further size reduction
-# --------------------------------------------------------
-# Current image: ~2.75GB (PyTorch CPU + transformers + Wav2Vec2)
-# With ONNX: ~1.5-2GB (ONNX Runtime is ~150MB vs PyTorch ~700MB)
-# 
-# Steps to implement:
-# 1. Export Wav2Vec2 model to ONNX format
-# 2. Replace torch/torchaudio with onnxruntime (~150MB)
-# 3. Update audio/processing.py to use ONNX inference
-# ============================================================================
 RUN pip install --no-cache-dir \
     torch==2.6.0+cpu \
     torchaudio==2.6.0 \
     --index-url https://download.pytorch.org/whl/cpu
+
+# ============================================================================
+# TODO: Migrate to ONNX Runtime for smaller image (~2.75GB → ~1.5-2GB)
+# ============================================================================
+# ONNX Runtime is ~150MB vs PyTorch ~700MB, saving ~500MB+
+#
+# Steps to implement:
+#   1. Export Wav2Vec2 model to ONNX format
+#   2. Replace torch/torchaudio with onnxruntime
+#   3. Update audio/processing.py to use ONNX inference
+#
+# See README.md "TODO / Future Improvements" for details.
+# ============================================================================
 
 # Install remaining Python dependencies
 COPY requirements.txt .

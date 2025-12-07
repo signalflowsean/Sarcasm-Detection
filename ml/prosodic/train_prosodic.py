@@ -91,7 +91,7 @@ def tune_hyperparameters(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
     
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('classifier', LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs'))
+        ('classifier', LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs', n_jobs=-1))
     ])
     
     # Parameter grid to search
@@ -128,7 +128,7 @@ def tune_hyperparameters(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
         cw = row['param_classifier__class_weight']
         score = row['mean_test_score']
         std = row['std_test_score']
-        print(f"  C={C:<5} class_weight={str(cw):<10} → F1={score:.4f} (+/- {std*2:.4f})")
+        print(f"  C={C:<5} class_weight={str(cw):<10} → F1={score:.4f} (±{std*2:.4f})")
     
     return grid_search.best_params_, grid_search.best_score_
 
@@ -159,7 +159,8 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
             C=C,
             class_weight=class_weight,
             random_state=42,
-            solver='lbfgs'
+            solver='lbfgs',
+            n_jobs=-1  # Parallelize across CPU cores
         ))
     ])
     
@@ -173,10 +174,10 @@ def evaluate_with_cross_validation(X: np.ndarray, y: np.ndarray, n_folds: int = 
     
     print(f"\nUsing C={C}, class_weight={class_weight}")
     print(f"\nMetrics across {n_folds} folds:")
-    print(f"  Accuracy:         {accuracy_scores.mean():.4f} (+/- {accuracy_scores.std()*2:.4f})")
-    print(f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (+/- {f1_weighted_scores.std()*2:.4f})")
-    print(f"  Macro F1:         {f1_macro_scores.mean():.4f} (+/- {f1_macro_scores.std()*2:.4f})")
-    print(f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (+/- {roc_auc_scores.std()*2:.4f})")
+    print(f"  Accuracy:         {accuracy_scores.mean():.4f} (±{accuracy_scores.std()*2:.4f})")
+    print(f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (±{f1_weighted_scores.std()*2:.4f})")
+    print(f"  Macro F1:         {f1_macro_scores.mean():.4f} (±{f1_macro_scores.std()*2:.4f})")
+    print(f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (±{roc_auc_scores.std()*2:.4f})")
     
     return {
         'accuracy': accuracy_scores.mean(),
@@ -212,7 +213,8 @@ def train_final_model(X: np.ndarray, y: np.ndarray, C: float = 1.0, class_weight
             C=C,
             random_state=42,
             solver='lbfgs',
-            class_weight=class_weight
+            class_weight=class_weight,
+            n_jobs=-1  # Parallelize across CPU cores
         ))
     ])
     
@@ -259,7 +261,7 @@ def evaluate_holdout(X: np.ndarray, y: np.ndarray, test_size: float = 0.2):
     # Train
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
-        ('classifier', LogisticRegression(max_iter=500, C=1.0, random_state=42))
+        ('classifier', LogisticRegression(max_iter=1000, C=1.0, random_state=42, n_jobs=-1))
     ])
     pipeline.fit(X_train, y_train)
     

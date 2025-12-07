@@ -46,7 +46,7 @@ REMOTE_DATA_URL = "https://storage.googleapis.com/learning-datasets/sarcasm.json
 # Data Loading & Preprocessing
 # =============================================================================
 
-def download_dataset():
+def load_dataset():
     """
     Load the sarcasm dataset, preferring local cache over remote download.
     
@@ -297,7 +297,7 @@ def cross_validate_model(pipeline, X, y, model_name="Model"):
     cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy', n_jobs=-1)
     
-    print(f"   {model_name}: CV Accuracy = {scores.mean():.4f} (+/- {scores.std()*2:.4f})")
+    print(f"   {model_name}: CV Accuracy = {scores.mean():.4f} (±{scores.std()*2:.4f})")
     return scores.mean()
 
 
@@ -311,7 +311,7 @@ def main():
     print("=" * 60)
     
     # Load data
-    datastore = download_dataset()
+    datastore = load_dataset()
     sentences = [item['headline'] for item in datastore]
     labels = [item['is_sarcastic'] for item in datastore]
     

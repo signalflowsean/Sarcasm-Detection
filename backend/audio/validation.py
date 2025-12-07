@@ -94,10 +94,11 @@ def validate_audio_file(audio_file) -> tuple:
                 break
     
     if not is_valid_audio:
-        # Log header bytes for debugging (hex format)
-        logger.warning(f"[VALIDATION] Invalid magic bytes: {header[:12].hex()}")
+        # Don't log raw bytes - could leak file structure information
+        logger.warning("[VALIDATION] Invalid audio format detected (magic bytes mismatch)")
         return False, UserError.AUDIO_INVALID_CONTENT
     
-    logger.debug(f"[VALIDATION] Valid audio file: {filename} (format: {detected_format})")
+    # Only log format type, not detailed file information
+    logger.debug(f"[VALIDATION] Valid audio file detected (format: {detected_format})")
     return True, None
 

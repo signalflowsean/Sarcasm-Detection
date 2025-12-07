@@ -365,12 +365,26 @@ The backend image is large due to PyTorch (~700MB). Consider migrating to ONNX R
 - Update `audio/processing.py` to use ONNX inference
 
 ### 🎨 CSS Variables Cleanup
-Extract hardcoded "magic numbers" into CSS custom properties for maintainability. See the TODO comment in `frontend/src/index.css` `:root` section for categories:
-- Spacing scale (0.375rem → 1.875rem)
-- Border radii (0.19rem → 0.56rem)  
-- Animation durations (100ms → 500ms)
-- Typography scale
-- Shadow patterns
+Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
+
+**Spacing** (padding, margin, gap):
+- `0.375rem` (6px) — micro | `0.56rem` (9px) — small | `0.75rem` (12px) — base
+- `0.94rem` (15px) — medium | `1.125rem` (18px) — large | `1.5rem` (24px) — xl | `1.875rem` (30px) — 2xl
+
+**Border Radii:**
+- `0.19rem` — tiny (kbd) | `0.28rem` — small (already `--border-radius-primary`)
+- `0.45rem` — medium (buttons) | `0.56rem` — large (cards, modals)
+
+**Animation Durations:**
+- `100ms` — micro | `140ms` — hover | `160ms` — quick | `180ms` — standard | `350ms` — views | `500ms` — loading
+
+**Font Sizes** (type scale):
+- `0.49rem`, `0.56rem` — tiny | `0.675rem`, `0.71rem` — small | `0.75rem`, `0.83rem` — base
+- `0.94rem`, `1.05rem` — medium | `1.125rem+` — large/headings
+
+**Shadows:** Button, card/modal, inset depth, brass/metallic highlights
+
+**Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
 
 ### 🧪 Testing & CI/CD
 - [ ] Add unit tests for backend (pytest)

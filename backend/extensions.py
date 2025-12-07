@@ -22,6 +22,6 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[RATE_LIMIT_DEFAULT] if RATE_LIMIT_ENABLED else [],
     storage_uri=RATE_LIMIT_STORAGE,
-    strategy="fixed-window",  # Simple and predictable
+    strategy="moving-window",  # Prevents burst attacks at window boundaries
 )
 
