@@ -38,16 +38,16 @@ def ensure_directories():
     """Create all necessary directories."""
     for dir_path in [RAW_DIR, PROCESSED_DIR, AUDIO_DIR, MUSTARD_DIR, VIDEOS_DIR]:
         dir_path.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Directories created")
+    print("✓ Directories created")
 
 
 def download_mustard_annotations():
     """Download MUStARD annotations from GitHub."""
     import urllib.request
-    
+
     annotations_path = MUSTARD_DIR / "sarcasm_data.json"
     splits_path = MUSTARD_DIR / "split_indices.p"
-    
+
     if not annotations_path.exists():
         print("Downloading sarcasm_data.json...")
         url = f"{MUSTARD_REPO}/{ANNOTATIONS_FILE}"
@@ -55,7 +55,7 @@ def download_mustard_annotations():
         print(f"✓ Downloaded annotations to {annotations_path}")
     else:
         print(f"✓ Annotations already exist at {annotations_path}")
-    
+
     if not splits_path.exists():
         print("Downloading split_indices.p...")
         url = f"{MUSTARD_REPO}/{SPLITS_FILE}"
@@ -63,7 +63,7 @@ def download_mustard_annotations():
         print(f"✓ Downloaded splits to {splits_path}")
     else:
         print(f"✓ Splits already exist at {splits_path}")
-    
+
     return annotations_path, splits_path
 
 
@@ -74,7 +74,7 @@ def download_videos():
     """
     print("\nDownloading MUStARD videos from HuggingFace...")
     print("This may take a while (several GB of video data)...")
-    
+
     try:
         # Download the utterance videos from HuggingFace
         # MUStARD is available at MichiganNLP/MUStARD
@@ -97,16 +97,16 @@ def download_videos():
 
 def find_video_files():
     """Find all video files in the videos directory."""
-    video_extensions = {'.mp4', '.mkv', '.avi', '.webm'}
+    video_extensions = {".mp4", ".mkv", ".avi", ".webm"}
     video_files = {}
-    
+
     # Check multiple possible locations
     search_paths = [
         VIDEOS_DIR / "utterances_final",
         VIDEOS_DIR / "data" / "utterances_final",
         VIDEOS_DIR,
     ]
-    
+
     for search_path in search_paths:
         if search_path.exists():
             for f in search_path.iterdir():
@@ -114,7 +114,7 @@ def find_video_files():
                     # Extract ID from filename (e.g., "1_60.mp4" -> "1_60")
                     video_id = f.stem
                     video_files[video_id] = f
-    
+
     print(f"Found {len(video_files)} video files")
     return video_files
 
@@ -126,16 +126,19 @@ def extract_audio(video_path: Path, output_path: Path) -> bool:
     """
     if output_path.exists():
         return True
-    
+
     try:
         cmd = [
-            'ffmpeg',
-            '-y',  # Overwrite output
-            '-i', str(video_path),
-            '-ac', '1',  # Mono
-            '-ar', '16000',  # 16kHz sample rate
-            '-vn',  # No video
-            str(output_path)
+            "ffmpeg",
+            "-y",  # Overwrite output
+            "-i",
+            str(video_path),
+            "-ac",
+            "1",  # Mono
+            "-ar",
+            "16000",  # 16kHz sample rate
+            "-vn",  # No video
+            str(output_path),
         ]
         subprocess.run(cmd, capture_output=True, check=True)
         return True
@@ -152,7 +155,7 @@ def extract_audio(video_path: Path, output_path: Path) -> bool:
 def build_index(annotations_path: Path, splits_path: Path) -> pd.DataFrame:
     """
     Build the dataset index CSV from annotations.
-    
+
     Returns DataFrame with columns:
         - id: unique identifier (e.g., "1_60")
         - audio_path: relative path to extracted WAV file (relative to processed dir)
@@ -162,27 +165,27 @@ def build_index(annotations_path: Path, splits_path: Path) -> pd.DataFrame:
         - utterance: the text of what was said
     """
     # Load annotations
-    with open(annotations_path, 'r') as f:
+    with open(annotations_path, "r") as f:
         annotations = json.load(f)
-    
+
     # Load official splits (Python 2 pickle, needs latin1 encoding)
-    with open(splits_path, 'rb') as f:
-        splits = pickle.load(f, encoding='latin1')
-    
+    with open(splits_path, "rb") as f:
+        splits = pickle.load(f, encoding="latin1")
+
     print(f"\nLoaded {len(annotations)} annotations")
     print(f"Loaded {len(splits)} cross-validation folds")
-    
+
     # Find available video files
     video_files = find_video_files()
-    
+
     # Build index
     records = []
     extracted_count = 0
     missing_count = 0
-    
+
     for item_id, item_data in annotations.items():
         audio_path = AUDIO_DIR / f"{item_id}.wav"
-        
+
         # Try to find and extract audio
         if item_id in video_files:
             if extract_audio(video_files[item_id], audio_path):
@@ -192,32 +195,32 @@ def build_index(annotations_path: Path, splits_path: Path) -> pd.DataFrame:
         elif not audio_path.exists():
             missing_count += 1
             continue
-        
+
         # Store path relative to PROCESSED_DIR for portability
         relative_audio_path = audio_path.relative_to(PROCESSED_DIR)
-        
+
         record = {
-            'id': item_id,
-            'audio_path': str(relative_audio_path),
-            'label': 1 if item_data.get('sarcasm', False) else 0,
-            'speaker': item_data.get('speaker', 'UNKNOWN'),
-            'show': item_data.get('show', 'UNKNOWN'),
-            'utterance': item_data.get('utterance', ''),
+            "id": item_id,
+            "audio_path": str(relative_audio_path),
+            "label": 1 if item_data.get("sarcasm", False) else 0,
+            "speaker": item_data.get("speaker", "UNKNOWN"),
+            "show": item_data.get("show", "UNKNOWN"),
+            "utterance": item_data.get("utterance", ""),
         }
         records.append(record)
-    
+
     df = pd.DataFrame(records)
-    
+
     print(f"\n✓ Extracted audio for {extracted_count} videos")
     if missing_count > 0:
         print(f"✗ Missing {missing_count} videos (not in download)")
-    
-    print(f"\nDataset statistics:")
+
+    print("\nDataset statistics:")
     print(f"  Total samples: {len(df)}")
     print(f"  Sarcastic: {(df['label'] == 1).sum()}")
     print(f"  Non-sarcastic: {(df['label'] == 0).sum()}")
     print(f"  Shows: {df['show'].nunique()}")
-    
+
     return df
 
 
@@ -225,36 +228,35 @@ def main():
     print("=" * 60)
     print("MUStARD Dataset Preparation")
     print("=" * 60)
-    
+
     # Step 1: Create directories
     print("\n[1/4] Creating directories...")
     ensure_directories()
-    
+
     # Step 2: Download annotations
     print("\n[2/4] Downloading MUStARD annotations...")
     annotations_path, splits_path = download_mustard_annotations()
-    
+
     # Step 3: Download videos
     print("\n[3/4] Downloading videos from HuggingFace...")
     download_videos()
-    
+
     # Step 4: Build index and extract audio
     print("\n[4/4] Building dataset index and extracting audio...")
     df = build_index(annotations_path, splits_path)
-    
+
     # Save index
     index_path = PROCESSED_DIR / "mustard_index.csv"
     df.to_csv(index_path, index=False)
     print(f"\n✓ Saved index to {index_path}")
-    
+
     print("\n" + "=" * 60)
     print("Dataset preparation complete!")
     print("=" * 60)
-    print(f"\nNext step: Run mustard_embeddings.py to extract Wav2Vec2 embeddings")
-    
+    print("\nNext step: Run mustard_embeddings.py to extract Wav2Vec2 embeddings")
+
     return df
 
 
 if __name__ == "__main__":
     main()
-

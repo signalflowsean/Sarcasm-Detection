@@ -307,10 +307,7 @@ def load_onnx_model() -> bool:
 
         import onnxruntime as ort
 
-        _onnx_session = ort.InferenceSession(
-            ONNX_MODEL_PATH,
-            providers=['CPUExecutionProvider']
-        )
+        _onnx_session = ort.InferenceSession(ONNX_MODEL_PATH, providers=['CPUExecutionProvider'])
 
         logger.info('ONNX Wav2Vec2 model loaded successfully')
         return True

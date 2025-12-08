@@ -7,7 +7,6 @@ Saves as pickle for lightweight deployment.
 import urllib.request
 import json
 import pickle
-import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
@@ -21,11 +20,11 @@ print("Downloading dataset...")
 urllib.request.urlretrieve(url, output_path)
 
 # Load data
-with open("/tmp/sarcasm.json", 'r') as f:
+with open("/tmp/sarcasm.json", "r") as f:
     datastore = json.load(f)
 
-sentences = [item['headline'] for item in datastore]
-labels = [item['is_sarcastic'] for item in datastore]
+sentences = [item["headline"] for item in datastore]
+labels = [item["is_sarcastic"] for item in datastore]
 
 print(f"Total samples: {len(sentences)}")
 
@@ -39,19 +38,20 @@ print(f"Test samples: {len(X_test)}")
 
 # Create pipeline: TF-IDF vectorizer + Logistic Regression
 # This is the industry-standard approach for text classification
-model = Pipeline([
-    ('tfidf', TfidfVectorizer(
-        max_features=10000,  # Vocabulary size
-        ngram_range=(1, 2),  # Unigrams and bigrams
-        stop_words='english',
-        min_df=2,  # Ignore rare terms
-    )),
-    ('classifier', LogisticRegression(
-        max_iter=1000,
-        C=1.0,
-        random_state=42
-    ))
-])
+model = Pipeline(
+    [
+        (
+            "tfidf",
+            TfidfVectorizer(
+                max_features=10000,  # Vocabulary size
+                ngram_range=(1, 2),  # Unigrams and bigrams
+                stop_words="english",
+                min_df=2,  # Ignore rare terms
+            ),
+        ),
+        ("classifier", LogisticRegression(max_iter=1000, C=1.0, random_state=42)),
+    ]
+)
 
 # Train
 print("\nTraining model...")
@@ -62,14 +62,17 @@ y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print(f"\nTest Accuracy: {accuracy:.4f}")
 print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=['Not Sarcastic', 'Sarcastic']))
+print(
+    classification_report(y_test, y_pred, target_names=["Not Sarcastic", "Sarcastic"])
+)
 
 # Save model to backend folder
 from pathlib import Path
+
 SCRIPT_DIR = Path(__file__).parent
 BACKEND_DIR = SCRIPT_DIR.parent.parent / "backend"
-output_path = BACKEND_DIR / 'sarcasm_model.pkl'
-with open(output_path, 'wb') as f:
+output_path = BACKEND_DIR / "sarcasm_model.pkl"
+with open(output_path, "wb") as f:
     pickle.dump(model, f)
 print(f"\nModel saved to: {output_path}")
 
@@ -87,4 +90,3 @@ for sentence in test_sentences:
     prob = model.predict_proba([sentence])[0][1]  # Probability of sarcastic
     label = "Sarcastic" if prob > 0.5 else "Not Sarcastic"
     print(f"  '{sentence[:50]}...' -> {prob:.4f} ({label})")
-

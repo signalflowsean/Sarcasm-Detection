@@ -34,4 +34,3 @@ indent-style = "space"
 
 [tool.ruff.lint.isort]
 known-first-party = ["routes", "models", "audio", "config", "errors", "extensions"]
-

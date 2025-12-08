@@ -37,4 +37,3 @@ EXPOSE 8080
 
 # Use shell form to allow $PORT substitution at runtime
 CMD sh -c "sed -i \"s/listen 0.0.0.0:8080/listen 0.0.0.0:$PORT/\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
-

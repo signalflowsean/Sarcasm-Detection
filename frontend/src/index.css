@@ -707,7 +707,7 @@
     flex-direction: column;
 
     /* Vintage bakelite housing with wood grain undertones */
-    background: 
+    background:
       /* Fine wood grain texture */
       repeating-linear-gradient(
         87deg,
@@ -723,7 +723,7 @@
     border-radius: var(--border-radius-primary);
 
     /* Layered vintage shadows for depth */
-    box-shadow: 
+    box-shadow:
       /* Outer glow - subtle warmth */
       0 0 40px rgba(139, 90, 43, 0.1),
       /* Heavy drop shadow */ 0 20px 50px rgba(0, 0, 0, 0.5),
@@ -853,7 +853,7 @@
     background-color: var(--meter-face-color);
 
     /* Deeply recessed display with brass bezel */
-    box-shadow: 
+    box-shadow:
       /* Outer brass frame edge */
       inset 0 0 0 4px #9a7850,
       inset 0 0 0 5px #6b5538,
@@ -1001,7 +1001,7 @@
     height: 100%;
 
     /* Vintage brass pivot mount with patina */
-    background: 
+    background:
       /* Dome highlight */
       radial-gradient(
         ellipse 60% 45% at 50% 30%,
@@ -1042,7 +1042,7 @@
           #4a3f32 100%
         );
     clip-path: circle(42% at bottom center);
-    box-shadow: 
+    box-shadow:
       /* Deep inset shadows for dimension */
       inset 0 -4px 10px rgba(0, 0, 0, 0.5),
       inset 0 4px 6px rgba(255, 223, 150, 0.3),
@@ -1149,7 +1149,7 @@
     /* Warmer cream when backlit */
     --meter-face-color: #faf6eb;
     background-color: var(--meter-face-color);
-    box-shadow: 
+    box-shadow:
       /* Brass bezel glowing */
       inset 0 0 0 4px #b89060,
       inset 0 0 0 5px #7a6040,
@@ -1540,7 +1540,7 @@
     height: calc(var(--size) * 0.55);
     border-radius: 50%;
     /* Rich bakelite knob with depth */
-    background: 
+    background:
       /* Top highlight dome */
       radial-gradient(ellipse 80% 60% at 40% 30%, rgba(80, 70, 60, 0.9) 0%, transparent 50%),
       /* Grip ridges suggestion */
@@ -1551,7 +1551,7 @@
         ),
       /* Main bakelite gradient */
         linear-gradient(155deg, #4a4540 0%, #3a3632 25%, #2a2825 50%, #1f1d1a 75%, #151412 100%);
-    box-shadow: 
+    box-shadow:
       /* Outer ring shadow */
       0 8px 25px rgba(0, 0, 0, 0.6),
       0 4px 10px rgba(0, 0, 0, 0.4),
@@ -2188,39 +2188,39 @@ body:has(.audio-recorder__modal) .detector-jack {
 /* ============================================================================
    BREAKPOINTS DOCUMENTATION
    ============================================================================
-   
+
    The mobile breakpoint controls when the app switches between:
      - Desktop: Side-by-side layout (meter + input panel)
      - Mobile: Stacked layout with modal-based input
-   
+
    CURRENT VALUES:
      - Main breakpoint: 1440px
      - Small mobile: 768px (only affects FirstTimeOverlay text sizing)
-   
+
    HOW TO CHANGE THE MAIN BREAKPOINT:
-   
+
      You need to update 2 places:
-   
+
      1. JavaScript constant (SINGLE SOURCE OF TRUTH):
         File: frontend/src/breakpoints.ts
         Update: MOBILE_BREAKPOINT = <new value>
-        
+
      2. CSS media queries (cannot use JS variables):
         File: frontend/src/index.css (this file)
         Update BOTH:
           - @media (min-width: <new value>px)     [Desktop styles below]
           - @media (max-width: <new value - 1>px) [Mobile styles further below]
-   
+
    WHY TWO PLACES?
      CSS media queries don't support CSS custom properties (--variables).
      This is a CSS specification limitation. The breakpoints.ts file serves as
      documentation and provides the JS values for useMediaQuery hooks.
-   
+
    FILES THAT USE BREAKPOINTS:
      - frontend/src/breakpoints.ts                      - Constants & media query strings
      - frontend/src/index.css                           - CSS media queries (this file)
      - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isMobile
-   
+
    ============================================================================ */
 
 /* ============================================

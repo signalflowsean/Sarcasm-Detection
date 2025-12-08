@@ -200,10 +200,7 @@ def extract_embedding(waveform: np.ndarray) -> np.ndarray:
     input_values = waveform.reshape(1, -1).astype(np.float32)
 
     # Run ONNX inference
-    outputs = session.run(
-        ["last_hidden_state"],
-        {"input_values": input_values}
-    )
+    outputs = session.run(['last_hidden_state'], {'input_values': input_values})
 
     # Mean pool over time dimension
     hidden_states = outputs[0]  # Shape: (1, seq_len, 768)

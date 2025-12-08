@@ -13,4 +13,3 @@ include = ["frontend/**"]
 # Pass Railway service variable as Docker build argument
 [build.args]
 VITE_API_URL = "${{VITE_API_URL}}"
-

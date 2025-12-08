@@ -75,7 +75,7 @@ jobs:
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -97,4 +97,3 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
