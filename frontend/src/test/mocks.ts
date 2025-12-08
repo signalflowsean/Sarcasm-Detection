@@ -51,10 +51,18 @@ export function createMockFetchError(error: string, status = 400) {
  */
 export function createMockAudioBlob(): Blob {
   const header = new Uint8Array([
-    0x52, 0x49, 0x46, 0x46, // "RIFF"
-    0x25, 0x00, 0x00, 0x00, // File size
-    0x57, 0x41, 0x56, 0x45, // "WAVE"
+    0x52,
+    0x49,
+    0x46,
+    0x46, // "RIFF"
+    0x25,
+    0x00,
+    0x00,
+    0x00, // File size
+    0x57,
+    0x41,
+    0x56,
+    0x45, // "WAVE"
   ])
   return new Blob([header], { type: 'audio/wav' })
 }
-

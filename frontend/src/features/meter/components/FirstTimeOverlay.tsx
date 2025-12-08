@@ -14,22 +14,22 @@ const FirstTimeOverlay = () => {
     const MAX_RETRIES = 100
     const MAX_TIME_MS = 5000
     const startTime = Date.now()
-    
+
     if (!hasVisited) {
       setShowOverlay(true)
-      
+
       const tryPositionOverlay = () => {
         const knob = document.querySelector('.rotary__knob') as HTMLElement
         const elapsedTime = Date.now() - startTime
-        
+
         if (knob) {
           const rect = knob.getBoundingClientRect()
           const knobCenterX = rect.left + rect.width / 2
-          
+
           // Position text below the knob
           setTextPosition({
             left: `${knobCenterX}px`,
-            top: `${rect.bottom + 30}px`
+            top: `${rect.bottom + 30}px`,
           })
         } else if (retryCount < MAX_RETRIES && elapsedTime < MAX_TIME_MS) {
           retryCount++
@@ -38,7 +38,7 @@ const FirstTimeOverlay = () => {
       }
       tryPositionOverlay()
     }
-    
+
     return () => {
       if (typeof animationFrameId === 'number') {
         cancelAnimationFrame(animationFrameId)
@@ -57,7 +57,7 @@ const FirstTimeOverlay = () => {
 
     // Listen for storage events from other tabs/windows
     window.addEventListener('storage', handleStorageChange)
-    
+
     // Also poll localStorage since storage events don't fire for same-tab changes
     const pollInterval = setInterval(() => {
       const hasVisited = localStorage.getItem(STORAGE_KEY)
@@ -75,25 +75,23 @@ const FirstTimeOverlay = () => {
   if (!showOverlay) return null
 
   return (
-    <div 
+    <div
       ref={overlayRef}
-      className="first-time-overlay" 
+      className="first-time-overlay"
       role="status"
       aria-live="polite"
       aria-label="Welcome hint - Turn the knob to start detecting sarcasm"
     >
       {/* Instructional text - non-blocking */}
-      <div 
+      <div
         className="first-time-overlay__content"
-        style={{ 
-          left: textPosition.left, 
+        style={{
+          left: textPosition.left,
           top: textPosition.top,
           transform: 'translateX(-50%)',
         }}
       >
-        <p className="first-time-overlay__text">
-          Turn the Knob to Start Detecting Sarcasm
-        </p>
+        <p className="first-time-overlay__text">Turn the Knob to Start Detecting Sarcasm</p>
       </div>
     </div>
   )

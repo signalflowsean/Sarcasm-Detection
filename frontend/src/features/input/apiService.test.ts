@@ -19,13 +19,11 @@ describe('apiService', () => {
 
   describe('sendLexicalText', () => {
     it('should send text and return response', async () => {
-      vi.mocked(global.fetch).mockReturnValueOnce(
-        createMockFetchResponse(mockLexicalResponse)
-      )
+      vi.mocked(fetch).mockReturnValueOnce(createMockFetchResponse(mockLexicalResponse))
 
       const result = await sendLexicalText('Test text')
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/lexical'),
         expect.objectContaining({
           method: 'POST',
@@ -37,15 +35,13 @@ describe('apiService', () => {
     })
 
     it('should throw error on failed request', async () => {
-      vi.mocked(global.fetch).mockReturnValueOnce(
-        createMockFetchError('Text must be a non-empty string')
-      )
+      vi.mocked(fetch).mockReturnValueOnce(createMockFetchError('Text must be a non-empty string'))
 
       await expect(sendLexicalText('')).rejects.toThrow('Text must be a non-empty string')
     })
 
     it('should handle network errors', async () => {
-      vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'))
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
       await expect(sendLexicalText('test')).rejects.toThrow('Network error')
     })
@@ -53,14 +49,12 @@ describe('apiService', () => {
 
   describe('sendProsodicAudio', () => {
     it('should send audio and return response', async () => {
-      vi.mocked(global.fetch).mockReturnValueOnce(
-        createMockFetchResponse(mockProsodicResponse)
-      )
+      vi.mocked(fetch).mockReturnValueOnce(createMockFetchResponse(mockProsodicResponse))
 
       const audioBlob = createMockAudioBlob()
       const result = await sendProsodicAudio(audioBlob)
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/prosodic'),
         expect.objectContaining({
           method: 'POST',
@@ -70,13 +64,10 @@ describe('apiService', () => {
     })
 
     it('should throw error on failed request', async () => {
-      vi.mocked(global.fetch).mockReturnValueOnce(
-        createMockFetchError('No audio file provided')
-      )
+      vi.mocked(fetch).mockReturnValueOnce(createMockFetchError('No audio file provided'))
 
       const audioBlob = createMockAudioBlob()
       await expect(sendProsodicAudio(audioBlob)).rejects.toThrow('No audio file provided')
     })
   })
 })
-

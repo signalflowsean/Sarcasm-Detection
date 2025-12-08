@@ -8,7 +8,10 @@ type Props = {
   onKeyDown: (e: React.KeyboardEvent) => void
 }
 
-const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRecording, shouldFlash, disabled, onClick, onKeyDown }, ref) {
+const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton(
+  { isRecording, shouldFlash, disabled, onClick, onKeyDown },
+  ref
+) {
   return (
     <button
       ref={ref}
@@ -20,14 +23,14 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRe
       onClick={onClick}
       onKeyDown={onKeyDown}
     >
-      <svg 
-        className="audio-recorder__mic__glyph" 
+      <svg
+        className="audio-recorder__mic__glyph"
         aria-hidden="true"
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
         strokeLinejoin="round"
       >
         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -45,5 +48,3 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton({ isRe
 })
 
 export default MicButton
-
-

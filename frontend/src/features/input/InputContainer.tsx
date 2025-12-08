@@ -26,14 +26,14 @@ const InputContainer = () => {
       try {
         const transition = document.startViewTransition?.(() => {
           setDisplayValue(value)
-        });
+        })
         if (!transition) {
-          setDisplayValue(value);
+          setDisplayValue(value)
         }
       } catch (error) {
         // Fallback if transition fails
-        if (import.meta.env.DEV) console.warn('View Transition failed:', error);
-        setDisplayValue(value);
+        if (import.meta.env.DEV) console.warn('View Transition failed:', error)
+        setDisplayValue(value)
       }
     } else {
       // Fallback without transition
@@ -65,9 +65,7 @@ const InputContainer = () => {
   return (
     <section className="input-container">
       <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
-      <div className="input-container__content">
-        {content}
-      </div>
+      <div className="input-container__content">{content}</div>
     </section>
   )
 }

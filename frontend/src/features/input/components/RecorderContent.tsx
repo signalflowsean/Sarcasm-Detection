@@ -57,7 +57,6 @@ const RecorderContent = ({
   onDiscard,
   onSend,
 }: Props) => {
-
   const transcriptDescriptionId = 'transcript-description'
   const transcriptDescription = speechSupported
     ? 'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
@@ -66,8 +65,20 @@ const RecorderContent = ({
   return (
     <div className="audio-recorder" aria-live="polite">
       <div className="audio-recorder__mic-wrapper">
-        <MicButton ref={micRef} isRecording={isRecording} shouldFlash={shouldFlashMic} disabled={isPlaying || sending} onClick={onMicClick} onKeyDown={onMicKeyDown} />
-        <Status isRecording={isRecording} isPlaying={isPlaying} hasAudio={!!audioSrc} duration={durationLabel} />
+        <MicButton
+          ref={micRef}
+          isRecording={isRecording}
+          shouldFlash={shouldFlashMic}
+          disabled={isPlaying || sending}
+          onClick={onMicClick}
+          onKeyDown={onMicKeyDown}
+        />
+        <Status
+          isRecording={isRecording}
+          isPlaying={isPlaying}
+          hasAudio={!!audioSrc}
+          duration={durationLabel}
+        />
       </div>
 
       <Waveform
@@ -77,7 +88,7 @@ const RecorderContent = ({
         isSeekEnabled={isSeekEnabled}
         onSeekPercent={onSeekPercent}
         showEmpty={!isRecording && !audioSrc}
-        emptyMessage={"Press Down on Microphone to Record"}
+        emptyMessage={'Press Down on Microphone to Record'}
       />
 
       {/* Visually hidden description for screen readers */}
@@ -92,7 +103,7 @@ const RecorderContent = ({
           overflow: 'hidden',
           clip: 'rect(0, 0, 0, 0)',
           whiteSpace: 'nowrap',
-          border: 0
+          border: 0,
         }}
       >
         {transcriptDescription}
@@ -100,7 +111,9 @@ const RecorderContent = ({
 
       <SharedTextArea
         value={(transcript + ' ' + interimTranscript).trim()}
-        placeholder={speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'}
+        placeholder={
+          speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'
+        }
         disabled={true}
         className="audio-recorder__transcript"
         rows={2}
@@ -126,5 +139,3 @@ const RecorderContent = ({
 }
 
 export default RecorderContent
-
-

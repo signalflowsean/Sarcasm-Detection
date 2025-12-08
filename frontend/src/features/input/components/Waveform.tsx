@@ -11,7 +11,18 @@ type Props = {
   emptyMessage?: string
 }
 
-const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label = 'Waveform', showPlayhead, playheadPercent = 0, isSeekEnabled, onSeekPercent, showEmpty, emptyMessage }, ref) {
+const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
+  {
+    label = 'Waveform',
+    showPlayhead,
+    playheadPercent = 0,
+    isSeekEnabled,
+    onSeekPercent,
+    showEmpty,
+    emptyMessage,
+  },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const isScrubbingRef = useRef(false)
@@ -29,8 +40,10 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
     e.stopPropagation() // prevent modal from intercepting
     isScrubbingRef.current = true
     try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    } catch { /* ignore if not supported */ }
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {
+      /* ignore if not supported */
+    }
     seekAtClientX(e.clientX)
   }
 
@@ -45,8 +58,10 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
     e.stopPropagation()
     isScrubbingRef.current = false
     try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-    } catch { /* ignore if not supported */ }
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch {
+      /* ignore if not supported */
+    }
   }
 
   // Touch fallback for browsers with inconsistent PointerEvent behavior
@@ -105,5 +120,3 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform({ label 
 })
 
 export default Waveform
-
-

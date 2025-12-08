@@ -7,7 +7,7 @@ type Props = {
 
 const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
   const shouldShow = isRecording || hasAudio
-  
+
   let statusText = ''
   if (isRecording) {
     statusText = 'Recording… '
@@ -16,18 +16,17 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
   } else if (hasAudio) {
     statusText = 'Paused… '
   }
-  
+
   return (
-    <div 
-      className="audio-recorder__status" 
+    <div
+      className="audio-recorder__status"
       role="status"
       style={{ visibility: shouldShow ? 'visible' : 'hidden' }}
     >
-      {statusText}{duration}
+      {statusText}
+      {duration}
     </div>
   )
 }
 
 export default Status
-
-

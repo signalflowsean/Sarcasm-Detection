@@ -70,7 +70,10 @@ const RotarySwitch: React.FC = () => {
     let bestDist = Number.POSITIVE_INFINITY
     for (let i = 0; i < positions.length; i++) {
       const d = circularDistance(deg, positions[i].degrees)
-      if (d < bestDist) { bestDist = d; bestIdx = i }
+      if (d < bestDist) {
+        bestDist = d
+        bestIdx = i
+      }
     }
     setDragIndex(bestIdx)
   })
@@ -123,12 +126,20 @@ const RotarySwitch: React.FC = () => {
       aria-valuenow={index}
       aria-valuetext={ariaValueText}
       data-angle={angleNow}
-      onClick={(e) => { e.preventDefault() }}
-      onDoubleClick={(e) => { e.preventDefault() }}
+      onClick={e => {
+        e.preventDefault()
+      }}
+      onDoubleClick={e => {
+        e.preventDefault()
+      }}
       style={knobVars}
     >
       <span className="rotary__plate" aria-hidden />
-      <span className={`rotary__knob ${isFirstTime ? 'rotary__knob--pulse' : ''}`} data-role="knob" aria-hidden />
+      <span
+        className={`rotary__knob ${isFirstTime ? 'rotary__knob--pulse' : ''}`}
+        data-role="knob"
+        aria-hidden
+      />
       {positions.map((p, i) => (
         <span
           key={p.value}

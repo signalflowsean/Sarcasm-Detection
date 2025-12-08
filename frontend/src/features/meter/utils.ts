@@ -1,17 +1,14 @@
 import type { Tick } from './types'
 import { SMALL, LARGE } from './constants'
 
-export const generateTicks = ({
-  numberOfTicks = 7,
-  largeTickInterval = 2
-}): Tick[] =>
+export const generateTicks = ({ numberOfTicks = 7, largeTickInterval = 2 }): Tick[] =>
   Array.from({ length: numberOfTicks }, (_, i) => ({
     uuid: crypto.randomUUID(),
     size: i % largeTickInterval === 0 ? LARGE : SMALL,
-    rotation: -90 + (i / (numberOfTicks - 1)) * 180
+    rotation: -90 + (i / (numberOfTicks - 1)) * 180,
   }))
 
-export const TICKS: Tick[] = generateTicks({});
+export const TICKS: Tick[] = generateTicks({})
 
 // Angle utilities for rotary components
 export function normalizeDegrees(deg: number): number {
@@ -26,5 +23,5 @@ export function circularDistance(a: number, b: number): number {
 // Compute compass-like degrees (0° at top, clockwise positive) from a point
 // relative to a given center point.
 export function angleFromPoints(x: number, y: number, centerX: number, centerY: number): number {
-  return normalizeDegrees(Math.atan2(y - centerY, x - centerX) * 180 / Math.PI + 90)
+  return normalizeDegrees((Math.atan2(y - centerY, x - centerX) * 180) / Math.PI + 90)
 }

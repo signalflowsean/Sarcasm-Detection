@@ -11,7 +11,7 @@ type Props = {
 const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
   let launcherClass = 'audio-recorder__launcher'
   if (open) launcherClass += ' is-hidden'
-  
+
   return (
     <>
       <Portal>
@@ -21,13 +21,13 @@ const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
           aria-label="Open audio recorder"
           onClick={onOpen}
         >
-          <svg 
+          <svg
             aria-hidden="true"
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
             strokeLinejoin="round"
             width="24"
             height="24"
@@ -40,7 +40,9 @@ const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
       </Portal>
       {open && (
         <Portal>
-          <MobileModal open={open} onClose={onClose}>{children}</MobileModal>
+          <MobileModal open={open} onClose={onClose}>
+            {children}
+          </MobileModal>
         </Portal>
       )}
     </>
@@ -48,5 +50,3 @@ const MobileRecorderOverlay = ({ open, onOpen, onClose, children }: Props) => {
 }
 
 export default MobileRecorderOverlay
-
-

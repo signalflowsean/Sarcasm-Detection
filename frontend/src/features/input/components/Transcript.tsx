@@ -20,5 +20,3 @@ const Transcript = ({ supported, transcript, interim }: Props) => {
 }
 
 export default Transcript
-
-

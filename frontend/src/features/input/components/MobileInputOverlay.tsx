@@ -15,18 +15,18 @@ const MobileInputOverlay = ({ children }: Props) => {
   const [pulsate, setPulsate] = useState(false)
   const prev = useRef(value)
   const [announcement, setAnnouncement] = useState('')
-  
+
   const handleClose = () => setOpen(false)
 
   useEffect(() => {
     if (prev.current !== value && !open) {
       setPulsate(true)
       const t = setTimeout(() => setPulsate(false), 600)
-      
+
       // Announce mode change to screen readers
       const modeLabel = MODE_LABELS[value]?.description || 'Unknown mode'
       setAnnouncement(`Input mode changed to ${modeLabel}`)
-      
+
       prev.current = value
       return () => clearTimeout(t)
     }
@@ -37,7 +37,15 @@ const MobileInputOverlay = ({ children }: Props) => {
     if (value === 'off') {
       // upright info icon
       return (
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           {/* outer circle */}
           <circle cx="12" cy="12" r="10" />
           {/* stem */}
@@ -57,7 +65,15 @@ const MobileInputOverlay = ({ children }: Props) => {
     }
     // mic
     return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
         <line x1="12" x2="12" y1="19" y2="22" />
@@ -87,13 +103,18 @@ const MobileInputOverlay = ({ children }: Props) => {
           overflow: 'hidden',
           clip: 'rect(0, 0, 0, 0)',
           whiteSpace: 'nowrap',
-          border: 0
+          border: 0,
         }}
       >
         {announcement}
       </div>
       <Portal target="mobile-launcher">
-        <button type="button" className={launcherClass} aria-label={label} onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          className={launcherClass}
+          aria-label={label}
+          onClick={() => setOpen(true)}
+        >
           {icon}
         </button>
       </Portal>
