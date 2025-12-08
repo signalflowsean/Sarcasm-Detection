@@ -14,6 +14,7 @@ To generate a proper test audio file, you can:
 1. **Use any WAV file**: Copy any small WAV file and rename it to `test-audio.wav`
 
 2. **Generate with FFmpeg**:
+
    ```bash
    # Generate 1 second of 440Hz sine wave
    ffmpeg -f lavfi -i "sine=frequency=440:duration=1" -ar 16000 -ac 1 test-audio.wav

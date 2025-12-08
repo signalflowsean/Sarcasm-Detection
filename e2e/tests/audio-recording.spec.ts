@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -202,9 +202,21 @@ async function injectAudioMocks(page: Page, audioBase64: string) {
       console.log("[E2E Mock] MediaRecorder replaced with mock");
 
       // Mock AudioContext to handle waveform visualization
-      const OriginalAudioContext = window.AudioContext;
-      class MockAudioContext extends OriginalAudioContext {
-        createMediaStreamSource(stream: MediaStream) {
+      // We create a complete mock that doesn't extend the original to avoid
+      // issues in CI environments without audio hardware
+      class MockAudioContext {
+        state: AudioContextState = "running";
+        sampleRate = 44100;
+        currentTime = 0;
+        baseLatency = 0;
+        outputLatency = 0;
+        destination = {} as AudioDestinationNode;
+        listener = {} as AudioListener;
+        audioWorklet = {} as AudioWorklet;
+        onstatechange: ((this: AudioContext, ev: Event) => unknown) | null =
+          null;
+
+        createMediaStreamSource(_stream: MediaStream) {
           console.log("[E2E Mock] createMediaStreamSource called");
           // Return a mock source node that doesn't do anything
           const mockSource = {
@@ -224,9 +236,91 @@ async function injectAudioMocks(page: Page, audioBase64: string) {
           };
           return mockSource as unknown as MediaStreamAudioSourceNode;
         }
+
+        createAnalyser() {
+          console.log("[E2E Mock] createAnalyser called");
+          // Return a mock analyser node
+          const mockAnalyser = {
+            fftSize: 2048,
+            frequencyBinCount: 1024,
+            minDecibels: -100,
+            maxDecibels: -30,
+            smoothingTimeConstant: 0.8,
+            getByteTimeDomainData: (array: Uint8Array) => {
+              // Fill with silence (128 = center line)
+              array.fill(128);
+            },
+            getByteFrequencyData: (array: Uint8Array) => {
+              array.fill(0);
+            },
+            getFloatTimeDomainData: (array: Float32Array) => {
+              array.fill(0);
+            },
+            getFloatFrequencyData: (array: Float32Array) => {
+              array.fill(-100);
+            },
+            connect: () => {},
+            disconnect: () => {},
+            channelCount: 1,
+            channelCountMode: "max",
+            channelInterpretation: "speakers",
+            context: this,
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true,
+          };
+          return mockAnalyser as unknown as AnalyserNode;
+        }
+
+        async resume() {
+          console.log("[E2E Mock] AudioContext.resume called");
+          this.state = "running";
+          return Promise.resolve();
+        }
+
+        async suspend() {
+          this.state = "suspended";
+          return Promise.resolve();
+        }
+
+        async close() {
+          this.state = "closed";
+          return Promise.resolve();
+        }
+
+        createGain() {
+          return {} as GainNode;
+        }
+        createOscillator() {
+          return {} as OscillatorNode;
+        }
+        createBufferSource() {
+          return {} as AudioBufferSourceNode;
+        }
+        async decodeAudioData(_arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+          // Return a minimal AudioBuffer mock for peaks computation
+          return {
+            sampleRate: 44100,
+            length: 44100, // 1 second of audio
+            duration: 1,
+            numberOfChannels: 1,
+            getChannelData: () => new Float32Array(44100).fill(0),
+            copyFromChannel: () => {},
+            copyToChannel: () => {},
+          } as unknown as AudioBuffer;
+        }
+        addEventListener() {}
+        removeEventListener() {}
+        dispatchEvent() {
+          return true;
+        }
       }
       (window as { AudioContext: unknown }).AudioContext = MockAudioContext;
-      console.log("[E2E Mock] AudioContext wrapped with mock");
+      (window as { webkitAudioContext?: unknown }).webkitAudioContext =
+        MockAudioContext;
+      console.log("[E2E Mock] AudioContext replaced with complete mock");
     },
     { audioData: audioBase64 },
   );
