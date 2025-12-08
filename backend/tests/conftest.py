@@ -2,9 +2,10 @@
 Pytest configuration and shared fixtures.
 """
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 # Add backend directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -20,10 +21,10 @@ def app():
     """Create test Flask application."""
     # Import here after environment is set
     from app import create_app
-    
+
     test_app = create_app()
     test_app.config['TESTING'] = True
-    
+
     yield test_app
 
 

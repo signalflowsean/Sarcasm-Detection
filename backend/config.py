@@ -2,8 +2,8 @@
 Configuration, constants, and logging setup for Sarcasm Detection API.
 """
 
-import os
 import logging
+import os
 
 # ============================================================================
 # Environment Configuration
@@ -18,7 +18,7 @@ IS_PRODUCTION = FLASK_ENV == 'production'
 
 logging.basicConfig(
     level=logging.INFO if IS_PRODUCTION else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ LEXICAL_MODEL_PATH = os.path.join(BACKEND_DIR, 'sarcasm_model.pkl')
 PROSODIC_MODEL_PATH = os.path.join(BACKEND_DIR, 'prosodic_model.pkl')
 
 # Wav2Vec2 configuration
-WAV2VEC_MODEL_NAME = "facebook/wav2vec2-base-960h"
+WAV2VEC_MODEL_NAME = 'facebook/wav2vec2-base-960h'
 TARGET_SAMPLE_RATE = 16000
 
 # ============================================================================
@@ -105,15 +105,14 @@ ALLOWED_EXTENSIONS = {'.wav', '.mp3', '.webm', '.ogg', '.oga', '.flac', '.m4a', 
 # Audio file magic bytes for content validation
 # Format: (offset, magic_bytes)
 AUDIO_MAGIC_BYTES = {
-    'wav': (0, b'RIFF'),          # RIFF header (followed by WAVE at offset 8)
-    'mp3_id3': (0, b'ID3'),       # MP3 with ID3 tag
-    'mp3_sync': (0, b'\xff\xfb'), # MP3 frame sync
+    'wav': (0, b'RIFF'),  # RIFF header (followed by WAVE at offset 8)
+    'mp3_id3': (0, b'ID3'),  # MP3 with ID3 tag
+    'mp3_sync': (0, b'\xff\xfb'),  # MP3 frame sync
     'mp3_sync2': (0, b'\xff\xfa'),
     'mp3_sync3': (0, b'\xff\xf3'),
     'mp3_sync4': (0, b'\xff\xf2'),
-    'ogg': (0, b'OggS'),          # Ogg container
-    'flac': (0, b'fLaC'),         # FLAC
+    'ogg': (0, b'OggS'),  # Ogg container
+    'flac': (0, b'fLaC'),  # FLAC
     'webm': (0, b'\x1a\x45\xdf\xa3'),  # WebM/Matroska
-    'm4a': (4, b'ftyp'),          # MP4/M4A (ftyp at offset 4)
+    'm4a': (4, b'ftyp'),  # MP4/M4A (ftyp at offset 4)
 }
-

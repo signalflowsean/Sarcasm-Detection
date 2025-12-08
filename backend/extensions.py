@@ -8,8 +8,8 @@ from flask_limiter.util import get_remote_address
 
 from config import (
     RATE_LIMIT_DEFAULT,
-    RATE_LIMIT_STORAGE,
     RATE_LIMIT_ENABLED,
+    RATE_LIMIT_STORAGE,
 )
 
 # ============================================================================
@@ -22,6 +22,5 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[RATE_LIMIT_DEFAULT] if RATE_LIMIT_ENABLED else [],
     storage_uri=RATE_LIMIT_STORAGE,
-    strategy="moving-window",  # Prevents burst attacks at window boundaries
+    strategy='moving-window',  # Prevents burst attacks at window boundaries
 )
-
