@@ -99,10 +99,10 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
 
         except subprocess.TimeoutExpired:
             logger.error('[AUDIO] FFmpeg conversion timed out after 30 seconds')
-            raise ValueError(UserError.AUDIO_DECODE_FAILED)
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
         except FileNotFoundError:
             logger.error('[AUDIO] FFmpeg binary not found in PATH')
-            raise ValueError(UserError.AUDIO_DECODE_FAILED)
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
 
 
 def decode_audio(audio_bytes: bytes) -> tuple:
@@ -140,7 +140,7 @@ def decode_audio(audio_bytes: bytes) -> tuple:
     except Exception as e:
         # Log internal error details, return sanitized message
         logger.error(f'[AUDIO] Decode failed with unexpected error: {type(e).__name__}: {e}')
-        raise ValueError(UserError.AUDIO_DECODE_FAILED)
+        raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
 
 
 def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:

@@ -86,14 +86,13 @@ def validate_audio_file(audio_file) -> tuple:
     for format_name, (offset, magic) in AUDIO_MAGIC_BYTES.items():
         if len(header) >= offset + len(magic):
             if header[offset : offset + len(magic)] == magic:
+                # Additional check for WAV: verify WAVE signature
+                if format_name == 'wav':
+                    if len(header) < 12 or header[8:12] != b'WAVE':
+                        continue  # Not actually a WAV file, check other formats
+                # All format-specific checks passed
                 is_valid_audio = True
                 detected_format = format_name
-                # Additional check for WAV: verify WAVE signature
-                if format_name == 'wav' and len(header) >= 12:
-                    if header[8:12] != b'WAVE':
-                        is_valid_audio = False
-                        detected_format = None
-                        continue  # Not actually a WAV file
                 break
 
     if not is_valid_audio:

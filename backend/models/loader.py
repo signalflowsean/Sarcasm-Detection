@@ -205,8 +205,8 @@ _torch_available = False
 # Wav2Vec2 converts audio into embeddings that capture prosodic cues (tone, pitch, rhythm).
 # Wrapped in try/except for graceful degradation—if not installed, prosodic endpoint returns mock data.
 try:
-    import torch
-    from transformers import Wav2Vec2Model, Wav2Vec2Processor
+    import torch  # noqa: F401
+    from transformers import Wav2Vec2Model, Wav2Vec2Processor  # noqa: F401
 
     _torch_available = True
     logger.info('PyTorch and transformers loaded successfully')
