@@ -1,0 +1,47 @@
+# Pre-commit hooks for automatic linting/formatting
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+
+  # Python - Ruff (linting + formatting)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.2
+    hooks:
+      # Linter with auto-fix
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/|^ml/
+      # Formatter
+      - id: ruff-format
+        files: ^backend/|^ml/
+
+  # Frontend - ESLint + Prettier (via lint-staged for speed)
+  - repo: local
+    hooks:
+      - id: lint-staged-frontend
+        name: lint-staged (frontend)
+        entry: bash -c 'cd frontend && npx lint-staged'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|json)$
+        pass_filenames: false
+
+  # E2E - Prettier for TypeScript
+  - repo: local
+    hooks:
+      - id: prettier-e2e
+        name: prettier (e2e)
+        entry: bash -c 'cd e2e && npx prettier --write "tests/**/*.ts" "*.ts" "*.json"'
+        language: system
+        files: ^e2e/.*\.(ts|js|json)$
+        pass_filenames: false

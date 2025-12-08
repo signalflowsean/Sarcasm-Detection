@@ -48,7 +48,10 @@ pip-log.txt
 # IDE & Editors
 # ===========================================
 .idea/
-.vscode/
+# Ignore .vscode except shared settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.swp
 *.swo
 *.sublime-*
