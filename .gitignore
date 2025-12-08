@@ -73,3 +73,33 @@ build/
 tmp/
 temp/
 
+# ===========================================
+# Testing
+# ===========================================
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Playwright
+e2e/playwright-report/
+e2e/test-results/
+
+# ===========================================
+# Testing
+# ===========================================
+# Playwright
+e2e/playwright-report/
+e2e/test-results/
+e2e/playwright/.cache/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Vitest
+frontend/coverage/
+
