@@ -14,12 +14,12 @@ type ProviderProps = {
 function getInitialIndex(positions: WhichInputOption[]): number {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
   const targetValue = PATH_TO_VALUE[pathname]
-  
+
   if (targetValue) {
     const index = positions.findIndex(p => p.value === targetValue)
     if (index !== -1) return index
   }
-  
+
   return 0
 }
 
@@ -30,7 +30,8 @@ export function WhichInputProvider({ children, positions }: ProviderProps) {
   }))
 
   const [index, setIndex] = useState(() => getInitialIndex(normalized))
-  const value = normalized[Math.max(0, Math.min(index, normalized.length - 1))]?.value ?? normalized[0].value
+  const value =
+    normalized[Math.max(0, Math.min(index, normalized.length - 1))]?.value ?? normalized[0].value
 
   const setValue = (v: string) => {
     const i = normalized.findIndex(p => p.value === v)

@@ -24,7 +24,6 @@ type AudioRecorderProps = {
 }
 
 const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
-
   const [state, setState] = useState<RecorderState>({
     isRecording: false,
     isSending: false,
@@ -72,23 +71,22 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   // Speech recognition hook
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const handleTranscriptUpdate = useCallback(({ interim, final }: { interim: string; final: string }) => {
-    setState((s) => ({
-      ...s,
-      interimTranscript: interim,
-      transcript: s.transcript + final,
-    }))
-  }, [])
+  const handleTranscriptUpdate = useCallback(
+    ({ interim, final }: { interim: string; final: string }) => {
+      setState(s => ({
+        ...s,
+        interimTranscript: interim,
+        transcript: s.transcript + final,
+      }))
+    },
+    []
+  )
 
   const handleSpeechError = useCallback((message: string) => {
-    setState((s) => ({ ...s, error: message }))
+    setState(s => ({ ...s, error: message }))
   }, [])
 
-  const {
-    startSpeechRecognition,
-    stopSpeechRecognition,
-    speechSupported,
-  } = useSpeechRecognition({
+  const { startSpeechRecognition, stopSpeechRecognition, speechSupported } = useSpeechRecognition({
     isRecordingRef,
     onTranscriptUpdate: handleTranscriptUpdate,
     onError: handleSpeechError,
@@ -114,7 +112,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   const startTimer = () => {
     startTimeRef.current = performance.now()
     const tick = () => {
-      setState((s) => ({ ...s, durationMs: Math.max(0, performance.now() - startTimeRef.current) }))
+      setState(s => ({ ...s, durationMs: Math.max(0, performance.now() - startTimeRef.current) }))
     }
     // Update immediately, then every 100ms
     tick()
@@ -138,11 +136,13 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
 
     // Check for mediaDevices support (may be unavailable in WebViews/in-app browsers)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|LinkedInApp|Snapchat/i.test(navigator.userAgent)
+      const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|LinkedInApp|Snapchat/i.test(
+        navigator.userAgent
+      )
       const message = isInAppBrowser
         ? 'Audio recording not supported in this browser. Please open in Chrome or Safari.'
         : 'Audio recording is not supported in this browser.'
-      setState((s) => ({ ...s, error: message }))
+      setState(s => ({ ...s, error: message }))
       return
     }
 
@@ -153,7 +153,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     // Invalidate any in-flight peaks computation
     invalidatePeaks()
 
-    setState((s) => ({
+    setState(s => ({
       ...s,
       audioBlob: null,
       audioUrl: null,
@@ -176,19 +176,24 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         'audio/ogg',
         'audio/mp4', // last-resort for some Safari versions
       ]
-      const chosenType = preferredTypes.find((t) => {
-        try { return MediaRecorder.isTypeSupported(t) } catch { return false }
-      }) || null
+      const chosenType =
+        preferredTypes.find(t => {
+          try {
+            return MediaRecorder.isTypeSupported(t)
+          } catch {
+            return false
+          }
+        }) || null
       const mr = new MediaRecorder(stream, chosenType ? { mimeType: chosenType } : undefined)
       audioChunksRef.current = []
-      mr.ondataavailable = (e) => {
+      mr.ondataavailable = e => {
         if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data)
       }
       mr.onstop = () => {
         const blobType = mr.mimeType || chosenType || ''
         const blob = new Blob(audioChunksRef.current, { type: blobType })
         const url = URL.createObjectURL(blob)
-        setState((s) => ({ ...s, audioBlob: blob, audioUrl: url }))
+        setState(s => ({ ...s, audioBlob: blob, audioUrl: url }))
         setPlaybackMs(0)
 
         // Compute peaks for persistent waveform in playback
@@ -199,21 +204,33 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       mr.start()
       startTimer()
       startSpeechRecognition()
-      setState((s) => ({ ...s, isRecording: true, error: null, durationMs: 0, interimTranscript: '' }))
+      setState(s => ({
+        ...s,
+        isRecording: true,
+        error: null,
+        durationMs: 0,
+        interimTranscript: '',
+      }))
       setHasEverRecorded(true)
     } catch (err) {
-      let message = err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
+      let message =
+        err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
 
       // Provide more helpful error for mobile permission issues
-      if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        message = 'Microphone access denied. Please allow microphone access in your browser settings.'
+      if (
+        err instanceof Error &&
+        (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
+      ) {
+        message =
+          'Microphone access denied. Please allow microphone access in your browser settings.'
       } else if (err instanceof Error && err.name === 'NotFoundError') {
         message = 'No microphone found. Please connect a microphone and try again.'
       } else if (err instanceof Error && err.name === 'NotReadableError') {
-        message = 'Microphone is in use by another app. Please close other apps using the microphone.'
+        message =
+          'Microphone is in use by another app. Please close other apps using the microphone.'
       }
 
-      setState((s) => ({ ...s, error: message }))
+      setState(s => ({ ...s, error: message }))
     }
   }
 
@@ -224,26 +241,30 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     if (mr && mr.state !== 'inactive') mr.stop()
     mediaRecorderRef.current = null
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((t) => t.stop())
+      mediaStreamRef.current.getTracks().forEach(t => t.stop())
       mediaStreamRef.current = null
     }
     cleanupWaveform()
     stopTimer()
     stopSpeechRecognition()
-    setState((s) => ({ ...s, isRecording: false }))
+    setState(s => ({ ...s, isRecording: false }))
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const discardRecording = () => {
     const el = audioRef.current
     if (el) {
-      try { el.pause() } catch { /* noop */ }
+      try {
+        el.pause()
+      } catch {
+        /* noop */
+      }
       el.currentTime = 0
     }
     stopRecording()
 
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
-    setState((s) => ({
+    setState(s => ({
       ...s,
       audioBlob: null,
       audioUrl: null,
@@ -286,7 +307,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const onSend = async () => {
     if (!state.audioBlob) return
-    setState((s) => ({ ...s, isSending: true, error: null }))
+    setState(s => ({ ...s, isSending: true, error: null }))
     // Signal detection loading state to meter
     setLoading(true)
     try {
@@ -309,11 +330,11 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       onClose?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to send'
-      setState((s) => ({ ...s, error: message }))
+      setState(s => ({ ...s, error: message }))
       // Reset loading state on error
       setLoading(false)
     } finally {
-      setState((s) => ({ ...s, isSending: false }))
+      setState(s => ({ ...s, isSending: false }))
     }
   }
 
@@ -332,14 +353,18 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     if (!el) return
     if (el.paused) {
       // If ended or at end, rewind to start before playing
-      if (!Number.isNaN(el.duration) && el.duration > 0 && Math.abs(el.currentTime - el.duration) < 0.05) {
+      if (
+        !Number.isNaN(el.duration) &&
+        el.duration > 0 &&
+        Math.abs(el.currentTime - el.duration) < 0.05
+      ) {
         el.currentTime = 0
       }
       const playPromise = el.play()
       if (playPromise && typeof playPromise.then === 'function') {
         playPromise
           .then(() => setIsPlaying(true))
-          .catch((err) => {
+          .catch(err => {
             const name = (err as { name?: string } | undefined)?.name
             if (name === 'AbortError') return
             // Swallow other play() errors for now to avoid noisy console
@@ -511,7 +536,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       <RecorderContent
         isRecording={state.isRecording}
         shouldFlashMic={!hasEverRecorded && !state.isRecording}
-        durationLabel={state.isRecording ? formatDuration(state.durationMs) : formatDuration(playbackMs)}
+        durationLabel={
+          state.isRecording ? formatDuration(state.durationMs) : formatDuration(playbackMs)
+        }
         micRef={micBtnRef}
         canvasRef={canvasRef}
         audioRef={audioRef}
@@ -525,7 +552,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         canSend={!!state.audioBlob}
         sending={state.isSending}
         showPlayhead={!state.isRecording && !!state.audioUrl}
-        playheadPercent={audioDurationMs > 0 ? Math.min(1, Math.max(0, playbackMs / audioDurationMs)) : 0}
+        playheadPercent={
+          audioDurationMs > 0 ? Math.min(1, Math.max(0, playbackMs / audioDurationMs)) : 0
+        }
         isSeekEnabled={!state.isRecording && !!state.audioUrl}
         onSeekPercent={onSeekPercent}
         onMicClick={onMicClick}
@@ -534,7 +563,11 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         onDiscard={discardRecording}
         onSend={onSend}
       />
-      {state.error && <div className="audio-recorder__error" role="alert">{state.error}</div>}
+      {state.error && (
+        <div className="audio-recorder__error" role="alert">
+          {state.error}
+        </div>
+      )}
     </>
   )
 }

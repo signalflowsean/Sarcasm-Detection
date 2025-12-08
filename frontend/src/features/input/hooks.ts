@@ -6,7 +6,9 @@ type LegacyMediaQueryList = MediaQueryList & {
 }
 
 export const useMediaQuery = (query: string) => {
-  const [matches, setMatches] = useState<boolean>(() => typeof window !== 'undefined' ? window.matchMedia(query).matches : false)
+  const [matches, setMatches] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  )
   useEffect(() => {
     const mql = window.matchMedia(query)
     const onChange = (e: MediaQueryListEvent) => setMatches(e.matches)
@@ -30,19 +32,19 @@ export const useMediaQuery = (query: string) => {
 
 export const useBodyScrollLock = (locked: boolean) => {
   const originalOverflowRef = useRef<string | null>(null)
-  
+
   useEffect(() => {
     // Capture the original overflow value only once
     if (originalOverflowRef.current === null) {
       originalOverflowRef.current = document.body.style.overflow
     }
-    
+
     if (locked) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = originalOverflowRef.current
     }
-    
+
     return () => {
       // Restore original value on unmount
       if (originalOverflowRef.current !== null) {
@@ -55,26 +57,22 @@ export const useBodyScrollLock = (locked: boolean) => {
 export const useRafInterval = (fn: () => void, active: boolean) => {
   const rafId = useRef<number | null>(null)
   const fnRef = useRef(fn)
-  
+
   useEffect(() => {
     fnRef.current = fn
   }, [fn])
-  
+
   useEffect(() => {
     if (!active) return
-    
+
     const loop = () => {
       fnRef.current()
       rafId.current = requestAnimationFrame(loop)
     }
-    
+
     rafId.current = requestAnimationFrame(loop)
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current)
     }
   }, [active])
 }
-
-
-
-

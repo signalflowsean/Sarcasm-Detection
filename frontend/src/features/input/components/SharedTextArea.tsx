@@ -13,7 +13,20 @@ type SharedTextAreaProps = {
 }
 
 const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps>(
-  ({ value, onChange, placeholder, disabled = false, className = '', shouldFlash = false, rows = 4, 'aria-describedby': ariaDescribedBy, 'aria-label': ariaLabel }, ref) => {
+  (
+    {
+      value,
+      onChange,
+      placeholder,
+      disabled = false,
+      className = '',
+      shouldFlash = false,
+      rows = 4,
+      'aria-describedby': ariaDescribedBy,
+      'aria-label': ariaLabel,
+    },
+    ref
+  ) => {
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (!disabled && onChange) onChange(e.target.value)
     }

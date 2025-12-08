@@ -15,7 +15,7 @@ export const clamp01 = (n: number): number => Math.min(1, Math.max(0, n))
  */
 export const isMacPlatform = (): boolean => {
   if (typeof navigator === 'undefined') return false
-  
+
   // Modern approach: User-Agent Client Hints API
   // @ts-expect-error - userAgentData is not yet in all TypeScript definitions
   if (navigator.userAgentData?.platform) {
@@ -23,17 +23,17 @@ export const isMacPlatform = (): boolean => {
     // @ts-ignore
     return /Mac|iPhone|iPad|iPod/.test(navigator.userAgentData.platform)
   }
-  
+
   // Fallback: Check userAgent string
   if (navigator.userAgent) {
     return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
   }
-  
+
   // Last resort: deprecated platform property
   if (navigator.platform) {
     return /Mac|iPhone|iPad|iPod/.test(navigator.platform)
   }
-  
+
   return false
 }
 
@@ -55,7 +55,7 @@ export const isIOSDevice = (): boolean => {
  */
 export const isMobileBrowser = (): boolean => {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
-  
+
   const ua = navigator.userAgent
   // Check for mobile/tablet user agents
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
@@ -65,7 +65,3 @@ export const isMobileBrowser = (): boolean => {
   const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
   return isMobileUA || isIPadOS || (isTouchDevice && window.innerWidth < 1024)
 }
-
-
-
-

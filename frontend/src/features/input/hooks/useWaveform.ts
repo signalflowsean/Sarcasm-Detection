@@ -94,13 +94,13 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const yTop = (1 - max[i]) * height / 2
+      const yTop = ((1 - max[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, yTop)
       else ctx.lineTo(x, yTop)
     }
     for (let i = n - 1; i >= 0; i--) {
       const x = i * step
-      const yBot = (1 - min[i]) * height / 2
+      const yBot = ((1 - min[i]) * height) / 2
       ctx.lineTo(x, yBot)
     }
     ctx.closePath()
@@ -111,7 +111,7 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const y = (1 - max[i]) * height / 2
+      const y = ((1 - max[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
     }
@@ -219,7 +219,10 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
   // ─────────────────────────────────────────────────────────────────────────────
 
   const setupWaveform = useCallback(async (stream: MediaStream) => {
-    const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+    const w = window as unknown as {
+      AudioContext?: typeof AudioContext
+      webkitAudioContext?: typeof AudioContext
+    }
     const AudioCtx = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
     const audioCtx = new AudioCtx()
     const source = audioCtx.createMediaStreamSource(stream)
@@ -228,7 +231,11 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     const bufferLength = analyser.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
     source.connect(analyser)
-    try { await audioCtx.resume() } catch { /* noop */ }
+    try {
+      await audioCtx.resume()
+    } catch {
+      /* noop */
+    }
     audioContextRef.current = audioCtx
     analyserRef.current = analyser
     dataArrayRef.current = dataArray
@@ -249,7 +256,10 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
 
   const getDecodingAudioContext = useCallback(() => {
     if (!decodingAudioContextRef.current || decodingAudioContextRef.current.state === 'closed') {
-      const w = window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }
+      const w = window as unknown as {
+        AudioContext?: typeof AudioContext
+        webkitAudioContext?: typeof AudioContext
+      }
       const ACtor = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
       decodingAudioContextRef.current = new ACtor()
     }
@@ -268,61 +278,67 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
    * Compute peaks from an audio blob and draw them on the canvas.
    * This is async and respects invalidation (won't draw if a newer computation started).
    */
-  const computePeaksFromBlob = useCallback(async (blob: Blob) => {
-    // Increment computation ID to invalidate any in-flight computation
-    peaksComputationIdRef.current += 1
-    const currentComputationId = peaksComputationIdRef.current
+  const computePeaksFromBlob = useCallback(
+    async (blob: Blob) => {
+      // Increment computation ID to invalidate any in-flight computation
+      peaksComputationIdRef.current += 1
+      const currentComputationId = peaksComputationIdRef.current
 
-    try {
-      const arrayBuf = await blob.arrayBuffer()
+      try {
+        const arrayBuf = await blob.arrayBuffer()
 
-      // Check if this computation is still valid
-      if (currentComputationId !== peaksComputationIdRef.current) return
+        // Check if this computation is still valid
+        if (currentComputationId !== peaksComputationIdRef.current) return
 
-      // Reuse shared AudioContext to avoid hitting browser limits
-      const ac = getDecodingAudioContext()
-      const audioBuffer = await ac.decodeAudioData(arrayBuf)
+        // Reuse shared AudioContext to avoid hitting browser limits
+        const ac = getDecodingAudioContext()
+        const audioBuffer = await ac.decodeAudioData(arrayBuf)
 
-      // Check again after async operations
-      if (currentComputationId !== peaksComputationIdRef.current) return
+        // Check again after async operations
+        if (currentComputationId !== peaksComputationIdRef.current) return
 
-      const channels = audioBuffer.numberOfChannels
-      const length = audioBuffer.length
-      const data = new Float32Array(length)
-      // Mixdown to mono
-      for (let ch = 0; ch < channels; ch++) {
-        const chData = audioBuffer.getChannelData(ch)
-        for (let i = 0; i < length; i++) data[i] += chData[i] / channels
-      }
-      const bins = Math.max(512, Math.min(2048, Math.floor((canvasRef.current?.width || 1024) / 2)))
-      const blockSize = Math.max(1, Math.floor(length / bins))
-      const min = new Float32Array(bins)
-      const max = new Float32Array(bins)
-      for (let i = 0; i < bins; i++) {
-        let blockMin = 1.0
-        let blockMax = -1.0
-        const start = i * blockSize
-        const end = Math.min(start + blockSize, length)
-        for (let j = start; j < end; j++) {
-          const v = data[j]
-          if (v < blockMin) blockMin = v
-          if (v > blockMax) blockMax = v
+        const channels = audioBuffer.numberOfChannels
+        const length = audioBuffer.length
+        const data = new Float32Array(length)
+        // Mixdown to mono
+        for (let ch = 0; ch < channels; ch++) {
+          const chData = audioBuffer.getChannelData(ch)
+          for (let i = 0; i < length; i++) data[i] += chData[i] / channels
         }
-        min[i] = blockMin
-        max[i] = blockMax
+        const bins = Math.max(
+          512,
+          Math.min(2048, Math.floor((canvasRef.current?.width || 1024) / 2))
+        )
+        const blockSize = Math.max(1, Math.floor(length / bins))
+        const min = new Float32Array(bins)
+        const max = new Float32Array(bins)
+        for (let i = 0; i < bins; i++) {
+          let blockMin = 1.0
+          let blockMax = -1.0
+          const start = i * blockSize
+          const end = Math.min(start + blockSize, length)
+          for (let j = start; j < end; j++) {
+            const v = data[j]
+            if (v < blockMin) blockMin = v
+            if (v > blockMax) blockMax = v
+          }
+          min[i] = blockMin
+          max[i] = blockMax
+        }
+
+        // Final check before updating refs and drawing
+        if (currentComputationId !== peaksComputationIdRef.current) return
+
+        peaksRef.current = { min, max }
+        drawPeaks(min, max)
+      } catch (err) {
+        // Log but don't show user-facing error - peaks are optional for enhanced waveform
+        // The recording/playback still works without them
+        if (import.meta.env.DEV) console.error('Failed to compute waveform peaks:', err)
       }
-
-      // Final check before updating refs and drawing
-      if (currentComputationId !== peaksComputationIdRef.current) return
-
-      peaksRef.current = { min, max }
-      drawPeaks(min, max)
-    } catch (err) {
-      // Log but don't show user-facing error - peaks are optional for enhanced waveform
-      // The recording/playback still works without them
-      if (import.meta.env.DEV) console.error('Failed to compute waveform peaks:', err)
-    }
-  }, [getDecodingAudioContext, drawPeaks])
+    },
+    [getDecodingAudioContext, drawPeaks]
+  )
 
   /**
    * Reset all waveform state (call when discarding a recording)
@@ -357,4 +373,3 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     resetWaveform,
   }
 }
-

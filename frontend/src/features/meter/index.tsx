@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { TICKS } from './utils';
-import type { Tick } from './types';
-import RotarySwitch from './components/RotarySwitch';
-import LevelIndicators from './components/LevelIndicators';
-import { useWhichInput } from './useWhichInput';
-import { useDetection } from './useDetection';
-import { DetectionState } from './meterConstants';
+import { useEffect, useRef, useState } from 'react'
+import { TICKS } from './utils'
+import type { Tick } from './types'
+import RotarySwitch from './components/RotarySwitch'
+import LevelIndicators from './components/LevelIndicators'
+import { useWhichInput } from './useWhichInput'
+import { useDetection } from './useDetection'
+import { DetectionState } from './meterConstants'
 import {
   NEEDLE_ANIM_DURATION_MS,
   NEEDLE_RETURN_DURATION_MS,
@@ -14,65 +14,76 @@ import {
   POWER_ON_STUTTER_DURATION_MS,
   NEEDLE_MIN_DEG,
   NEEDLE_RANGE_DEG,
-} from './meterConstants';
+} from './meterConstants'
 
-type PowerState = 'off' | 'on';
-type InputMode = 'text' | 'audio' | 'off';
+type PowerState = 'off' | 'on'
+type InputMode = 'text' | 'audio' | 'off'
 
 const MeterSection = () => {
-  const { value } = useWhichInput();
-  const { state: detectionState, isLoading, cableAnimating, lexicalValue, prosodicValue, mainValue, isReliable } = useDetection();
-  
+  const { value } = useWhichInput()
+  const {
+    state: detectionState,
+    isLoading,
+    cableAnimating,
+    lexicalValue,
+    prosodicValue,
+    mainValue,
+    isReliable,
+  } = useDetection()
+
   // Derive power state and input mode from rotary switch
-  const powerState: PowerState = value === 'off' ? 'off' : 'on';
-  const inputMode: InputMode = value as InputMode;
-  
+  const powerState: PowerState = value === 'off' ? 'off' : 'on'
+  const inputMode: InputMode = value as InputMode
+
   // Track previous power state to detect power-on transition
-  const prevPowerStateRef = useRef<PowerState>(powerState);
-  const [isPoweringOn, setIsPoweringOn] = useState(false);
-  
+  const prevPowerStateRef = useRef<PowerState>(powerState)
+  const [isPoweringOn, setIsPoweringOn] = useState(false)
+
   // Detect power-on transition
   useEffect(() => {
     if (prevPowerStateRef.current === 'off' && powerState === 'on') {
-      setIsPoweringOn(true);
+      setIsPoweringOn(true)
       const timer = setTimeout(() => {
-        setIsPoweringOn(false);
-      }, POWER_ON_STUTTER_DURATION_MS);
-      return () => clearTimeout(timer);
+        setIsPoweringOn(false)
+      }, POWER_ON_STUTTER_DURATION_MS)
+      return () => clearTimeout(timer)
     }
-    prevPowerStateRef.current = powerState;
-  }, [powerState]);
+    prevPowerStateRef.current = powerState
+  }, [powerState])
 
   // Determine which meters are enabled
-  const lexicalEnabled = powerState === 'on'; // Lexical enabled in both text and audio modes
-  const prosodicEnabled = powerState === 'on' && inputMode === 'audio'; // Prosodic only in audio mode
+  const lexicalEnabled = powerState === 'on' // Lexical enabled in both text and audio modes
+  const prosodicEnabled = powerState === 'on' && inputMode === 'audio' // Prosodic only in audio mode
 
   // Calculate display values (0 for disabled meters)
-  const displayLexicalValue = lexicalEnabled ? lexicalValue : 0;
-  const displayProsodicValue = prosodicEnabled ? prosodicValue : 0;
-  
+  const displayLexicalValue = lexicalEnabled ? lexicalValue : 0
+  const displayProsodicValue = prosodicEnabled ? prosodicValue : 0
+
   // Calculate main needle value based on enabled inputs:
   // - When both inputs are enabled (audio mode): average them
   // - When only lexical is enabled (text mode): use lexical value directly
   // - When powered off: 0
-  const displayMainValue = powerState === 'on'
-    ? (prosodicEnabled 
-        ? mainValue  // Audio mode: use average of both
-        : lexicalValue)  // Text mode: use lexical directly (no averaging with disabled prosodic)
-    : 0;
+  const displayMainValue =
+    powerState === 'on'
+      ? prosodicEnabled
+        ? mainValue // Audio mode: use average of both
+        : lexicalValue // Text mode: use lexical directly (no averaging with disabled prosodic)
+      : 0
 
   // Determine animation duration based on state
-  const needleAnimDuration = detectionState === DetectionState.RESETTING 
-    ? NEEDLE_RETURN_DURATION_MS 
-    : NEEDLE_ANIM_DURATION_MS;
-  
+  const needleAnimDuration =
+    detectionState === DetectionState.RESETTING
+      ? NEEDLE_RETURN_DURATION_MS
+      : NEEDLE_ANIM_DURATION_MS
+
   // Level indicators animate more slowly for smoother movement
-  const levelIndicatorAnimDuration = detectionState === DetectionState.RESETTING
-    ? LEVEL_INDICATOR_RETURN_DURATION_MS
-    : LEVEL_INDICATOR_ANIM_DURATION_MS;
+  const levelIndicatorAnimDuration =
+    detectionState === DetectionState.RESETTING
+      ? LEVEL_INDICATOR_RETURN_DURATION_MS
+      : LEVEL_INDICATOR_ANIM_DURATION_MS
 
   return (
-    <section 
+    <section
       className={`meter ${powerState === 'off' ? 'meter--off' : 'meter--on'} ${isPoweringOn ? 'meter--powering-on' : ''}`}
       data-power={powerState}
       data-input-mode={inputMode}
@@ -80,27 +91,39 @@ const MeterSection = () => {
       <h1 className="meter__title">Sarcasm Detector™</h1>
       {/* Portal target for mobile launcher button */}
       <div id="mobile-launcher-portal" className="mobile-launcher-portal" />
-      
+
       <div className="meter__display-wrapper">
         {/* Level labels - positioned outside display to avoid filter effects */}
-        <CurvedLabel 
+        <CurvedLabel
           variant="prosodic"
-          label={<>Prosodic – It's <tspan className="italic">how</tspan> you say it</>}
+          label={
+            <>
+              Prosodic – It's <tspan className="italic">how</tspan> you say it
+            </>
+          }
           enabled={prosodicEnabled}
         />
-        <CurvedLabel 
-          variant="lexical" 
-          label={<>Lexical – It's <tspan className="italic">what</tspan> you say</>}
+        <CurvedLabel
+          variant="lexical"
+          label={
+            <>
+              Lexical – It's <tspan className="italic">what</tspan> you say
+            </>
+          }
           enabled={lexicalEnabled}
         />
-        
+
         <div className={`meter__display ${powerState === 'on' ? 'meter__display--backlit' : ''}`}>
           {/* Scale labels */}
           <div className="meter__display__scale-labels">
-            <span className="meter__display__scale-label meter__display__scale-label--left">No Sarcasm</span>
-            <span className="meter__display__scale-label meter__display__scale-label--right">Very Sarcastic</span>
+            <span className="meter__display__scale-label meter__display__scale-label--left">
+              No Sarcasm
+            </span>
+            <span className="meter__display__scale-label meter__display__scale-label--right">
+              Very Sarcastic
+            </span>
           </div>
-          
+
           {/* SVG-based level indicators - rendered first to appear behind arcs */}
           <LevelIndicators
             prosodicValue={displayProsodicValue}
@@ -111,41 +134,35 @@ const MeterSection = () => {
             isPoweringOn={isPoweringOn}
             animDuration={levelIndicatorAnimDuration}
           />
-          
+
           {/* Prosodic meter (red) */}
-          <Level 
-            variant="prosodic" 
-            enabled={prosodicEnabled}
-          />
-          
+          <Level variant="prosodic" enabled={prosodicEnabled} />
+
           {/* Lexical meter (orange) */}
-          <Level 
-            variant="lexical" 
-            enabled={lexicalEnabled}
-          />
-          
+          <Level variant="lexical" enabled={lexicalEnabled} />
+
           <NeedleHolder />
-          <Needle 
-            value={displayMainValue} 
+          <Needle
+            value={displayMainValue}
             isLoading={isLoading && powerState === 'on'}
             isPoweringOn={isPoweringOn}
             animDuration={needleAnimDuration}
           />
-          
+
           {/* Boundaries (visual trim) */}
           <Boundary variant="left" />
           <Boundary variant="right" />
         </div>
       </div>
-      
+
       <div className="meter__controls">
         <RotarySwitch />
       </div>
-      
+
       {/* Unreliable prediction warning */}
       {!isReliable && detectionState === DetectionState.HOLDING_RESULT && (
-        <div 
-          className="meter__warning" 
+        <div
+          className="meter__warning"
           role="alert"
           aria-live="polite"
           aria-label="Warning: The sarcasm detection result may be inaccurate because the machine learning model is currently unavailable. The displayed score is a fallback estimate."
@@ -155,98 +172,84 @@ const MeterSection = () => {
           {/* Screen reader gets more context via aria-label on parent */}
         </div>
       )}
-      
+
       {/* Cable anchor on meter */}
       <div className="detector-jack" data-cable-anchor="meter" aria-hidden="true" />
       {/* Mobile simple cable */}
-      <div className={`mobile-cable ${cableAnimating ? 'mobile-cable--loading' : ''}`} aria-hidden="true" />
+      <div
+        className={`mobile-cable ${cableAnimating ? 'mobile-cable--loading' : ''}`}
+        aria-hidden="true"
+      />
     </section>
-  );
-};
+  )
+}
 
 type BoundaryProps = {
-  variant: 'left' | 'right';
-};
+  variant: 'left' | 'right'
+}
 
 const Boundary = ({ variant }: BoundaryProps) => (
-  <div
-    className={`meter__display__boundary meter__display__boundary--${variant}`}
-  />
-);
+  <div className={`meter__display__boundary meter__display__boundary--${variant}`} />
+)
 
 type LevelProps = {
-  variant: 'prosodic' | 'lexical';
-  enabled: boolean;
-};
+  variant: 'prosodic' | 'lexical'
+  enabled: boolean
+}
 
 const Level = ({ variant, enabled }: LevelProps) => {
   return (
-    <div 
+    <div
       className={`meter__display__level meter__display__level--${variant} ${enabled ? '' : 'meter__display__level--disabled'}`}
       data-enabled={enabled}
     >
-      <div
-        className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${variant}`}
-      >
+      <div className={`meter__display__ticks__wrapper meter__display__ticks__wrapper--${variant}`}>
         <Ticks ticks={TICKS} />
       </div>
     </div>
-  );
-};
+  )
+}
 
 type CurvedLabelProps = {
-  variant: 'prosodic' | 'lexical';
-  label: React.ReactNode;
-  enabled: boolean;
-};
+  variant: 'prosodic' | 'lexical'
+  label: React.ReactNode
+  enabled: boolean
+}
 
 const CurvedLabel = ({ variant, label, enabled }: CurvedLabelProps) => {
-  const pathId = `curve-${variant}`;
-  
+  const pathId = `curve-${variant}`
+
   return (
-    <svg 
+    <svg
       className={`meter__curved-label meter__curved-label--${variant} ${enabled ? '' : 'meter__curved-label--disabled'}`}
       viewBox="0 0 240 45"
       preserveAspectRatio="xMidYMax meet"
     >
       <defs>
-        <path 
-          id={pathId}
-          d="M 8,38 Q 120,5 232,38"
-          fill="none"
-        />
+        <path id={pathId} d="M 8,38 Q 120,5 232,38" fill="none" />
       </defs>
       <text className="meter__curved-label__text">
-        <textPath 
-          href={`#${pathId}`}
-          startOffset="50%"
-          textAnchor="middle"
-        >
+        <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
           {label}
         </textPath>
       </text>
     </svg>
-  );
-};
+  )
+}
 
 type TicksProps = {
-  ticks: Tick[];
-};
+  ticks: Tick[]
+}
 
 const Ticks = ({ ticks }: TicksProps) => (
   <>
-    {ticks.map((tick) => (
-      <TickMark
-        key={tick.uuid}
-        size={tick.size}
-        rotation={tick.rotation}
-        label={tick.label}
-      />
+    {ticks.map(tick => (
+      <TickMark key={tick.uuid} size={tick.size} rotation={tick.rotation} label={tick.label} />
     ))}
   </>
-);
+)
 
-type TickProps = Omit<Tick, 'uuid'>;
+type TickProps = Omit<Tick, 'uuid'>
 const TickMark = ({ size, rotation, label }: TickProps) => {
   return (
     <div
@@ -254,22 +257,20 @@ const TickMark = ({ size, rotation, label }: TickProps) => {
       style={{ transform: `rotate(${rotation}deg)` }}
       title={label}
     />
-  );
-};
+  )
+}
 
-const NeedleHolder = () => (
-  <div className="meter__needle__holder" />
-);
+const NeedleHolder = () => <div className="meter__needle__holder" />
 
 const WarningIcon = () => (
-  <svg 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
   >
@@ -277,29 +278,31 @@ const WarningIcon = () => (
     <line x1="12" y1="9" x2="12" y2="13" />
     <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
-);
+)
 
 type NeedleProps = {
-  value: number;
-  isLoading: boolean;
-  isPoweringOn: boolean;
-  animDuration: number;
-};
+  value: number
+  isLoading: boolean
+  isPoweringOn: boolean
+  animDuration: number
+}
 
 const Needle = ({ value, isLoading, isPoweringOn, animDuration }: NeedleProps) => {
   // Convert value (0-1) to rotation degrees to stay within visible arc
   // NEEDLE_MIN_DEG = leftmost (0), 0deg = center (0.5), NEEDLE_MAX_DEG = rightmost (1)
-  const rotation = NEEDLE_MIN_DEG + (value * NEEDLE_RANGE_DEG);
-  
-  return (
-    <div 
-      className={`meter__needle ${isLoading ? 'meter__needle--loading' : ''} ${isPoweringOn ? 'meter__needle--powering-on' : ''}`}
-      style={{ 
-        '--needle-rotation': `${rotation}deg`,
-        '--anim-duration': `${animDuration}ms`,
-      } as React.CSSProperties}
-    />
-  );
-};
+  const rotation = NEEDLE_MIN_DEG + value * NEEDLE_RANGE_DEG
 
-export default MeterSection;
+  return (
+    <div
+      className={`meter__needle ${isLoading ? 'meter__needle--loading' : ''} ${isPoweringOn ? 'meter__needle--powering-on' : ''}`}
+      style={
+        {
+          '--needle-rotation': `${rotation}deg`,
+          '--anim-duration': `${animDuration}ms`,
+        } as React.CSSProperties
+      }
+    />
+  )
+}
+
+export default MeterSection

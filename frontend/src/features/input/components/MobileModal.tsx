@@ -10,22 +10,22 @@ const MobileModal = ({ open, onClose, children }: Props) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const focusablesRef = useRef<HTMLElement[]>([])
-  
+
   // Auto-focus the dialog when it opens for keyboard accessibility
   useEffect(() => {
     if (open && dialogRef.current) {
       dialogRef.current.focus()
     }
   }, [open])
-  
+
   // Cache focusable elements when modal opens or children change
   useEffect(() => {
     if (!open) return
-    
+
     const updateFocusables = () => {
       const root = modalRef.current
       if (!root) return
-      
+
       // Comprehensive selector that excludes disabled and hidden elements
       const selector = [
         'button:not(:disabled):not([aria-hidden="true"])',
@@ -35,38 +35,38 @@ const MobileModal = ({ open, onClose, children }: Props) => {
         'textarea:not(:disabled):not([aria-hidden="true"])',
         '[tabindex]:not([tabindex="-1"]):not(:disabled):not([aria-hidden="true"])',
       ].join(', ')
-      
+
       const elements = Array.from(root.querySelectorAll<HTMLElement>(selector))
       // Filter out elements that are visually hidden or have inert parents
-      focusablesRef.current = elements.filter((el) => {
+      focusablesRef.current = elements.filter(el => {
         return el.offsetParent !== null && !el.closest('[inert]')
       })
     }
-    
+
     updateFocusables()
-    
+
     // Update focusables if DOM changes (e.g., buttons become enabled/disabled)
     const observer = new MutationObserver(updateFocusables)
     if (modalRef.current) {
-      observer.observe(modalRef.current, { 
-        attributes: true, 
-        childList: true, 
+      observer.observe(modalRef.current, {
+        attributes: true,
+        childList: true,
         subtree: true,
-        attributeFilter: ['disabled', 'aria-hidden', 'tabindex']
+        attributeFilter: ['disabled', 'aria-hidden', 'tabindex'],
       })
     }
-    
+
     return () => observer.disconnect()
   }, [open, children])
-  
+
   const trapFocus = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab') return
     const focusables = focusablesRef.current
     if (focusables.length === 0) return
-    
+
     const first = focusables[0]
     const last = focusables[focusables.length - 1]
-    
+
     if (e.shiftKey && document.activeElement === first) {
       last.focus()
       e.preventDefault()
@@ -84,12 +84,16 @@ const MobileModal = ({ open, onClose, children }: Props) => {
       aria-modal="true"
       className="audio-recorder__modal"
       tabIndex={-1}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Escape') onClose()
         trapFocus(e)
       }}
     >
-      <div className="audio-recorder__backdrop" onClick={onClose} onPointerDown={(e) => e.stopPropagation()} />
+      <div
+        className="audio-recorder__backdrop"
+        onClick={onClose}
+        onPointerDown={e => e.stopPropagation()}
+      />
       <div className="audio-recorder__modal__content" ref={modalRef}>
         <div className="audio-recorder__modal__header">
           <button type="button" className="close-btn" onClick={onClose} aria-label="Close recorder">
@@ -116,5 +120,3 @@ const MobileModal = ({ open, onClose, children }: Props) => {
 }
 
 export default MobileModal
-
-

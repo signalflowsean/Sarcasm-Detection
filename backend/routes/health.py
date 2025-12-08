@@ -24,29 +24,34 @@ def health_check():
     Reports status of loaded models and version info.
     """
     _, wav2vec_model = get_wav2vec_components()
-    
-    return jsonify({
-        'status': 'healthy',
-        'version': API_VERSION,
-        'models': {
-            'lexical': get_lexical_model() is not None,
-            'prosodic': get_prosodic_model() is not None,
-            'wav2vec': wav2vec_model is not None
+
+    return jsonify(
+        {
+            'status': 'healthy',
+            'version': API_VERSION,
+            'models': {
+                'lexical': get_lexical_model() is not None,
+                'prosodic': get_prosodic_model() is not None,
+                'wav2vec': wav2vec_model is not None,
+            },
         }
-    })
+    )
 
 
 @bp.route('/api/version', methods=['GET'])
 def version():
     """
     Version endpoint - check this in browser console to verify deployment.
-    
+
     Usage in console:
         fetch('/api/version').then(r => r.json()).then(console.log)
     """
-    return jsonify({
-        'version': API_VERSION,
-        'buildTime': BUILD_TIME,
-        'environment': 'production' if os.environ.get('FLASK_ENV') != 'development' else 'development',
-    })
-
+    return jsonify(
+        {
+            'version': API_VERSION,
+            'buildTime': BUILD_TIME,
+            'environment': 'production'
+            if os.environ.get('FLASK_ENV') != 'development'
+            else 'development',
+        }
+    )

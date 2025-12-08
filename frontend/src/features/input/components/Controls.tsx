@@ -12,7 +12,17 @@ type Props = {
   isRecording: boolean
 }
 
-const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onSend, canSend, sending, isRecording }: Props) => {
+const Controls = ({
+  canPlay,
+  isPlaying,
+  onTogglePlay,
+  onDiscard,
+  canDiscard,
+  onSend,
+  canSend,
+  sending,
+  isRecording,
+}: Props) => {
   let sendLabel = 'Send to Detector'
   if (!canSend) {
     sendLabel = 'Record Audio First'
@@ -21,11 +31,11 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
   }
 
   const playLabel = isPlaying ? 'Pause' : 'Preview Audio'
-  
+
   // Detect platform for keyboard shortcut display
   const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
-  
+
   // Flash the send button when audio is ready but not recording/playing/sending
   const shouldFlash = canSend && !isPlaying && !sending && !isRecording
 
@@ -39,7 +49,9 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
       >
         <span className="audio-btn__label">{playLabel}</span>
         {canPlay && (
-          <kbd className="audio-btn__shortcut" aria-label="Keyboard shortcut: Space">Space</kbd>
+          <kbd className="audio-btn__shortcut" aria-label="Keyboard shortcut: Space">
+            Space
+          </kbd>
         )}
       </button>
       <button
@@ -65,7 +77,9 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
         </svg>
         {canDiscard && (
-          <kbd className="audio-btn__shortcut" aria-label="Keyboard shortcut: Delete">Del</kbd>
+          <kbd className="audio-btn__shortcut" aria-label="Keyboard shortcut: Delete">
+            Del
+          </kbd>
         )}
       </button>
       <button
@@ -76,7 +90,10 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
       >
         <span className="audio-btn__label">{sendLabel}</span>
         {canSend && !sending && (
-          <kbd className="audio-btn__shortcut" aria-label={`Keyboard shortcut: ${modifierKey} + Enter`}>
+          <kbd
+            className="audio-btn__shortcut"
+            aria-label={`Keyboard shortcut: ${modifierKey} + Enter`}
+          >
             {modifierKey}+↵
           </kbd>
         )}
@@ -86,5 +103,3 @@ const Controls = ({ canPlay, isPlaying, onTogglePlay, onDiscard, canDiscard, onS
 }
 
 export default Controls
-
-

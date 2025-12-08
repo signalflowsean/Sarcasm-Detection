@@ -77,20 +77,31 @@ npm run dev
 Sarcasm-Detection/
 ├── backend/                    # Flask API server
 │   ├── app.py                 # Main application & API endpoints
+│   ├── audio/                 # Audio processing module
+│   ├── models/                # ML model loading & inference
+│   ├── routes/                # API route blueprints
+│   ├── tests/                 # Backend unit tests (pytest)
 │   ├── sarcasm_model.pkl      # Trained lexical model
 │   ├── prosodic_model.pkl     # Trained prosodic model
-│   ├── Dockerfile             # Backend container configuration
-│   └── requirements.txt       # Python dependencies
+│   ├── requirements.txt       # Python dependencies
+│   ├── requirements-dev.txt   # Dev/test dependencies
+│   └── Dockerfile             # Backend container configuration
 │
 ├── frontend/                   # React + TypeScript + Vite application
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── input/         # Text & audio input components
 │   │   │   └── meter/         # VU meter display components
+│   │   ├── test/              # Test setup & mocks
 │   │   ├── App.tsx            # Main application component
 │   │   └── main.tsx           # Application entry point
+│   ├── vitest.config.ts       # Vitest test configuration
 │   ├── Dockerfile             # Frontend container configuration
 │   └── nginx.conf             # Production server configuration
+│
+├── e2e/                        # End-to-end tests (Playwright)
+│   ├── tests/                 # E2E test specs
+│   └── playwright.config.ts   # Playwright configuration
 │
 ├── ml/                         # Machine learning training pipelines
 │   ├── lexical/               # Text-based sarcasm detection
@@ -188,6 +199,7 @@ Health check endpoint for container orchestration.
 | Backend | Flask, Flask-CORS, Flask-Limiter, Gunicorn |
 | ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
 | ML (Prosodic) | Wav2Vec2 (HuggingFace) + scikit-learn |
+| Testing | Vitest, Playwright, pytest |
 | Infrastructure | Docker, Docker Compose, Nginx |
 
 ## Development
@@ -206,14 +218,54 @@ Health check endpoint for container orchestration.
 
 ### Running Tests
 
+**Backend (pytest):**
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest                    # Run all tests
+pytest -v                 # Verbose output
+pytest --cov=.            # With coverage report
+pytest tests/test_lexical.py  # Run specific test file
+```
+
+**Frontend (Vitest):**
+
+```bash
+cd frontend
+npm run test              # Run all tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # With coverage report
+```
+
+**End-to-End (Playwright):**
+
+```bash
+cd e2e
+npm install
+npx playwright install    # Install browsers (first time)
+npm test                  # Run all E2E tests
+npm run test:ui           # Interactive UI mode
+npm run test:debug        # Debug mode
+npm run test:report       # View test report
+```
+
+**Linting:**
+
 ```bash
 # Frontend
 cd frontend
-npm run lint
+npm run lint              # ESLint
+npm run lint:fix          # Auto-fix issues
+npm run format            # Prettier
+npm run format:check      # Check formatting
 
 # Backend
 cd backend
-# Tests coming soon
+pip install -r requirements-dev.txt
+ruff check .              # Lint
+ruff check . --fix        # Auto-fix
+ruff format .             # Format
 ```
 
 ## Features
@@ -387,11 +439,12 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 **Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
 
 ### 🧪 Testing & CI/CD
-- [ ] Add unit tests for backend (pytest)
-- [ ] Add unit tests for frontend (Vitest)
-- [ ] Add integration tests for API endpoints
-- [ ] Set up ESLint + Prettier for frontend
-- [ ] Set up Ruff/Black for backend linting
+- [x] Add unit tests for backend (pytest)
+- [x] Add unit tests for frontend (Vitest)
+- [x] Add integration tests for API endpoints
+- [x] Set up ESLint + Prettier for frontend
+- [x] Set up Ruff for backend linting
+- [x] Add end-to-end tests (Playwright)
 - [ ] Create GitHub Actions workflow for:
   - Linting on PR
   - Running tests on PR
@@ -400,7 +453,6 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 
 ### 📝 Other Improvements
 - [ ] Add OpenAPI/Swagger documentation for API
-- [ ] Add end-to-end tests (Playwright)
 - [ ] Performance monitoring/logging
 - [ ] Model versioning and A/B testing support
 

@@ -7,7 +7,10 @@ type SpeechRecognitionLike = {
   continuous?: boolean
   maxAlternatives?: number
   lang: string
-  onresult: (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void
+  onresult: (event: {
+    resultIndex: number
+    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+  }) => void
   onerror: (event: unknown) => void
   onend: () => void
   start: () => void
@@ -15,7 +18,10 @@ type SpeechRecognitionLike = {
 }
 
 const getSpeechRecognitionCtor = (): (new () => SpeechRecognitionLike) | null => {
-  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike
+  }
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
@@ -71,7 +77,10 @@ export function useSpeechRecognition({
     // Use browser's language setting with fallback to en-US
     recognition.lang = navigator.language || 'en-US'
 
-    recognition.onresult = (event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => {
+    recognition.onresult = (event: {
+      resultIndex: number
+      results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
+    }) => {
       let interim = ''
       let final = ''
       for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -162,7 +171,9 @@ export function useSpeechRecognition({
     if (!rec) return
     try {
       rec.stop()
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
     recognitionRef.current = null
   }, [])
 
@@ -172,4 +183,3 @@ export function useSpeechRecognition({
     speechSupported,
   }
 }
-

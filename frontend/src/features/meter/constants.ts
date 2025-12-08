@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
-export const SMALL = 'small', LARGE = 'large';
+export const SMALL = 'small',
+  LARGE = 'large'
 
 export type WhichInputOption = {
   value: string

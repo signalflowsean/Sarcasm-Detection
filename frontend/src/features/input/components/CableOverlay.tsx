@@ -4,7 +4,7 @@ import { useDetection } from '../../meter/useDetection'
 const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')
   const resizeTimeoutRef = useRef<number | null>(null)
-  
+
   // Subscribe to cable animation state (triggers immediately on send, stays visible for minimum duration)
   const { cableAnimating } = useDetection()
 
@@ -42,13 +42,13 @@ const CableOverlay = () => {
     // The jack is at the CENTER TOP of the container
     // Calculate horizontal distance from jack to right edge
     const horizontalDistance = ic.right - startX
-    
+
     // First 25% of horizontal distance: cable goes UP and RIGHT
-    const point25X = startX + (horizontalDistance * 0.25)
-    
+    const point25X = startX + horizontalDistance * 0.25
+
     // At 25% mark, cable should be above container top by CLEARANCE
     const point25Y = ic.top - CLEARANCE
-    
+
     // Peak Y: highest point, in gap between title and container
     const titleBottom = title ? title.bottom : ic.top - 100
     const peakY = titleBottom + CLEARANCE
@@ -60,11 +60,11 @@ const CableOverlay = () => {
 
     // Smooth bezier control points for first curve with gradual transition to vertical
     // Goes from start → point25 (up and right) → peak (continue up and right) → curve1End (smoothly downward)
-    
+
     // c1: pull toward point25, moving upward and rightward
     const c1x = point25X
     const c1y = point25Y
-    
+
     // c2: position between peak and endpoint for one smooth continuous arc
     // Stays at curve1EndX (not beyond it) to avoid curving back
     const c2x = curve1EndX
@@ -78,15 +78,15 @@ const CableOverlay = () => {
     // SECTION 3: Final curve to meter jack - smooth gradual arc with MORE curvature
     // Control points positioned farther from endpoints to create a rounder, more curved arc
     const verticalDistanceToMeter = endY - lineEndY
-    
+
     // Position control points much farther out (50%) for a nicely rounded curve
     const c3x = lineEndX
     const c3y = lineEndY + verticalDistanceToMeter * 0.5
-    
+
     const c4x = endX
     const c4y = endY - verticalDistanceToMeter * 0.5
 
-    const path = 
+    const path =
       `M ${startX},${startY} ` +
       `C ${c1x},${c1y} ${c2x},${c2y} ${curve1EndX},${curve1EndY} ` +
       `L ${lineEndX},${lineEndY} ` +
@@ -104,10 +104,10 @@ const CableOverlay = () => {
     const tryRecompute = () => {
       const meterEl = document.querySelector('.meter')
       const inputContainer = document.querySelector('.input-container')
-      
+
       if (meterEl && inputContainer) {
         recomputeCablePath()
-        
+
         // Schedule an additional recalculation to catch any late layout changes
         extraAnimationFrameId = requestAnimationFrame(() => {
           recomputeCablePath()
@@ -117,7 +117,7 @@ const CableOverlay = () => {
         animationFrameId = requestAnimationFrame(tryRecompute)
       }
     }
-    
+
     animationFrameId = requestAnimationFrame(tryRecompute)
 
     // Throttled resize handler to improve performance
@@ -144,7 +144,7 @@ const CableOverlay = () => {
     const meterEl = document.querySelector('.meter')
     const inputContainer = document.querySelector('.input-container')
     const mainEl = document.querySelector('main')
-    
+
     const resizeObserver = new ResizeObserver(() => {
       onResize()
     })
@@ -162,14 +162,14 @@ const CableOverlay = () => {
       mutationObserver.observe(inputContainer, {
         childList: true,
         subtree: true,
-        attributes: false
+        attributes: false,
       })
     }
 
     return () => {
       // Set flag immediately to prevent new timeouts during cleanup
       isMounted = false
-      
+
       if (typeof animationFrameId === 'number') {
         cancelAnimationFrame(animationFrameId)
       }
@@ -188,37 +188,58 @@ const CableOverlay = () => {
   if (!pathD) return null
 
   return (
-    <svg 
-      className={`cable-overlay ${cableAnimating ? 'cable-overlay--loading' : ''}`} 
+    <svg
+      className={`cable-overlay ${cableAnimating ? 'cable-overlay--loading' : ''}`}
       aria-hidden="true"
     >
       {/* Base cable shadow */}
-      <path d={pathD} stroke="#1f1f1f" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={pathD}
+        stroke="#1f1f1f"
+        strokeWidth="12"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {/* Cable body */}
-      <path d={pathD} stroke="#343434" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={pathD}
+        stroke="#343434"
+        strokeWidth="8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {/* Cable texture */}
-      <path 
-        d={pathD} 
-        stroke="#555" 
-        strokeWidth="6" 
-        fill="none" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeDasharray="7 10" 
+      <path
+        d={pathD}
+        stroke="#555"
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="7 10"
         opacity="0.9"
         className="cable-overlay__texture"
       />
       {/* Highlight */}
-      <path d={pathD} stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={pathD}
+        stroke="rgba(255,255,255,0.15)"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {/* Data flow animation layer (only visible during animation) */}
       {cableAnimating && (
-        <path 
-          d={pathD} 
-          stroke="rgba(59, 130, 246, 0.8)" 
-          strokeWidth="3" 
-          fill="none" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
+        <path
+          d={pathD}
+          stroke="rgba(59, 130, 246, 0.8)"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           strokeDasharray="10 20"
           className="cable-overlay__data-flow"
         />

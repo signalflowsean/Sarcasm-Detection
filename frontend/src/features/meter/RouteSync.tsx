@@ -13,7 +13,7 @@ export function RouteSync() {
   const navigate = useNavigate()
   const { value, setValue } = useWhichInput()
   const isInitialMount = useRef(true)
-  
+
   // Track the last values to detect actual changes
   const lastPathRef = useRef(location.pathname)
   const lastValueRef = useRef(value)
@@ -21,7 +21,7 @@ export function RouteSync() {
   // Sync route -> rotary switch (when user navigates via URL/back button)
   useEffect(() => {
     const targetValue = PATH_TO_VALUE[location.pathname]
-    
+
     // Handle unhandled routes by redirecting to default path
     if (targetValue === undefined) {
       // Only redirect if we haven't just redirected to avoid loops
@@ -32,11 +32,11 @@ export function RouteSync() {
       }
       return
     }
-    
+
     // Only update if the pathname actually changed (not just a re-render)
     if (lastPathRef.current !== location.pathname) {
       lastPathRef.current = location.pathname
-      
+
       if (targetValue !== value) {
         lastValueRef.current = targetValue
         setValue(targetValue)
@@ -64,7 +64,7 @@ export function RouteSync() {
     // Only navigate if the value actually changed (not from route sync)
     if (lastValueRef.current !== value) {
       lastValueRef.current = value
-      
+
       const targetPath = VALUE_TO_PATH[value]
       if (targetPath && location.pathname !== targetPath) {
         lastPathRef.current = targetPath
