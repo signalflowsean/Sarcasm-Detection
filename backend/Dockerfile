@@ -2,9 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for audio processing (ffmpeg)
+# Install system dependencies for audio processing
+# - ffmpeg: CLI tool for audio format conversion (used as subprocess fallback)
+# - libavcodec-dev: FFmpeg shared libraries required by torchaudio's torio backend
+#   (pulls in libavutil, libavformat, etc. as dependencies)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================================
