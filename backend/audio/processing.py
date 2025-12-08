@@ -1,6 +1,6 @@
 """
 Audio processing utilities for prosodic sarcasm detection.
-Handles decoding, preprocessing, and embedding extraction.
+Handles decoding, preprocessing, and embedding extraction using ONNX Runtime.
 
 Security: Internal error details (FFmpeg output, file paths) are logged
 but not exposed to users. User-facing errors are sanitized.
@@ -20,23 +20,20 @@ from errors import UserError
 logger = logging.getLogger(__name__)
 
 # Lazy imports for optional dependencies
-_torch = None
-_torchaudio = None
 _sf = None
+_scipy_signal = None
 
 
 def _ensure_imports():
     """Lazy import audio processing dependencies."""
-    global _torch, _torchaudio, _sf
+    global _sf, _scipy_signal
 
-    if _torch is None:
+    if _sf is None:
         import soundfile as sf
-        import torch
-        import torchaudio
+        from scipy import signal
 
-        _torch = torch
-        _torchaudio = torchaudio
         _sf = sf
+        _scipy_signal = signal
 
 
 def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
@@ -75,6 +72,7 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
             '-f',
             'wav',  # Output format
             '-y',  # Overwrite output
+            '-nostdin',  # Don't read from stdin (security)
             output_path,
         ]
 
@@ -147,7 +145,7 @@ def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
     """
     Preprocess audio for Wav2Vec2 model.
     - Convert to mono
-    - Resample to 16kHz
+    - Resample to 16kHz using scipy (replaces torchaudio)
     - Normalize
 
     Args:
@@ -163,22 +161,21 @@ def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
     if waveform.ndim == 2:
         waveform = waveform.mean(axis=1)
 
-    # Resample to 16kHz if necessary
+    # Resample to 16kHz if necessary using scipy
     if sr != TARGET_SAMPLE_RATE:
-        waveform_tensor = _torch.tensor(waveform).unsqueeze(0).float()
-        resampler = _torchaudio.transforms.Resample(sr, TARGET_SAMPLE_RATE)
-        waveform_tensor = resampler(waveform_tensor)
-        waveform = waveform_tensor.squeeze(0).numpy()
+        # Calculate resampling ratio
+        num_samples = int(len(waveform) * TARGET_SAMPLE_RATE / sr)
+        waveform = _scipy_signal.resample(waveform, num_samples)
 
     # Normalize (zero mean, unit variance)
     waveform = (waveform - waveform.mean()) / (waveform.std() + 1e-9)
 
-    return waveform
+    return waveform.astype(np.float32)
 
 
 def extract_embedding(waveform: np.ndarray) -> np.ndarray:
     """
-    Extract Wav2Vec2 embedding from preprocessed audio.
+    Extract Wav2Vec2 embedding from preprocessed audio using ONNX Runtime.
 
     Args:
         waveform: Preprocessed audio waveform (1D numpy array, 16kHz, normalized).
@@ -187,29 +184,26 @@ def extract_embedding(waveform: np.ndarray) -> np.ndarray:
         Embedding as numpy array of shape (768,).
 
     Raises:
-        RuntimeError: If Wav2Vec2 models are not loaded.
+        RuntimeError: If ONNX model is not loaded.
     """
-    _ensure_imports()
+    from models.loader import get_onnx_session, load_onnx_model
 
-    from models.loader import get_wav2vec_components, load_prosodic_models
+    # Ensure model is loaded
+    load_onnx_model()
+    session = get_onnx_session()
 
-    # Ensure models are loaded
-    load_prosodic_models()
-    processor, model = get_wav2vec_components()
-
-    if processor is None or model is None:
-        logger.error('[AUDIO] Wav2Vec2 models not loaded - cannot extract embedding')
+    if session is None:
+        logger.error('[AUDIO] ONNX model not loaded - cannot extract embedding')
         raise RuntimeError(UserError.MODEL_UNAVAILABLE)
 
-    # Prepare input for Wav2Vec2
-    inputs = processor(
-        waveform, sampling_rate=TARGET_SAMPLE_RATE, return_tensors='pt', padding=True
-    )
+    # Prepare input (add batch dimension)
+    input_values = waveform.reshape(1, -1).astype(np.float32)
 
-    # Extract embedding
-    with _torch.no_grad():
-        outputs = model(inputs.input_values)
-        # Mean pool over time dimension
-        embedding = outputs.last_hidden_state.mean(dim=1).squeeze(0).numpy()
+    # Run ONNX inference
+    outputs = session.run(['last_hidden_state'], {'input_values': input_values})
+
+    # Mean pool over time dimension
+    hidden_states = outputs[0]  # Shape: (1, seq_len, 768)
+    embedding = hidden_states.mean(axis=1).squeeze(0)  # Shape: (768,)
 
     return embedding

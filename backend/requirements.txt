@@ -8,13 +8,15 @@ gunicorn==21.2.0
 scikit-learn==1.6.1
 numpy>=1.24.0
 
-# Prosodic model dependencies (Wav2Vec2)
-# NOTE: PyTorch is installed separately in Dockerfile using CPU-only wheels
-# to reduce image size from ~4GB to ~1.5GB
-transformers>=4.30.0
+# Prosodic model dependencies (ONNX Runtime - lightweight inference)
+# Replaces PyTorch (~700MB) with ONNX Runtime (~150MB) for smaller Docker image
+# The wav2vec2.onnx model file must be present in the backend directory
+onnxruntime>=1.16.0
 
 # Audio processing
 soundfile>=0.12.0
+# scipy is needed for audio resampling (replaces torchaudio)
+scipy>=1.11.0
 
 # Development/Testing (not needed in production Docker image)
 # Install with: pip install -r requirements.txt -r requirements-dev.txt

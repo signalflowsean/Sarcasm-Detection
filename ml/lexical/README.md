@@ -57,7 +57,7 @@ python train_transformer.py --export-onnx
 
 **Training time:**
 - NVIDIA GPU: ~5-10 minutes
-- Apple M1/M2: ~15-30 minutes  
+- Apple M1/M2: ~15-30 minutes
 - CPU: ~1-2 hours (not recommended)
 
 ### Test Inference
@@ -205,4 +205,3 @@ The trained sklearn model is loaded by the Flask backend (`backend/app.py`):
 - [Sarcasm Headlines Dataset](https://www.kaggle.com/rmisra/news-headlines-dataset-for-sarcasm-detection)
 - [iSarcasm Dataset](https://github.com/silviu-oprea/iSarcasm)
 - [SARC Reddit Dataset](https://nlp.cs.princeton.edu/SARC/)
-

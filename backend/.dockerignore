@@ -36,3 +36,5 @@ tests/
 test_*.py
 *_test.py
 
+# Keep ONNX model (don't ignore it)
+!wav2vec2.onnx

@@ -174,4 +174,3 @@ The trained model is loaded by the Flask backend (`backend/app.py`):
 - [MUStARD GitHub](https://github.com/soujanyaporia/MUStARD)
 - [Wav2Vec2 Paper](https://arxiv.org/abs/2006.11477) - Baevski et al., 2020
 - [HuggingFace Dataset](https://huggingface.co/datasets/MichiganNLP/MUStARD)
-
