@@ -198,7 +198,7 @@ Health check endpoint for container orchestration.
 | Frontend | React 19, TypeScript, Vite, React Router |
 | Backend | Flask, Flask-CORS, Flask-Limiter, Gunicorn |
 | ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
-| ML (Prosodic) | Wav2Vec2 (HuggingFace) + scikit-learn |
+| ML (Prosodic) | Wav2Vec2 (ONNX Runtime) + scikit-learn |
 | Testing | Vitest, Playwright, pytest |
 | Infrastructure | Docker, Docker Compose, Nginx |
 
@@ -408,13 +408,24 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 
 ## TODO / Future Improvements
 
-### 🐳 Docker Image Optimization
-**Current size:** ~2.75GB | **Target:** ~1.5-2GB
+### 🐳 Docker Image Optimization (ONNX Migration)
+**Previous size:** ~2.75GB | **Current size:** ~1.5GB
 
-The backend image is large due to PyTorch (~700MB). Consider migrating to ONNX Runtime for inference:
-- Export Wav2Vec2 model to ONNX format
-- Replace `torch`/`torchaudio` with `onnxruntime` (~150MB)
-- Update `audio/processing.py` to use ONNX inference
+The backend now uses ONNX Runtime (~150MB) instead of PyTorch (~700MB) for Wav2Vec2 inference.
+
+**Setup (required before Docker build):**
+
+```bash
+# Generate the ONNX model file (~360MB)
+cd ml/prosodic
+pip install torch transformers onnx onnxruntime
+python export_onnx.py
+
+# Verify the export (optional)
+python verify_onnx.py
+```
+
+The `wav2vec2.onnx` file is required in `backend/` before building the Docker image. It's gitignored due to size.
 
 ### 🎨 CSS Variables Cleanup
 Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
@@ -437,19 +448,6 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 **Shadows:** Button, card/modal, inset depth, brass/metallic highlights
 
 **Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
-
-### 🧪 Testing & CI/CD
-- [x] Add unit tests for backend (pytest)
-- [x] Add unit tests for frontend (Vitest)
-- [x] Add integration tests for API endpoints
-- [x] Set up ESLint + Prettier for frontend
-- [x] Set up Ruff for backend linting
-- [x] Add end-to-end tests (Playwright)
-- [ ] Create GitHub Actions workflow for:
-  - Linting on PR
-  - Running tests on PR
-  - Docker build verification
-  - Automated deployment to Railway on merge to main
 
 ### 📝 Other Improvements
 - [ ] Add OpenAPI/Swagger documentation for API

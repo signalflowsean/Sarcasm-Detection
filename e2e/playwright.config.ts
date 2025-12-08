@@ -24,6 +24,15 @@ export default defineConfig({
     trace: 'on-first-retry',
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
+    /* Grant permissions for audio recording tests */
+    permissions: ['microphone'],
+    /* Use fake audio/video devices in headless mode for CI */
+    launchOptions: {
+      args: [
+        '--use-fake-ui-for-media-stream',
+        '--use-fake-device-for-media-stream',
+      ],
+    },
   },
   /* Configure projects for major browsers */
   projects: [
@@ -47,4 +56,3 @@ export default defineConfig({
     timeout: 10000,
   },
 })
-

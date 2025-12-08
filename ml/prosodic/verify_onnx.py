@@ -11,7 +11,15 @@ Arguments:
     --audio PATH    Path to a test audio file (optional, uses synthetic audio if not provided)
 
 Prerequisites:
-    pip install torch transformers onnxruntime numpy soundfile
+    Core (always required):
+        pip install torch transformers onnxruntime numpy
+    
+    Optional (only for --audio):
+        pip install soundfile    # for loading audio files
+        pip install torchaudio   # for resampling non-16kHz audio
+
+Note: soundfile and torchaudio are imported conditionally within functions to allow
+running with synthetic audio when these packages are not installed.
 """
 
 import argparse
@@ -42,6 +50,7 @@ def load_audio(audio_path: str | None) -> np.ndarray:
         print("Using synthetic audio (2 seconds of noise)")
         return np.random.randn(SAMPLE_RATE * 2).astype(np.float32)
     
+    # Conditional import: soundfile is only needed when loading audio files
     import soundfile as sf
     
     print(f"Loading audio from: {audio_path}")
@@ -53,6 +62,7 @@ def load_audio(audio_path: str | None) -> np.ndarray:
     
     # Resample to 16kHz if needed
     if sr != SAMPLE_RATE:
+        # Conditional import: torchaudio is only needed for resampling
         import torchaudio
         waveform_tensor = torch.tensor(waveform).unsqueeze(0).float()
         resampler = torchaudio.transforms.Resample(sr, SAMPLE_RATE)
@@ -72,23 +82,26 @@ def get_pytorch_embedding(waveform: np.ndarray) -> np.ndarray:
     """
     Get embedding using PyTorch Wav2Vec2 model.
     
+    Note: Uses raw tensor input (no processor) to match how the ONNX model
+    was exported in export_onnx.py. Both models receive identical inputs
+    for a fair comparison.
+    
     Args:
         waveform: Normalized audio waveform
         
     Returns:
         Mean-pooled embedding of shape (768,)
     """
-    from transformers import Wav2Vec2Model, Wav2Vec2Processor
+    from transformers import Wav2Vec2Model
     
-    processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
     model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
     model.eval()
     
-    # Process through model
-    inputs = processor(waveform, sampling_rate=SAMPLE_RATE, return_tensors="pt", padding=True)
+    # Pass raw waveform directly (matching ONNX export which doesn't use processor)
+    input_tensor = torch.tensor(waveform).unsqueeze(0).float()
     
     with torch.no_grad():
-        outputs = model(inputs.input_values)
+        outputs = model(input_tensor)
         # Mean pool over time dimension
         embedding = outputs.last_hidden_state.mean(dim=1).squeeze(0).numpy()
     

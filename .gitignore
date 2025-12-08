@@ -16,6 +16,14 @@ ml/prosodic/data/processed/embeddings/
 *.avi
 *.webm
 
+# ===========================================
+# ONNX Models (too large for git, ~360MB)
+# ===========================================
+# Generate using: python ml/prosodic/export_onnx.py
+# Or download from release artifacts
+backend/wav2vec2.onnx
+*.onnx
+
 # Keep these small files (useful for reproducibility):
 # - ml/prosodic/data/processed/mustard_index.csv
 # - ml/prosodic/data/processed/mustard_index_with_embeddings.csv

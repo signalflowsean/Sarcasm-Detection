@@ -11,9 +11,12 @@ import logging
 import os
 import pickle
 
-from config import LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH, WAV2VEC_MODEL_NAME
+from config import LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
 
 logger = logging.getLogger(__name__)
+
+# ONNX model path (same directory as other models)
+ONNX_MODEL_PATH = os.path.join(os.path.dirname(PROSODIC_MODEL_PATH), 'wav2vec2.onnx')
 
 
 # ============================================================================
@@ -197,21 +200,18 @@ def validate_sklearn_model(model, model_name: str) -> bool:
 
 _lexical_model = None
 _prosodic_model = None
-_wav2vec_processor = None
-_wav2vec_model = None
-_torch_available = False
+_onnx_session = None
+_onnx_available = False
 
-# Try to import PyTorch and transformers for prosodic (audio-based) detection.
-# Wav2Vec2 converts audio into embeddings that capture prosodic cues (tone, pitch, rhythm).
-# Wrapped in try/except for graceful degradation—if not installed, prosodic endpoint returns mock data.
+# Try to import ONNX Runtime for prosodic (audio-based) detection.
+# ONNX Runtime provides lightweight inference (~150MB vs ~700MB for PyTorch).
 try:
-    import torch  # noqa: F401
-    from transformers import Wav2Vec2Model, Wav2Vec2Processor  # noqa: F401
+    import onnxruntime as ort  # noqa: F401
 
-    _torch_available = True
-    logger.info('PyTorch and transformers loaded successfully')
+    _onnx_available = True
+    logger.info('ONNX Runtime loaded successfully')
 except ImportError as e:
-    logger.warning(f'Could not import PyTorch/transformers: {e}')
+    logger.warning(f'Could not import ONNX Runtime: {e}')
     logger.warning('Prosodic endpoint will return mock data')
 
 
@@ -220,9 +220,9 @@ except ImportError as e:
 # ============================================================================
 
 
-def is_torch_available() -> bool:
-    """Check if PyTorch and transformers are available."""
-    return _torch_available
+def is_onnx_available() -> bool:
+    """Check if ONNX Runtime is available."""
+    return _onnx_available
 
 
 def get_lexical_model():
@@ -235,9 +235,9 @@ def get_prosodic_model():
     return _prosodic_model
 
 
-def get_wav2vec_components():
-    """Get the Wav2Vec2 processor and model (may be None if not loaded)."""
-    return _wav2vec_processor, _wav2vec_model
+def get_onnx_session():
+    """Get the ONNX Runtime session for Wav2Vec2 (may be None if not loaded)."""
+    return _onnx_session
 
 
 def load_lexical_model() -> bool:
@@ -282,32 +282,57 @@ def load_lexical_model() -> bool:
         return False
 
 
+def load_onnx_model() -> bool:
+    """
+    Load the ONNX Wav2Vec2 model for audio embedding extraction.
+
+    Returns:
+        bool: True if model loaded successfully, False otherwise.
+    """
+    global _onnx_session
+
+    if _onnx_session is not None:
+        return True
+
+    if not _onnx_available:
+        logger.warning('ONNX Runtime not available')
+        return False
+
+    if not os.path.exists(ONNX_MODEL_PATH):
+        logger.warning(f'Could not find ONNX model at {ONNX_MODEL_PATH}')
+        return False
+
+    try:
+        logger.info(f'Loading ONNX model from: {ONNX_MODEL_PATH}')
+
+        import onnxruntime as ort
+
+        _onnx_session = ort.InferenceSession(
+            ONNX_MODEL_PATH,
+            providers=['CPUExecutionProvider']
+        )
+
+        logger.info('ONNX Wav2Vec2 model loaded successfully')
+        return True
+
+    except Exception as e:
+        logger.error(f'Failed to load ONNX model: {e}')
+        return False
+
+
 def load_prosodic_models() -> bool:
     """
-    Lazy-load prosodic model components.
-    Loads both Wav2Vec2 encoder and the prosodic classifier.
+    Load prosodic model components.
+    Loads both ONNX encoder and the prosodic classifier.
 
     Returns:
         bool: True if all models loaded successfully, False otherwise.
     """
-    global _prosodic_model, _wav2vec_processor, _wav2vec_model
+    global _prosodic_model
 
-    if not _torch_available:
+    # Load ONNX encoder
+    if not load_onnx_model():
         return False
-
-    # Load Wav2Vec2 encoder
-    if _wav2vec_processor is None or _wav2vec_model is None:
-        logger.info(f'Loading Wav2Vec2 model: {WAV2VEC_MODEL_NAME}')
-        try:
-            from transformers import Wav2Vec2Model, Wav2Vec2Processor
-
-            _wav2vec_processor = Wav2Vec2Processor.from_pretrained(WAV2VEC_MODEL_NAME)
-            _wav2vec_model = Wav2Vec2Model.from_pretrained(WAV2VEC_MODEL_NAME)
-            _wav2vec_model.eval()
-            logger.info('Wav2Vec2 model loaded successfully')
-        except Exception as e:
-            logger.error(f'Failed to load Wav2Vec2 model: {e}')
-            return False
 
     # Load classifier securely
     if _prosodic_model is None:

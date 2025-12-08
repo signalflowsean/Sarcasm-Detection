@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify
 
-from models.loader import get_lexical_model, get_prosodic_model, get_wav2vec_components
+from models.loader import get_lexical_model, get_onnx_session, get_prosodic_model
 
 bp = Blueprint('health', __name__)
 
@@ -23,8 +23,6 @@ def health_check():
     Health check endpoint for container orchestration.
     Reports status of loaded models and version info.
     """
-    _, wav2vec_model = get_wav2vec_components()
-
     return jsonify(
         {
             'status': 'healthy',
@@ -32,7 +30,7 @@ def health_check():
             'models': {
                 'lexical': get_lexical_model() is not None,
                 'prosodic': get_prosodic_model() is not None,
-                'wav2vec': wav2vec_model is not None,
+                'wav2vec_onnx': get_onnx_session() is not None,
             },
         }
     )

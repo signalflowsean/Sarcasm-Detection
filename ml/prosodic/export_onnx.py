@@ -11,13 +11,20 @@ Output:
     - backend/wav2vec2.onnx (~360MB)
 
 Prerequisites:
-    pip install torch transformers onnx onnxruntime numpy
+    Core (always required):
+        pip install torch transformers onnx numpy
+    
+    Optional (only for verification):
+        pip install onnxruntime  # for verifying exported model
+
+Note: onnxruntime is imported conditionally to allow export without it installed
+(set verify=False in export_to_onnx() to skip verification).
 """
 
 import numpy as np
 import torch
 from pathlib import Path
-from transformers import Wav2Vec2Model, Wav2Vec2Processor
+from transformers import Wav2Vec2Model
 
 # Configuration
 MODEL_NAME = "facebook/wav2vec2-base-960h"
@@ -40,7 +47,6 @@ def export_to_onnx(verify: bool = True):
     
     # Load PyTorch model
     print(f"\n1. Loading PyTorch model: {MODEL_NAME}")
-    processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
     model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
     model.eval()
     print("   ✓ Model loaded successfully")
@@ -81,6 +87,7 @@ def export_to_onnx(verify: bool = True):
     # Verify ONNX output matches PyTorch
     if verify:
         print("\n5. Verifying ONNX output matches PyTorch...")
+        # Conditional import: onnxruntime is only needed for verification
         import onnxruntime as ort
         
         session = ort.InferenceSession(
