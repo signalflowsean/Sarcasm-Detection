@@ -15,13 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy ONNX model file
-# This ~360MB model file must be generated using ml/prosodic/export_onnx.py
-# The model should be downloaded or generated before building the Docker image
-COPY wav2vec2.onnx .
-
 # Copy application code and model files
 # .dockerignore excludes __pycache__, .env, .git, etc.
+# Note: wav2vec2.onnx should be in this directory if you want prosodic detection
+# Generate with: cd ml/prosodic && python3 export_onnx.py
+# Without it, the prosodic endpoint will return mock data
 COPY . .
 
 # Default port (Railway sets PORT env var dynamically)
