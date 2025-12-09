@@ -59,72 +59,61 @@ type DetectionProviderProps = {
   children: React.ReactNode
 }
 
-// Test phrases for the 'h' key shortcut
-const TEST_PHRASES = [
-  'Oh great, another meeting that could have been an email.',
-  'I just love waking up at 5am on a Monday.',
-  'What a surprise, the printer is jammed again.',
-  "Sure, I'd love to hear more about your cryptocurrency investments.",
-  'Nothing says fun like doing taxes on a Saturday.',
-  'Wow, traffic is so enjoyable today.',
-  "I'm absolutely thrilled to be here.",
-  'This is exactly what I wanted to do with my weekend.',
-]
+// Test phrases from shared mocks
+import testPhrases from '../../../mocks/fixtures/test-phrases.json'
+const TEST_PHRASES = testPhrases.sarcastic
 
 /**
  * Create a minimal valid WAV audio blob for testing prosodic endpoint.
- * This creates a tiny silent audio file.
+ * Uses 16kHz sample rate to match Wav2Vec2 requirements.
  */
 function createTestAudioBlob(): Blob {
-  // Minimal WAV header for a silent mono 8kHz 8-bit audio (44 bytes header + 1 byte data)
-  const header = new Uint8Array([
-    0x52,
-    0x49,
-    0x46,
-    0x46, // "RIFF"
-    0x25,
-    0x00,
-    0x00,
-    0x00, // File size - 8 (37 bytes)
-    0x57,
-    0x41,
-    0x56,
-    0x45, // "WAVE"
-    0x66,
-    0x6d,
-    0x74,
-    0x20, // "fmt "
-    0x10,
-    0x00,
-    0x00,
-    0x00, // Subchunk1 size (16)
-    0x01,
-    0x00, // Audio format (1 = PCM)
-    0x01,
-    0x00, // Num channels (1 = mono)
-    0x40,
-    0x1f,
-    0x00,
-    0x00, // Sample rate (8000)
-    0x40,
-    0x1f,
-    0x00,
-    0x00, // Byte rate (8000)
-    0x01,
-    0x00, // Block align (1)
-    0x08,
-    0x00, // Bits per sample (8)
-    0x64,
-    0x61,
-    0x74,
-    0x61, // "data"
-    0x01,
-    0x00,
-    0x00,
-    0x00, // Subchunk2 size (1 byte of audio)
-    0x80, // One silent sample (128 = silence for 8-bit)
-  ])
-  return new Blob([header], { type: 'audio/wav' })
+  const sampleRate = 16000
+  const duration = 0.1 // 100ms
+  const frequency = 440
+  const amplitude = 0.3
+
+  const numSamples = Math.floor(sampleRate * duration)
+  const bytesPerSample = 2
+  const dataSize = numSamples * bytesPerSample
+  const fileSize = 44 + dataSize - 8
+
+  const buffer = new ArrayBuffer(44 + dataSize)
+  const view = new DataView(buffer)
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i))
+    }
+  }
+
+  // RIFF header
+  writeString(0, 'RIFF')
+  view.setUint32(4, fileSize, true)
+  writeString(8, 'WAVE')
+
+  // fmt chunk
+  writeString(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * bytesPerSample, true)
+  view.setUint16(32, bytesPerSample, true)
+  view.setUint16(34, 16, true)
+
+  // data chunk
+  writeString(36, 'data')
+  view.setUint32(40, dataSize, true)
+
+  // Generate 440Hz tone samples
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate
+    const sample = Math.floor(Math.sin(2 * Math.PI * frequency * t) * amplitude * 32767)
+    view.setInt16(44 + i * 2, sample, true)
+  }
+
+  return new Blob([new Uint8Array(buffer)], { type: 'audio/wav' })
 }
 
 // Minimum duration the cable animation stays visible (ms)

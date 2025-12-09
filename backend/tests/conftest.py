@@ -10,6 +10,10 @@ import pytest
 # Add backend directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+# Add project root to path for shared mocks
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, project_root)
+
 # Set test environment BEFORE importing app modules
 os.environ['FLASK_ENV'] = 'testing'
 os.environ['RATE_LIMIT_ENABLED'] = 'false'

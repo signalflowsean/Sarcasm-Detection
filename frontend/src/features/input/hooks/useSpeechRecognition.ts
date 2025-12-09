@@ -1,5 +1,5 @@
-import { useRef, useCallback } from 'react'
-import { isMobileBrowser, isIOSDevice } from '../utils'
+import { useCallback, useRef, useState } from 'react'
+import { isIOSDevice, isMobileBrowser } from '../utils'
 
 // Minimal typings for Web Speech API
 type SpeechRecognitionLike = {
@@ -30,6 +30,16 @@ type TranscriptUpdate = {
   final: string
 }
 
+/**
+ * Speech recognition health status
+ * - 'idle': Not started yet
+ * - 'listening': Actively listening and working
+ * - 'degraded': Working but having issues (frequent restarts, no-speech errors)
+ * - 'error': Critical error occurred (permission denied, network error)
+ * - 'unsupported': Browser doesn't support speech recognition
+ */
+export type SpeechStatus = 'idle' | 'listening' | 'degraded' | 'error' | 'unsupported'
+
 type UseSpeechRecognitionOptions = {
   /** Ref that tracks whether recording is currently active */
   isRecordingRef: React.MutableRefObject<boolean>
@@ -52,18 +62,48 @@ export function useSpeechRecognition({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const speechSupported = !!getSpeechRecognitionCtor()
 
+  // Speech recognition health status
+  const [speechStatus, setSpeechStatus] = useState<SpeechStatus>(
+    speechSupported ? 'idle' : 'unsupported'
+  )
+
   // Track restart attempts for iOS Safari workaround
   const restartAttemptsRef = useRef(0)
   const maxRestartAttempts = 50 // Allow many restarts during a recording session
   const restartDelayRef = useRef<number | null>(null)
 
-  const startSpeechRecognition = useCallback(() => {
-    if (!speechSupported) return
-    const Ctor = getSpeechRecognitionCtor()
-    if (!Ctor) return
+  // Track health metrics for degraded detection
+  const healthMetricsRef = useRef({
+    consecutiveNoSpeech: 0,
+    consecutiveErrors: 0,
+    lastResultTime: 0,
+    hasReceivedAnyResult: false,
+  })
 
-    // Reset restart counter when starting fresh
+  // Threshold for considering speech recognition "degraded"
+  const DEGRADED_NO_SPEECH_THRESHOLD = 3
+  const DEGRADED_ERROR_THRESHOLD = 2
+
+  const startSpeechRecognition = useCallback(() => {
+    if (!speechSupported) {
+      setSpeechStatus('unsupported')
+      return
+    }
+    const Ctor = getSpeechRecognitionCtor()
+    if (!Ctor) {
+      setSpeechStatus('unsupported')
+      return
+    }
+
+    // Reset restart counter and health metrics when starting fresh
     restartAttemptsRef.current = 0
+    healthMetricsRef.current = {
+      consecutiveNoSpeech: 0,
+      consecutiveErrors: 0,
+      lastResultTime: Date.now(),
+      hasReceivedAnyResult: false,
+    }
+    setSpeechStatus('listening')
 
     const recognition = new Ctor()
     recognition.interimResults = true
@@ -89,6 +129,15 @@ export function useSpeechRecognition({
         else interim += res[0].transcript
       }
       onTranscriptUpdate({ interim, final })
+
+      // Reset health metrics on successful result
+      healthMetricsRef.current.consecutiveNoSpeech = 0
+      healthMetricsRef.current.consecutiveErrors = 0
+      healthMetricsRef.current.lastResultTime = Date.now()
+      healthMetricsRef.current.hasReceivedAnyResult = true
+
+      // If we were degraded but now got a result, we're back to listening
+      setSpeechStatus('listening')
     }
 
     recognition.onerror = (event: unknown) => {
@@ -98,18 +147,43 @@ export function useSpeechRecognition({
       // Only show user-facing errors for critical issues
       if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
         onError('Microphone permission denied for speech recognition')
+        setSpeechStatus('error')
       } else if (errorType === 'network') {
         onError('Network error: Speech recognition unavailable')
+        setSpeechStatus('error')
       } else if (errorType === 'no-speech') {
         // This is common on mobile when recognition times out without detecting speech
-        // Don't show error, just log - the onend handler will restart if still recording
-        if (import.meta.env.DEV) console.warn('Speech recognition: No speech detected')
+        healthMetricsRef.current.consecutiveNoSpeech += 1
+        if (import.meta.env.DEV) {
+          console.warn(
+            `Speech recognition: No speech detected (${healthMetricsRef.current.consecutiveNoSpeech} consecutive)`
+          )
+        }
+
+        // Check if we should mark as degraded
+        if (healthMetricsRef.current.consecutiveNoSpeech >= DEGRADED_NO_SPEECH_THRESHOLD) {
+          setSpeechStatus('degraded')
+        }
       } else if (errorType === 'audio-capture') {
         // Audio capture failed - common on mobile when mic access is interrupted
-        if (import.meta.env.DEV) console.warn('Speech recognition: Audio capture failed')
+        healthMetricsRef.current.consecutiveErrors += 1
+        if (import.meta.env.DEV) {
+          console.warn(
+            `Speech recognition: Audio capture failed (${healthMetricsRef.current.consecutiveErrors} consecutive)`
+          )
+        }
+
+        if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
+          setSpeechStatus('degraded')
+        }
       } else if (errorType !== 'aborted') {
         // Log other errors but don't show to user (might be transient)
+        healthMetricsRef.current.consecutiveErrors += 1
         if (import.meta.env.DEV) console.warn('Speech recognition error:', errorType)
+
+        if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
+          setSpeechStatus('degraded')
+        }
       }
     }
 
@@ -134,6 +208,10 @@ export function useSpeechRecognition({
                 recognition.start()
               } catch (e) {
                 if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
+                healthMetricsRef.current.consecutiveErrors += 1
+                if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
+                  setSpeechStatus('degraded')
+                }
               }
             }
           }, delay)
@@ -142,10 +220,18 @@ export function useSpeechRecognition({
             recognition.start()
           } catch (e) {
             if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
+            healthMetricsRef.current.consecutiveErrors += 1
+            if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
+              setSpeechStatus('degraded')
+            }
           }
         }
       } else {
         recognitionRef.current = null
+        // If we hit max restarts and never got a result, mark as degraded
+        if (!healthMetricsRef.current.hasReceivedAnyResult && isRecordingRef.current) {
+          setSpeechStatus('degraded')
+        }
       }
     }
 
@@ -157,6 +243,7 @@ export function useSpeechRecognition({
       recognition.start()
     } catch (e) {
       if (import.meta.env.DEV) console.warn('Failed to start speech recognition:', e)
+      setSpeechStatus('error')
     }
   }, [speechSupported, isRecordingRef, onTranscriptUpdate, onError])
 
@@ -175,11 +262,21 @@ export function useSpeechRecognition({
       /* noop */
     }
     recognitionRef.current = null
-  }, [])
+    setSpeechStatus(speechSupported ? 'idle' : 'unsupported')
+  }, [speechSupported])
+
+  // Reset speech status to idle (useful when dismissing warnings)
+  const resetSpeechStatus = useCallback(() => {
+    if (speechSupported) {
+      setSpeechStatus('idle')
+    }
+  }, [speechSupported])
 
   return {
     startSpeechRecognition,
     stopSpeechRecognition,
     speechSupported,
+    speechStatus,
+    resetSpeechStatus,
   }
 }
