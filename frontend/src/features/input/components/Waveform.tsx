@@ -101,6 +101,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchCancel}
+      data-testid="waveform"
     >
       <canvas ref={ref} aria-label={label} />
       {showPlayhead && (

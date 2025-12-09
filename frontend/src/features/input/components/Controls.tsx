@@ -40,12 +40,13 @@ const Controls = ({
   const shouldFlash = canSend && !isPlaying && !sending && !isRecording
 
   return (
-    <div className="audio-recorder__controls">
+    <div className="audio-recorder__controls" data-testid="audio-controls">
       <button
         type="button"
         className={`audio-btn ${canPlay ? 'audio-btn--with-shortcut' : ''}`}
         onClick={onTogglePlay}
         disabled={!canPlay}
+        data-testid="play-button"
       >
         <span className="audio-btn__label">{playLabel}</span>
         {canPlay && (
@@ -60,6 +61,7 @@ const Controls = ({
         onClick={onDiscard}
         disabled={!canDiscard}
         aria-label="Discard recording"
+        data-testid="discard-button"
       >
         <svg
           aria-hidden="true"
@@ -87,6 +89,7 @@ const Controls = ({
         className={`audio-btn audio-btn--primary ${canSend && !sending ? 'audio-btn--with-shortcut' : ''} ${shouldFlash ? 'audio-btn--flash' : ''}`}
         onClick={onSend}
         disabled={!canSend || sending}
+        data-testid="send-button"
       >
         <span className="audio-btn__label">{sendLabel}</span>
         {canSend && !sending && (

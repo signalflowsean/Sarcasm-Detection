@@ -133,6 +133,7 @@ const RotarySwitch: React.FC = () => {
         e.preventDefault()
       }}
       style={knobVars}
+      data-testid="rotary-switch"
     >
       <span className="rotary__plate" aria-hidden />
       <span

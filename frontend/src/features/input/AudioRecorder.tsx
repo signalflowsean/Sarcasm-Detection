@@ -564,7 +564,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         onSend={onSend}
       />
       {state.error && (
-        <div className="audio-recorder__error" role="alert">
+        <div className="audio-recorder__error" role="alert" data-testid="audio-error">
           {state.error}
         </div>
       )}

@@ -1,6 +1,6 @@
 const GettingStarted = () => {
   return (
-    <div className="getting-started">
+    <div className="getting-started" data-testid="getting-started">
       <h2 className="getting-started__title">Welcome to the State-of-the-Art Sarcasm Detector™</h2>
       <p className="getting-started__intro">
         Start by selecting a mode by turning the rotary knob to the right.

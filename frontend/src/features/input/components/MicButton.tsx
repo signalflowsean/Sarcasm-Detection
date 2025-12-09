@@ -22,6 +22,7 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton(
       disabled={disabled}
       onClick={onClick}
       onKeyDown={onKeyDown}
+      data-testid="mic-button"
     >
       <svg
         className="audio-recorder__mic__glyph"

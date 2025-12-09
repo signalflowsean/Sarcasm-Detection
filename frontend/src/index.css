@@ -164,7 +164,7 @@
     box-shadow:
       0 6px 18px rgba(0, 0, 0, 0.45),
       inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    color: var(--clr-primary);
+    color: #fff; /* Always white icon on dark button for proper contrast */
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -310,6 +310,19 @@
   .audio-recorder__status {
     font-variant-numeric: tabular-nums;
     font-size: clamp(0.71rem, 1.35vw, 0.9rem);
+    transition:
+      color 200ms ease,
+      text-shadow 200ms ease;
+  }
+
+  .audio-recorder__status--ready {
+    color: #4ade80; /* Bright green to indicate success/ready state */
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+  }
+
+  .audio-recorder__status__duration {
+    font-variant-numeric: tabular-nums;
   }
 
   .audio-recorder__waveform {
@@ -391,7 +404,7 @@
     border-radius: 0.45rem;
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: #2a2a2a;
-    color: var(--clr-primary);
+    color: #fff; /* Always white text on dark buttons for proper contrast */
     cursor: pointer;
     transition:
       background 140ms ease,
@@ -504,7 +517,7 @@
     border: 2px solid rgba(255, 255, 255, 0.25);
     /* Metallic grey gradient similar to meter components */
     background: radial-gradient(circle at 35% 35%, #8a8a8a, #5a5a5a 50%, #3a3a3a 100%);
-    color: var(--clr-primary);
+    color: #fff; /* Always white icon on dark button for proper contrast */
     /* Elevated button-like shadow */
     box-shadow:
       0 6px 16px rgba(0, 0, 0, 0.6),
@@ -593,7 +606,7 @@
     border-radius: 0.56rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
-    color: var(--clr-primary);
+    color: #fff; /* Always white text on dark buttons for proper contrast */
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -1908,7 +1921,7 @@
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  color: var(--clr-primary);
+  color: #fff; /* Always white text on dark background for proper contrast */
   font-size: clamp(0.71rem, 1.35vw, 0.83rem);
   resize: vertical;
   line-height: 1.6;
@@ -1958,7 +1971,7 @@
   background: linear-gradient(145deg, #555, #333);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  color: var(--clr-primary);
+  color: #fff; /* Always white text on dark buttons for proper contrast */
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;

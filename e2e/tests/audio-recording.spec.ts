@@ -413,19 +413,17 @@ test.describe("Audio Recording", () => {
     await page.goto("/audio-input");
 
     // Should show the mic button
-    const micButton = page.locator(".audio-recorder__mic");
-    await expect(micButton).toBeVisible();
+    await expect(page.getByTestId("mic-button")).toBeVisible();
 
     // Should show the waveform area
-    const waveform = page.locator(".audio-recorder__waveform");
-    await expect(waveform).toBeVisible();
+    await expect(page.getByTestId("waveform")).toBeVisible();
   });
 
   test("should start and stop recording", async ({ page }) => {
     await page.goto("/audio-input");
     await page.waitForTimeout(500);
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
 
     // Start recording (force: true bypasses animation stability check)
@@ -440,15 +438,16 @@ test.describe("Audio Recording", () => {
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
 
     // Should have controls visible
-    const sendButton = page.locator('button:has-text("Send to Detector")');
-    await expect(sendButton).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("send-button")).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("should show playback controls after recording", async ({ page }) => {
     await page.goto("/audio-input");
     await page.waitForTimeout(500);
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
 
     // Start recording
@@ -461,8 +460,9 @@ test.describe("Audio Recording", () => {
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
 
     // Should have send button (indicates recording completed)
-    const sendButton = page.locator('button:has-text("Send to Detector")');
-    await expect(sendButton).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("send-button")).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test("should discard recording when discard button clicked", async ({
@@ -471,7 +471,7 @@ test.describe("Audio Recording", () => {
     await page.goto("/audio-input");
     await page.waitForTimeout(500);
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
 
     // Start recording
@@ -483,11 +483,11 @@ test.describe("Audio Recording", () => {
     await micButton.click({ force: true });
 
     // Wait for recording to process - send button should appear
-    const sendButton = page.locator('button:has-text("Send to Detector")');
+    const sendButton = page.getByTestId("send-button");
     await expect(sendButton).toBeVisible({ timeout: 5000 });
 
     // Click discard button
-    const discardButton = page.locator(".audio-btn--danger").first();
+    const discardButton = page.getByTestId("discard-button");
     await expect(discardButton).toBeEnabled({ timeout: 3000 });
     await discardButton.click();
 
@@ -512,7 +512,7 @@ test.describe("Audio Recording", () => {
     await page.goto("/audio-input");
     await page.waitForTimeout(500);
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
 
     // Start recording (force: true bypasses animation stability check)
@@ -524,7 +524,7 @@ test.describe("Audio Recording", () => {
     await micButton.click({ force: true });
 
     // Wait for recording to process and send button to appear
-    const sendButton = page.locator('button:has-text("Send to Detector")');
+    const sendButton = page.getByTestId("send-button");
     await expect(sendButton).toBeVisible({ timeout: 5000 });
     await sendButton.click();
 
@@ -542,7 +542,7 @@ test.describe("Audio Recording", () => {
   }) => {
     await page.goto("/audio-input");
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
 
     // Click somewhere on the page first to ensure focus isn't on an input
@@ -572,8 +572,8 @@ test.describe("Audio Recording", () => {
     await expect(page).toHaveURL(/audio-input/);
 
     // Audio recorder should be visible
-    const micButton = page.locator(".audio-recorder__mic");
-    await expect(micButton).toBeVisible();
+    await expect(page.getByTestId("audio-recorder")).toBeVisible();
+    await expect(page.getByTestId("mic-button")).toBeVisible();
   });
 });
 
@@ -594,12 +594,12 @@ test.describe("Audio Recording - Error States", () => {
 
     await page.goto("/audio-input");
 
-    const micButton = page.locator(".audio-recorder__mic");
+    const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
     await micButton.click({ force: true });
 
     // Should show an error message
-    const errorMessage = page.locator(".audio-recorder__error");
+    const errorMessage = page.getByTestId("audio-error");
     await expect(errorMessage).toBeVisible({ timeout: 3000 });
     await expect(errorMessage).toContainText(/denied|permission|access/i);
   });
