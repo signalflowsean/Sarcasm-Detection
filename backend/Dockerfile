@@ -23,12 +23,11 @@ COPY . .
 
 # Download Wav2Vec2 ONNX model from GitHub releases (~360MB)
 # This is cached in a Docker layer, so subsequent builds are fast
-# To update: create a new release and update the URL
-# -f: fail on HTTP errors, file size check ensures download completed (~360MB)
+# To update: create a new release, update the URL and SHA256 hash
+# -f: fail on HTTP errors, sha256sum verifies integrity
 RUN curl -fL -o wav2vec2.onnx \
     https://github.com/signalflowsean/Sarcasm-Detection/releases/download/v1.0.0-models/wav2vec2.onnx \
-    && [ -s wav2vec2.onnx ] \
-    && test $(stat -c%s wav2vec2.onnx) -gt 100000000
+    && echo "d610dfa7dec087846f4f5c74562de176a4eeb9a1bd7ed23a35cfe33b8036e038  wav2vec2.onnx" | sha256sum -c -
 
 # Default port (Railway sets PORT env var dynamically)
 ENV PORT=5000
