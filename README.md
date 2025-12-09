@@ -1,6 +1,6 @@
 # [Sarcasm Detector™](https://sarcasm-detector.com)
 
-> *A signalflowsean production*
+> _A signalflowsean production_
 
 A full-stack web application that detects sarcasm in text and audio using machine learning. Features a beautiful retro VU meter-style interface with animated needle displays.
 
@@ -11,8 +11,8 @@ A full-stack web application that detects sarcasm in text and audio using machin
 
 The Sarcasm Detector analyzes input through two detection modes:
 
-- **Lexical Detection** — Analyzes *what* you say (text-based)
-- **Prosodic Detection** — Analyzes *how* you say it (audio-based)
+- **Lexical Detection** — Analyzes _what_ you say (text-based)
+- **Prosodic Detection** — Analyzes _how_ you say it (audio-based)
 
 ## Architecture
 
@@ -148,6 +148,7 @@ See [ml/README.md](ml/README.md) for detailed documentation.
 Lexical (text-based) sarcasm detection.
 
 **Request:**
+
 ```json
 {
   "text": "Oh great, another meeting that could have been an email"
@@ -155,6 +156,7 @@ Lexical (text-based) sarcasm detection.
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid-string",
@@ -170,6 +172,7 @@ Prosodic (audio-based) sarcasm detection.
 **Request:** `multipart/form-data` with `audio` file
 
 **Response:**
+
 ```json
 {
   "id": "uuid-string",
@@ -185,6 +188,7 @@ Prosodic (audio-based) sarcasm detection.
 Health check endpoint for container orchestration.
 
 **Response:**
+
 ```json
 {
   "status": "healthy"
@@ -193,28 +197,28 @@ Health check endpoint for container orchestration.
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, TypeScript, Vite, React Router |
-| Backend | Flask, Flask-CORS, Flask-Limiter, Gunicorn |
-| ML (Lexical) | scikit-learn (TF-IDF + Logistic Regression) |
-| ML (Prosodic) | Wav2Vec2 (ONNX Runtime) + scikit-learn |
-| Testing | Vitest, Playwright, pytest |
-| Infrastructure | Docker, Docker Compose, Nginx |
+| Layer          | Technology                                  |
+| -------------- | ------------------------------------------- |
+| Frontend       | React 19, TypeScript, Vite, React Router    |
+| Backend        | Flask, Flask-CORS, Flask-Limiter, Gunicorn  |
+| ML (Lexical)   | scikit-learn (TF-IDF + Logistic Regression) |
+| ML (Prosodic)  | Wav2Vec2 (ONNX Runtime) + scikit-learn      |
+| Testing        | Vitest, Playwright, pytest                  |
+| Infrastructure | Docker, Docker Compose, Nginx               |
 
 ## Development
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_DELAY_SECONDS` | `2.0` | Artificial delay for showcasing loading animations (set to `0` in production) |
-| `FLASK_ENV` | `production` | Flask environment mode |
-| `RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
-| `RATE_LIMIT_DEFAULT` | `60 per minute` | Default rate limit for all endpoints |
-| `RATE_LIMIT_LEXICAL` | `30 per minute` | Rate limit for text analysis endpoint |
-| `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint |
-| `RATE_LIMIT_STORAGE` | `memory://` | Storage backend (`memory://` or `redis://host:port`) |
+| Variable              | Default         | Description                                                                   |
+| --------------------- | --------------- | ----------------------------------------------------------------------------- |
+| `API_DELAY_SECONDS`   | `2.0`           | Artificial delay for showcasing loading animations (set to `0` in production) |
+| `FLASK_ENV`           | `production`    | Flask environment mode                                                        |
+| `RATE_LIMIT_ENABLED`  | `true`          | Enable/disable rate limiting                                                  |
+| `RATE_LIMIT_DEFAULT`  | `60 per minute` | Default rate limit for all endpoints                                          |
+| `RATE_LIMIT_LEXICAL`  | `30 per minute` | Rate limit for text analysis endpoint                                         |
+| `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint                                        |
+| `RATE_LIMIT_STORAGE`  | `memory://`     | Storage backend (`memory://` or `redis://host:port`)                          |
 
 ### Running Tests
 
@@ -315,10 +319,10 @@ docker-compose up --build backend
 
 The backend Dockerfile supports build arguments for cache management:
 
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `WAV2VEC_CACHE_BUST` | `1` | Increment to force re-download of Wav2Vec2 model |
-| `WAV2VEC_MODEL` | `facebook/wav2vec2-base-960h` | Hugging Face model to use for audio embeddings |
+| Argument             | Default                       | Description                                      |
+| -------------------- | ----------------------------- | ------------------------------------------------ |
+| `WAV2VEC_CACHE_BUST` | `1`                           | Increment to force re-download of Wav2Vec2 model |
+| `WAV2VEC_MODEL`      | `facebook/wav2vec2-base-960h` | Hugging Face model to use for audio embeddings   |
 
 ```bash
 # Force re-download of Wav2Vec2 model (e.g., after model update)
@@ -394,11 +398,13 @@ Configure these in the Railway dashboard for each service:
 The frontend is configured with a custom domain (`sarcasm-detector.com`).
 
 **DNS Setup (Namecheap):**
+
 - Type: `ALIAS`
 - Host: `@`
 - Value: Railway's provided target (e.g., `xyz123.up.railway.app`)
 
 **Railway Setup:**
+
 - Custom domain port must be set to `8080` (Railway's internal port)
 - Wait for TLS certificate to be issued (green checkmark)
 
@@ -409,39 +415,47 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 ## TODO / Future Improvements
 
 ### 🐳 Docker Image Optimization (ONNX Migration)
-**Previous size:** ~2.75GB | **Current size:** ~1.5GB
 
-The backend now uses ONNX Runtime (~150MB) instead of PyTorch (~700MB) for Wav2Vec2 inference.
+**Previous size:** ~3.4GB | **Current size:** ~2.0GB (~40% reduction)
 
-**Setup (required before Docker build):**
+The backend uses ONNX Runtime (~150MB) instead of PyTorch (~700MB) for Wav2Vec2 inference. Key optimizations:
+
+- **Multi-stage build:** Builder stage compiles packages, runtime stage only has what's needed
+- **Model downloaded from GitHub releases:** The `wav2vec2.onnx` file (~360MB) is downloaded during Docker build with SHA256 verification, not copied from local
+- **Optimal layer caching:** Model download is in builder stage, so app code changes don't trigger re-download
+
+**Local development (optional):**
 
 ```bash
-# Generate the ONNX model file (~360MB)
+# Only needed if you want to regenerate the ONNX model
 cd ml/prosodic
 pip install torch transformers onnx onnxruntime
 python export_onnx.py
-
-# Verify the export (optional)
-python verify_onnx.py
+python verify_onnx.py  # optional verification
 ```
 
-The `wav2vec2.onnx` file is required in `backend/` before building the Docker image. It's gitignored due to size.
+The Docker build automatically downloads the model from GitHub releases - no local setup required.
 
 ### 🎨 CSS Variables Cleanup
+
 Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
 
 **Spacing** (padding, margin, gap):
+
 - `0.375rem` (6px) — micro | `0.56rem` (9px) — small | `0.75rem` (12px) — base
 - `0.94rem` (15px) — medium | `1.125rem` (18px) — large | `1.5rem` (24px) — xl | `1.875rem` (30px) — 2xl
 
 **Border Radii:**
+
 - `0.19rem` — tiny (kbd) | `0.28rem` — small (already `--border-radius-primary`)
 - `0.45rem` — medium (buttons) | `0.56rem` — large (cards, modals)
 
 **Animation Durations:**
+
 - `100ms` — micro | `140ms` — hover | `160ms` — quick | `180ms` — standard | `350ms` — views | `500ms` — loading
 
 **Font Sizes** (type scale):
+
 - `0.49rem`, `0.56rem` — tiny | `0.675rem`, `0.71rem` — small | `0.75rem`, `0.83rem` — base
 - `0.94rem`, `1.05rem` — medium | `1.125rem+` — large/headings
 
@@ -450,6 +464,7 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 **Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
 
 ### 📝 Other Improvements
+
 - [ ] Add OpenAPI/Swagger documentation for API
 - [ ] Performance monitoring/logging
 - [ ] Model versioning and A/B testing support
@@ -462,4 +477,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Built with ❤️ by signalflowsean*
+_Built with ❤️ by signalflowsean_
