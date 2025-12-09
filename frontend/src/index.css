@@ -308,6 +308,8 @@
   }
 
   .audio-recorder__status {
+    display: flex;
+    gap: 1rem;
     font-variant-numeric: tabular-nums;
     font-size: clamp(0.71rem, 1.35vw, 0.9rem);
     transition:
@@ -316,7 +318,8 @@
   }
 
   .audio-recorder__status--ready {
-    color: #4ade80; /* Bright green to indicate success/ready state */
+    color: rgb(212, 175, 55);
+    /* color: #4ade80; */
     font-weight: 600;
     text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
   }
