@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+// Use a desktop viewport to avoid the mobile modal behavior
+// The app's mobile breakpoint is 1440px
+test.use({ viewport: { width: 1500, height: 900 } });
+
 test.describe("Navigation", () => {
   test("should navigate between modes", async ({ page }) => {
     await page.goto("/getting-started");

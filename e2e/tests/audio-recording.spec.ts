@@ -491,8 +491,9 @@ test.describe("Audio Recording", () => {
     await expect(discardButton).toBeEnabled({ timeout: 3000 });
     await discardButton.click();
 
-    // Send button should no longer be visible (recording discarded)
-    await expect(sendButton).not.toBeVisible({ timeout: 3000 });
+    // Send button should be disabled after discarding (label changes to "Record Audio First")
+    await expect(sendButton).toBeDisabled({ timeout: 3000 });
+    await expect(sendButton).toContainText("Record Audio First");
   });
 
   test("should send recording to detector API", async ({ page, request }) => {
@@ -532,9 +533,10 @@ test.describe("Audio Recording", () => {
     // Wait for the API response and meter animation
     await page.waitForTimeout(3000);
 
-    // After sending, the recording should be cleared (send button hidden)
+    // After sending, the recording should be cleared (send button disabled)
     // This indicates successful completion of the send flow
-    await expect(sendButton).not.toBeVisible({ timeout: 5000 });
+    await expect(sendButton).toBeDisabled({ timeout: 5000 });
+    await expect(sendButton).toContainText("Record Audio First");
   });
 
   test("should use keyboard shortcut R to toggle recording", async ({
