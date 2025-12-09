@@ -4,10 +4,12 @@ WORKDIR /app
 
 # Install system dependencies for audio processing
 # - ffmpeg: CLI tool for audio format conversion (used as subprocess fallback)
+# - curl: for downloading ONNX model from GitHub releases
 # Note: We only need the ffmpeg CLI, not the development libraries (libavcodec-dev, etc.)
 # since we're using ONNX Runtime instead of PyTorch/torchaudio
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -17,10 +19,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and model files
 # .dockerignore excludes __pycache__, .env, .git, etc.
-# Note: wav2vec2.onnx should be in this directory if you want prosodic detection
-# Generate with: cd ml/prosodic && python3 export_onnx.py
-# Without it, the prosodic endpoint will return mock data
 COPY . .
+
+# Download Wav2Vec2 ONNX model from GitHub releases (~360MB)
+# This is cached in a Docker layer, so subsequent builds are fast
+# To update: create a new release and update the URL
+RUN curl -L -o wav2vec2.onnx \
+    https://github.com/signalflowsean/Sarcasm-Detection/releases/download/v1.0.0-models/wav2vec2.onnx
 
 # Default port (Railway sets PORT env var dynamically)
 ENV PORT=5000
