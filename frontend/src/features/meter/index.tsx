@@ -87,6 +87,7 @@ const MeterSection = () => {
       className={`meter ${powerState === 'off' ? 'meter--off' : 'meter--on'} ${isPoweringOn ? 'meter--powering-on' : ''}`}
       data-power={powerState}
       data-input-mode={inputMode}
+      data-testid="meter"
     >
       <h1 className="meter__title">Sarcasm Detector™</h1>
       {/* Portal target for mobile launcher button */}
@@ -166,6 +167,7 @@ const MeterSection = () => {
           role="alert"
           aria-live="polite"
           aria-label="Warning: The sarcasm detection result may be inaccurate because the machine learning model is currently unavailable. The displayed score is a fallback estimate."
+          data-testid="meter-warning"
         >
           <WarningIcon />
           <span aria-hidden="true">Result may be inaccurate — model unavailable</span>

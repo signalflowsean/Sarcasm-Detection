@@ -64,7 +64,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
   }
 
   return (
-    <div className="text-input" onKeyDown={onKeyDown}>
+    <div className="text-input" onKeyDown={onKeyDown} data-testid="text-input">
       <SharedTextArea
         value={text}
         onChange={handleTextChange}
@@ -78,6 +78,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
           className={`text-input__send-btn ${text.trim() && !isSending ? 'text-input__send-btn--with-shortcut' : ''}`}
           onClick={handleSend}
           disabled={!text.trim() || isSending}
+          data-testid="text-send-button"
         >
           <span className="text-input__send-btn__label">
             {isSending ? 'Sending...' : 'Send to Detector'}
@@ -93,7 +94,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
         </button>
       </div>
       {error && (
-        <div className="text-input__error" role="alert">
+        <div className="text-input__error" role="alert" data-testid="text-error">
           {error}
         </div>
       )}

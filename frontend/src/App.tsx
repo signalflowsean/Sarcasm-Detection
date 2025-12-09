@@ -10,10 +10,12 @@ const App = () => {
   return (
     <DetectionProvider>
       <RouteSync />
-      <main>
+      <main data-testid="app-main">
         <section className="stack">
           <div className="title-group">
-            <h1 className="title">Sarcasm Detector™</h1>
+            <h1 className="title" data-testid="app-title">
+              Sarcasm Detector™
+            </h1>
             <h2 className="subtitle">A signalflowsean production</h2>
           </div>
           <Routes>

@@ -9,22 +9,25 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
   const shouldShow = isRecording || hasAudio
 
   let statusText = ''
+  let statusClass = 'audio-recorder__status'
+
   if (isRecording) {
     statusText = 'Recording… '
   } else if (isPlaying) {
     statusText = 'Playing… '
   } else if (hasAudio) {
-    statusText = 'Paused… '
+    statusText = '✓ Ready to Send '
+    statusClass += ' audio-recorder__status--ready'
   }
 
   return (
     <div
-      className="audio-recorder__status"
+      className={statusClass}
       role="status"
       style={{ visibility: shouldShow ? 'visible' : 'hidden' }}
     >
       {statusText}
-      {duration}
+      <span className="audio-recorder__status__duration">{duration}</span>
     </div>
   )
 }

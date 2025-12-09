@@ -63,7 +63,7 @@ const RecorderContent = ({
     : 'Transcript area: Speech-to-text is not supported in this browser. Audio will be recorded, but automatic transcription is unavailable.'
 
   return (
-    <div className="audio-recorder" aria-live="polite">
+    <div className="audio-recorder" aria-live="polite" data-testid="audio-recorder">
       <div className="audio-recorder__mic-wrapper">
         <MicButton
           ref={micRef}

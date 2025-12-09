@@ -49,7 +49,7 @@ const InputContainer = () => {
 
   if (isMobile) {
     return (
-      <section className="input-container">
+      <section className="input-container" data-testid="input-container">
         <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
         <MobileInputOverlay>
           {({ onClose }) => {
@@ -63,7 +63,7 @@ const InputContainer = () => {
   }
 
   return (
-    <section className="input-container">
+    <section className="input-container" data-testid="input-container">
       <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
       <div className="input-container__content">{content}</div>
     </section>

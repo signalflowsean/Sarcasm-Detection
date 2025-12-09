@@ -12,12 +12,12 @@ test.describe("Text Input Mode", () => {
 
   test("should display text input area", async ({ page }) => {
     // Should have a textarea for text input
-    const textarea = page.locator("textarea");
-    await expect(textarea).toBeVisible();
+    await expect(page.getByTestId("text-input")).toBeVisible();
+    await expect(page.getByTestId("textarea")).toBeVisible();
   });
 
   test("should allow typing text", async ({ page }) => {
-    const textarea = page.locator("textarea");
+    const textarea = page.getByTestId("textarea");
 
     await textarea.fill("This is a test message");
 
@@ -25,17 +25,12 @@ test.describe("Text Input Mode", () => {
   });
 
   test("should have submit functionality", async ({ page }) => {
-    const textarea = page.locator("textarea");
+    const textarea = page.getByTestId("textarea");
 
     // Type some text
     await textarea.fill("Oh wow, this is just amazing.");
 
-    // Look for a submit button - the app uses "Send to Detector"
-    const submitButton = page.locator(
-      'button:has-text("Send to Detector"), button:has-text("Analyze"), button:has-text("Detect")',
-    );
-
     // The submit button should be visible when text is entered
-    await expect(submitButton.first()).toBeVisible();
+    await expect(page.getByTestId("text-send-button")).toBeVisible();
   });
 });

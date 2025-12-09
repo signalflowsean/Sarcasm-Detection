@@ -41,6 +41,7 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
         rows={rows}
         aria-describedby={ariaDescribedBy}
         aria-label={ariaLabel}
+        data-testid="textarea"
       />
     )
   }
