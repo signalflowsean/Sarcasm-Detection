@@ -78,6 +78,7 @@ export function useSpeechRecognition({
     consecutiveErrors: 0,
     lastResultTime: 0,
     hasReceivedAnyResult: false,
+    isUnsupported: false, // Track if speech is permanently unsupported (prevents restart loops)
   })
 
   // Threshold for considering speech recognition "degraded"
@@ -102,10 +103,19 @@ export function useSpeechRecognition({
       consecutiveErrors: 0,
       lastResultTime: Date.now(),
       hasReceivedAnyResult: false,
+      isUnsupported: false,
     }
     setSpeechStatus('listening')
 
-    const recognition = new Ctor()
+    let recognition: SpeechRecognitionLike
+    try {
+      recognition = new Ctor()
+    } catch (e) {
+      // Constructor failed - API exists but doesn't work (common on some Android devices)
+      if (import.meta.env.DEV) console.warn('Failed to construct SpeechRecognition:', e)
+      setSpeechStatus('unsupported')
+      return
+    }
     recognition.interimResults = true
 
     // Mobile browsers (iOS Safari, Chrome on Android, etc.) have issues with continuous mode
@@ -144,10 +154,33 @@ export function useSpeechRecognition({
       const errorEvent = event as { error?: string; message?: string }
       const errorType = errorEvent.error || 'unknown'
 
-      // Only show user-facing errors for critical issues
-      if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+      // service-not-allowed and language-not-supported always indicate the API doesn't work
+      // These errors mean the service itself is unavailable, not a permission issue
+      if (errorType === 'service-not-allowed' || errorType === 'language-not-supported') {
+        if (import.meta.env.DEV) {
+          console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
+        }
+        // Mark as permanently unsupported to prevent restart loops in onend
+        healthMetricsRef.current.isUnsupported = true
+        setSpeechStatus('unsupported')
+        return
+      }
+
+      // not-allowed before any results means API exists but doesn't work (unsupported)
+      // not-allowed after results means user revoked permission (show error)
+      if (errorType === 'not-allowed') {
+        if (!healthMetricsRef.current.hasReceivedAnyResult) {
+          if (import.meta.env.DEV) {
+            console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
+          }
+          healthMetricsRef.current.isUnsupported = true
+          setSpeechStatus('unsupported')
+          return
+        }
+        // Permission revoked after we were working - show error
         onError('Microphone permission denied for speech recognition')
         setSpeechStatus('error')
+        return
       } else if (errorType === 'network') {
         onError('Network error: Speech recognition unavailable')
         setSpeechStatus('error')
@@ -192,6 +225,12 @@ export function useSpeechRecognition({
       if (restartDelayRef.current != null) {
         clearTimeout(restartDelayRef.current)
         restartDelayRef.current = null
+      }
+
+      // Don't try to restart if speech recognition is permanently unsupported
+      if (healthMetricsRef.current.isUnsupported) {
+        recognitionRef.current = null
+        return
       }
 
       if (isRecordingRef.current && restartAttemptsRef.current < maxRestartAttempts) {
@@ -242,8 +281,9 @@ export function useSpeechRecognition({
     try {
       recognition.start()
     } catch (e) {
+      // If start() throws immediately, treat as unsupported (API exists but doesn't work)
       if (import.meta.env.DEV) console.warn('Failed to start speech recognition:', e)
-      setSpeechStatus('error')
+      setSpeechStatus('unsupported')
     }
   }, [speechSupported, isRecordingRef, onTranscriptUpdate, onError])
 
@@ -262,15 +302,24 @@ export function useSpeechRecognition({
       /* noop */
     }
     recognitionRef.current = null
-    setSpeechStatus(speechSupported ? 'idle' : 'unsupported')
+    // Preserve 'unsupported' status if we detected speech recognition doesn't work
+    // Otherwise reset to 'idle' (or 'unsupported' if API doesn't exist)
+    setSpeechStatus(prev => {
+      if (prev === 'unsupported') return 'unsupported'
+      return speechSupported ? 'idle' : 'unsupported'
+    })
   }, [speechSupported])
 
   // Reset speech status (useful when dismissing warnings)
-  // If recording is active, reset to 'listening'; otherwise reset to 'idle'
+  // Preserve 'unsupported' status since it means the API doesn't work
+  // For other statuses, reset to 'listening' if recording, otherwise 'idle'
   const resetSpeechStatus = useCallback(() => {
-    if (speechSupported) {
-      setSpeechStatus(isRecordingRef.current ? 'listening' : 'idle')
-    }
+    setSpeechStatus(prev => {
+      // Don't reset if unsupported - the API still doesn't work
+      if (prev === 'unsupported') return 'unsupported'
+      if (!speechSupported) return 'unsupported'
+      return isRecordingRef.current ? 'listening' : 'idle'
+    })
   }, [speechSupported, isRecordingRef])
 
   return {

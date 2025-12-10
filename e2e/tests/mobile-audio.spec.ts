@@ -206,9 +206,11 @@ test.describe("Mobile Speech Recognition - Degraded Mode", () => {
 });
 
 test.describe("Mobile Speech Recognition - Unsupported", () => {
-  // Skip: Chromium's native SpeechRecognition cannot be reliably removed via init scripts.
-  // The feature itself works - these tests need a browser that truly lacks SpeechRecognition support.
-  test.skip("should show unsupported message when speech recognition not available", async ({
+  // Tests for scenarios where the Speech Recognition API doesn't exist
+  // (browsers without Web Speech API support). The mock returns undefined for
+  // window.SpeechRecognition, causing the app to detect it as unsupported.
+
+  test("should show unsupported message when speech recognition not available", async ({
     page,
   }) => {
     const audioBase64 = loadTestAudioBase64();
@@ -223,21 +225,23 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
-    // Wait a moment for state to propagate
-    await page.waitForTimeout(500);
+    // Wait a moment for speech recognition status to be determined
+    await page.waitForTimeout(200);
 
-    // Should show unsupported status
-    const speechStatus = page.getByTestId("speech-status");
-    await expect(speechStatus).toBeVisible({ timeout: 5000 });
-    await expect(speechStatus).toContainText(/not available/i);
+    // Verify speech recognition is shown as unsupported via the transcript placeholder
+    // The placeholder changes from "Speak to transcribe…" to "not supported" when SR unavailable
+    const transcript = page.locator(".audio-recorder__transcript");
+    await expect(transcript).toHaveAttribute("placeholder", /not supported/i, {
+      timeout: 5000,
+    });
 
-    // Audio recording should still work
-    await page.waitForTimeout(500);
+    // Audio recording should still work even though speech recognition is unavailable
+    await page.waitForTimeout(300);
     await micButton.tap({ force: true });
     await expect(page.getByTestId("send-button")).toBeVisible();
   });
 
-  test.skip("should show placeholder message in transcript area when unsupported", async ({
+  test("should show placeholder message in transcript area when unsupported", async ({
     page,
   }) => {
     const audioBase64 = loadTestAudioBase64();
@@ -248,7 +252,19 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     await page.goto("/audio-input");
     await page.locator(".audio-recorder__launcher").tap();
 
-    // Check placeholder text indicates no speech support
+    // Start recording - speech recognition won't be available (API doesn't exist in this test)
+    const micButton = page.getByTestId("mic-button");
+    await micButton.tap({ force: true });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+
+    // Wait for React to re-render with updated unsupported status
+    await page.waitForTimeout(200);
+
+    // Stop recording
+    await micButton.tap({ force: true });
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
+
+    // Check placeholder text indicates no speech support (after detection)
     const transcript = page.locator(".audio-recorder__transcript");
     await expect(transcript).toHaveAttribute("placeholder", /not supported/i);
   });

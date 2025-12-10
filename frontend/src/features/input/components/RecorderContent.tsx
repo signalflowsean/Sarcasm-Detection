@@ -1,8 +1,9 @@
+import type { SpeechStatus } from '../hooks/useSpeechRecognition'
+import Controls from './Controls'
 import MicButton from './MicButton'
+import SharedTextArea from './SharedTextArea'
 import Status from './Status'
 import Waveform from './Waveform'
-import SharedTextArea from './SharedTextArea'
-import Controls from './Controls'
 
 type Props = {
   isRecording: boolean
@@ -12,7 +13,7 @@ type Props = {
   canvasRef: React.Ref<HTMLCanvasElement>
   audioRef: React.Ref<HTMLAudioElement>
   audioSrc?: string
-  speechSupported: boolean
+  speechStatus: SpeechStatus
   transcript: string
   interimTranscript: string
   isPlaying: boolean
@@ -39,7 +40,7 @@ const RecorderContent = ({
   canvasRef,
   audioRef,
   audioSrc,
-  speechSupported,
+  speechStatus,
   transcript,
   interimTranscript,
   isPlaying,
@@ -57,8 +58,11 @@ const RecorderContent = ({
   onDiscard,
   onSend,
 }: Props) => {
+  // Speech is available if status isn't 'unsupported' (covers both API not existing and API not working)
+  const speechAvailable = speechStatus !== 'unsupported'
+
   const transcriptDescriptionId = 'transcript-description'
-  const transcriptDescription = speechSupported
+  const transcriptDescription = speechAvailable
     ? 'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
     : 'Transcript area: Speech-to-text is not supported in this browser. Audio will be recorded, but automatic transcription is unavailable.'
 
@@ -112,7 +116,7 @@ const RecorderContent = ({
       <SharedTextArea
         value={(transcript + ' ' + interimTranscript).trim()}
         placeholder={
-          speechSupported ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'
+          speechAvailable ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'
         }
         disabled={true}
         className="audio-recorder__transcript"

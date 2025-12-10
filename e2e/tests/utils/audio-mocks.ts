@@ -659,135 +659,143 @@ export async function injectAudioMocksWithSpeech(
         MockAudioContext;
 
       // Mock SpeechRecognition
-      if (speechSupported) {
-        let noSpeechCounter = 0;
+      // We use getters to return undefined when unsupported, simulating browsers without the API.
+      // The mock class is only returned when speechSupported is true.
+      let noSpeechCounter = 0;
 
-        class MockSpeechRecognition {
-          interimResults = false;
-          continuous = false;
-          maxAlternatives = 1;
-          lang = "en-US";
-          onresult: ((event: unknown) => void) | null = null;
-          onerror: ((event: unknown) => void) | null = null;
-          onend: (() => void) | null = null;
+      class MockSpeechRecognition {
+        interimResults = false;
+        continuous = false;
+        maxAlternatives = 1;
+        lang = "en-US";
+        onresult: ((event: unknown) => void) | null = null;
+        onerror: ((event: unknown) => void) | null = null;
+        onend: (() => void) | null = null;
 
-          private _started = false;
-          private _timeout: number | null = null;
+        private _started = false;
+        private _timeout: number | null = null;
 
-          start() {
-            if (this._started) {
-              console.warn("[E2E Mock] SpeechRecognition already started");
+        start() {
+          if (this._started) {
+            console.warn("[E2E Mock] SpeechRecognition already started");
+            return;
+          }
+          console.log(
+            "[E2E Mock] SpeechRecognition.start() - continuous:",
+            this.continuous,
+          );
+          this._started = true;
+
+          // Simulate mobile behavior: ends after a short time in non-continuous mode
+          const duration = this.continuous ? 5000 : 2000;
+
+          this._timeout = window.setTimeout(() => {
+            if (!this._started) return;
+
+            // If configured to throw error, do that
+            if (speechError && this.onerror) {
+              console.log("[E2E Mock] Firing speech error:", speechError);
+              this.onerror({ error: speechError });
+              this._started = false;
+              if (this.onend) this.onend();
               return;
             }
-            console.log(
-              "[E2E Mock] SpeechRecognition.start() - continuous:",
-              this.continuous,
-            );
-            this._started = true;
 
-            // Simulate mobile behavior: ends after a short time in non-continuous mode
-            const duration = this.continuous ? 5000 : 2000;
-
-            this._timeout = window.setTimeout(() => {
-              if (!this._started) return;
-
-              // If configured to throw error, do that
-              if (speechError && this.onerror) {
-                console.log("[E2E Mock] Firing speech error:", speechError);
-                this.onerror({ error: speechError });
-                this._started = false;
-                if (this.onend) this.onend();
-                return;
+            // Simulate no-speech errors (common on mobile)
+            if (
+              speechNoSpeechCount > 0 &&
+              noSpeechCounter < speechNoSpeechCount
+            ) {
+              noSpeechCounter++;
+              console.log(
+                `[E2E Mock] Firing no-speech error (${noSpeechCounter}/${speechNoSpeechCount})`,
+              );
+              if (this.onerror) {
+                this.onerror({ error: "no-speech" });
               }
-
-              // Simulate no-speech errors (common on mobile)
-              if (
-                speechNoSpeechCount > 0 &&
-                noSpeechCounter < speechNoSpeechCount
-              ) {
-                noSpeechCounter++;
-                console.log(
-                  `[E2E Mock] Firing no-speech error (${noSpeechCounter}/${speechNoSpeechCount})`,
-                );
-                if (this.onerror) {
-                  this.onerror({ error: "no-speech" });
-                }
-                this._started = false;
-                if (this.onend) this.onend();
-                return;
-              }
-
-              // Otherwise, simulate getting a result
-              if (this.onresult) {
-                console.log("[E2E Mock] Firing speech result");
-                this.onresult({
-                  resultIndex: 0,
-                  results: [
-                    {
-                      isFinal: true,
-                      0: { transcript: speechTranscript },
-                      length: 1,
-                    },
-                  ],
-                });
-              }
-
-              // In non-continuous mode (mobile), recognition ends after each result
-              if (!this.continuous) {
-                this._started = false;
-                if (this.onend) this.onend();
-              }
-            }, duration);
-          }
-
-          stop() {
-            console.log("[E2E Mock] SpeechRecognition.stop()");
-            if (this._timeout) {
-              clearTimeout(this._timeout);
-              this._timeout = null;
+              this._started = false;
+              if (this.onend) this.onend();
+              return;
             }
-            this._started = false;
-            if (this.onend) this.onend();
-          }
 
-          abort() {
-            this.stop();
-          }
+            // Otherwise, simulate getting a result
+            if (this.onresult) {
+              console.log("[E2E Mock] Firing speech result");
+              this.onresult({
+                resultIndex: 0,
+                results: [
+                  {
+                    isFinal: true,
+                    0: { transcript: speechTranscript },
+                    length: 1,
+                  },
+                ],
+              });
+            }
+
+            // In non-continuous mode (mobile), recognition ends after each result
+            if (!this.continuous) {
+              this._started = false;
+              if (this.onend) this.onend();
+            }
+          }, duration);
         }
 
-        (window as { SpeechRecognition?: unknown }).SpeechRecognition =
-          MockSpeechRecognition;
-        (
-          window as { webkitSpeechRecognition?: unknown }
-        ).webkitSpeechRecognition = MockSpeechRecognition;
-        console.log(
-          "[E2E Mock] SpeechRecognition mocked with support=true, error=",
-          speechError,
-          ", noSpeechCount=",
-          speechNoSpeechCount,
-        );
-      } else {
-        // Remove speech recognition support
-        // Use Object.defineProperty to ensure we override any native implementation
-        Object.defineProperty(window, "SpeechRecognition", {
-          value: undefined,
-          writable: true,
-          configurable: true,
-        });
-        Object.defineProperty(window, "webkitSpeechRecognition", {
-          value: undefined,
-          writable: true,
-          configurable: true,
-        });
-        console.log(
-          "[E2E Mock] SpeechRecognition support removed (testing unsupported scenario)",
-          "SpeechRecognition=",
-          (window as { SpeechRecognition?: unknown }).SpeechRecognition,
-          "webkitSpeechRecognition=",
-          (window as { webkitSpeechRecognition?: unknown })
-            .webkitSpeechRecognition,
-        );
+        stop() {
+          console.log("[E2E Mock] SpeechRecognition.stop()");
+          if (this._timeout) {
+            clearTimeout(this._timeout);
+            this._timeout = null;
+          }
+          this._started = false;
+          if (this.onend) this.onend();
+        }
+
+        abort() {
+          this.stop();
+        }
       }
+
+      // Store the mock in a variable that our getters will return
+      // Use getters to intercept ALL access to these properties
+      // This prevents Chromium from restoring the native implementation
+      const mockCtor = MockSpeechRecognition;
+
+      // Delete existing properties first to avoid conflicts
+      try {
+        delete (window as Record<string, unknown>).SpeechRecognition;
+        delete (window as Record<string, unknown>).webkitSpeechRecognition;
+      } catch {
+        // May fail if properties are non-configurable, continue anyway
+      }
+
+      // When speech is unsupported, return undefined so the app sees no SR API
+      // When supported, return the mock class
+      const getterValue = speechSupported ? mockCtor : undefined;
+
+      Object.defineProperty(window, "SpeechRecognition", {
+        get: () => getterValue,
+        set: () => {
+          /* ignore attempts to set */
+        },
+        configurable: true,
+      });
+      Object.defineProperty(window, "webkitSpeechRecognition", {
+        get: () => getterValue,
+        set: () => {
+          /* ignore attempts to set */
+        },
+        configurable: true,
+      });
+
+      console.log(
+        "[E2E Mock] SpeechRecognition mocked with getters, support=",
+        speechSupported,
+        ", error=",
+        speechError,
+        ", noSpeechCount=",
+        speechNoSpeechCount,
+      );
     },
     {
       audioData: audioBase64,
