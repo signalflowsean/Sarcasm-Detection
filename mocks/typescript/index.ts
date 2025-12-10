@@ -6,6 +6,11 @@
  *
  * Node.js-only exports (for E2E tests, build scripts):
  *   import { loadTestAudioBase64 } from '../../mocks/typescript/audio-node'
+ *
+ * ⚠️  WARNING: This barrel file re-exports Node.js-only functions for convenience.
+ * Do NOT import this file in browser code that gets bundled (e.g., frontend src/).
+ * Bundlers (Vite, Webpack) will fail at BUILD TIME when trying to resolve `fs` and `path`.
+ * For browser code, import specific functions from './audio' or './fetch' instead.
  */
 
 // Audio mocks (browser-compatible)
@@ -22,8 +27,10 @@ export {
 } from "./audio";
 
 // Node.js-only audio utilities
-// These are re-exported here for convenience but will fail in browser environments
+// ⚠️  These use `fs` and `path` - importing them in browser bundles causes BUILD errors, not runtime errors.
+// Only use in Node.js contexts: E2E tests (Playwright), build scripts, CLI tools.
 export {
+  createWavBuffer,
   loadTestAudioBase64,
   saveWavFile,
   TEST_AUDIO_PATH,

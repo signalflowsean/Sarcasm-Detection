@@ -1,16 +1,18 @@
 /**
- * Browser-compatible audio mocks for testing.
+ * Audio mocks for testing.
  *
- * This file works in both Node.js and browser environments.
- * All functions use pure JavaScript/TypeScript without Node.js dependencies.
+ * Cross-environment functions (Node.js + Browser):
+ * - generateWavBytes() - Returns Uint8Array
+ * - generateWavBase64() - Returns base64 string (uses Buffer in Node, btoa in browser)
  *
- * Used by:
- * - Frontend unit tests (Vitest)
- * - Browser-based test environments
- * - Dev mode mocking
+ * Browser-only functions (require DOM APIs):
+ * - createWavBlob() - Uses Blob API
+ * - createFakeMediaStream() - MediaStream mock
+ * - createMockAudioContext() - AudioContext mock
+ * - createMockMediaRecorder() - MediaRecorder mock (uses Blob)
+ * - createMockSpeechRecognition() - SpeechRecognition mock (uses window)
  *
- * For Node.js-only utilities (like loading files from disk),
- * see audio-node.ts instead.
+ * For Node.js file utilities, see audio-node.ts instead.
  */
 
 /**
@@ -92,6 +94,13 @@ function writeString(view: DataView, offset: number, str: string) {
  */
 export function generateWavBase64(config?: WavConfig): string {
   const bytes = generateWavBytes(config);
+
+  // Use Buffer in Node.js, btoa in browser
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64");
+  }
+
+  // Browser fallback
   let binary = "";
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -101,7 +110,8 @@ export function generateWavBase64(config?: WavConfig): string {
 
 /**
  * Create a Blob from WAV bytes.
- * Works in both Node.js (with polyfill) and browser environments.
+ * @browser This function requires the Blob API (browser-only).
+ * For Node.js, use generateWavBytes() and convert with Buffer.
  */
 export function createWavBlob(config?: WavConfig): Blob {
   const bytes = generateWavBytes(config);
@@ -111,6 +121,7 @@ export function createWavBlob(config?: WavConfig): Blob {
 
 /**
  * Create a fake MediaStream for testing.
+ * @browser This function mocks browser MediaStream API.
  */
 export function createFakeMediaStream(): MediaStream {
   const fakeTrack = {
@@ -161,6 +172,7 @@ export function createFakeMediaStream(): MediaStream {
 
 /**
  * Create a mock AudioContext for testing.
+ * @browser This function mocks browser AudioContext API.
  */
 export function createMockAudioContext() {
   return class MockAudioContext {
@@ -254,6 +266,7 @@ export function createMockAudioContext() {
 
 /**
  * Create a mock MediaRecorder for testing.
+ * @browser This function mocks browser MediaRecorder API (uses Blob internally).
  */
 export function createMockMediaRecorder(audioBase64: string) {
   return class MockMediaRecorder {
@@ -317,7 +330,7 @@ export function createMockMediaRecorder(audioBase64: string) {
 }
 
 /**
- * Create a mock SpeechRecognition for testing.
+ * Configuration for mock SpeechRecognition.
  */
 export interface SpeechRecognitionMockConfig {
   /** Whether to support speech recognition */
@@ -330,6 +343,10 @@ export interface SpeechRecognitionMockConfig {
   transcript?: string;
 }
 
+/**
+ * Create a mock SpeechRecognition for testing.
+ * @browser This function mocks browser SpeechRecognition API (uses window.setTimeout).
+ */
 export function createMockSpeechRecognition(
   config: SpeechRecognitionMockConfig = {}
 ) {

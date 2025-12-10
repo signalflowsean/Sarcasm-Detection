@@ -2,11 +2,14 @@
 /**
  * Node.js-only audio utilities for test environments.
  *
- * This file requires Node.js and cannot be used in browser environments.
- * Use this for:
- * - E2E tests (Playwright)
+ * ⚠️  DO NOT import this file in browser code that gets bundled.
+ * This file uses Node.js built-ins (`fs`, `path`) which will cause bundlers
+ * (Vite, Webpack, etc.) to fail at BUILD TIME with module resolution errors.
+ *
+ * Safe to use in:
+ * - E2E tests (Playwright runs in Node.js)
  * - Backend test utilities
- * - Build scripts
+ * - Build scripts and CLI tools
  *
  * For browser-compatible mocks, use audio.ts instead.
  *
@@ -16,7 +19,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import { generateWavBase64 } from "./audio";
+import { generateWavBase64, generateWavBytes, type WavConfig } from "./audio";
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -66,4 +69,19 @@ export function testAudioFixtureExists(): boolean {
  */
 export function saveWavFile(filePath: string, wavBytes: Uint8Array): void {
   fs.writeFileSync(filePath, Buffer.from(wavBytes));
+}
+
+/**
+ * Create a Node.js Buffer from WAV bytes.
+ * This is the Node.js equivalent of createWavBlob() for use in E2E tests.
+ *
+ * @example
+ * ```typescript
+ * import { createWavBuffer } from '../../mocks/typescript/audio-node';
+ * const buffer = createWavBuffer();
+ * // Use with fs.writeFileSync or multipart form uploads
+ * ```
+ */
+export function createWavBuffer(config?: WavConfig): Buffer {
+  return Buffer.from(generateWavBytes(config));
 }
