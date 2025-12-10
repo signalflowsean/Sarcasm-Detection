@@ -78,6 +78,7 @@ export function useSpeechRecognition({
     consecutiveErrors: 0,
     lastResultTime: 0,
     hasReceivedAnyResult: false,
+    isUnsupported: false, // Track if speech is permanently unsupported (prevents restart loops)
   })
 
   // Threshold for considering speech recognition "degraded"
@@ -102,6 +103,7 @@ export function useSpeechRecognition({
       consecutiveErrors: 0,
       lastResultTime: Date.now(),
       hasReceivedAnyResult: false,
+      isUnsupported: false,
     }
     setSpeechStatus('listening')
 
@@ -152,26 +154,33 @@ export function useSpeechRecognition({
       const errorEvent = event as { error?: string; message?: string }
       const errorType = errorEvent.error || 'unknown'
 
-      // If we get certain errors before ever receiving any speech results, treat as unsupported
-      // This handles cases where the API exists but doesn't work (e.g., some Android devices,
-      // restricted browsers, or network-dependent services that are unavailable)
-      const isUnsupportedError =
-        errorType === 'service-not-allowed' ||
-        errorType === 'language-not-supported' ||
-        errorType === 'not-allowed'
-
-      if (isUnsupportedError && !healthMetricsRef.current.hasReceivedAnyResult) {
+      // service-not-allowed and language-not-supported always indicate the API doesn't work
+      // These errors mean the service itself is unavailable, not a permission issue
+      if (errorType === 'service-not-allowed' || errorType === 'language-not-supported') {
         if (import.meta.env.DEV) {
           console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
         }
+        // Mark as permanently unsupported to prevent restart loops in onend
+        healthMetricsRef.current.isUnsupported = true
         setSpeechStatus('unsupported')
         return
       }
 
-      // Only show user-facing errors for critical issues after we've received results
-      if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+      // not-allowed before any results means API exists but doesn't work (unsupported)
+      // not-allowed after results means user revoked permission (show error)
+      if (errorType === 'not-allowed') {
+        if (!healthMetricsRef.current.hasReceivedAnyResult) {
+          if (import.meta.env.DEV) {
+            console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
+          }
+          healthMetricsRef.current.isUnsupported = true
+          setSpeechStatus('unsupported')
+          return
+        }
+        // Permission revoked after we were working - show error
         onError('Microphone permission denied for speech recognition')
         setSpeechStatus('error')
+        return
       } else if (errorType === 'network') {
         onError('Network error: Speech recognition unavailable')
         setSpeechStatus('error')
@@ -216,6 +225,12 @@ export function useSpeechRecognition({
       if (restartDelayRef.current != null) {
         clearTimeout(restartDelayRef.current)
         restartDelayRef.current = null
+      }
+
+      // Don't try to restart if speech recognition is permanently unsupported
+      if (healthMetricsRef.current.isUnsupported) {
+        recognitionRef.current = null
+        return
       }
 
       if (isRecordingRef.current && restartAttemptsRef.current < maxRestartAttempts) {

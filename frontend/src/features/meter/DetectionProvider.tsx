@@ -144,6 +144,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   const holdTimeoutRef = useRef<number | null>(null)
   const resetTimeoutRef = useRef<number | null>(null)
   const cableAnimationTimeoutRef = useRef<number | null>(null)
+  const rafIdRef = useRef<number | null>(null)
 
   // Calculate main value as average
   const mainValue = (lexicalValue + prosodicValue) / 2
@@ -157,6 +158,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     if (resetTimeoutRef.current !== null) {
       window.clearTimeout(resetTimeoutRef.current)
       resetTimeoutRef.current = null
+    }
+    // Also cancel any pending requestAnimationFrame from setDetectionResult
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
     }
   }
 
@@ -176,6 +182,25 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     }
   }, [])
 
+  // Track previous input mode to detect changes
+  const prevInputModeRef = useRef(inputMode)
+
+  // Reset detector when rotary switch position changes
+  useEffect(() => {
+    if (prevInputModeRef.current !== inputMode) {
+      // Input mode changed - reset the detector to clear any in-progress detection
+      clearTimers()
+      clearCableAnimationTimer()
+      setIsLoading(false)
+      setCableAnimating(false)
+      setLexicalValue(0)
+      setProsodicValue(0)
+      setIsReliable(true)
+      setState(DetectionState.IDLE)
+      prevInputModeRef.current = inputMode
+    }
+  }, [inputMode])
+
   // Set loading state
   const setLoading = (loading: boolean) => {
     setIsLoading(loading)
@@ -183,6 +208,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       // Cancel any pending result cycle if we start a new request
       clearTimers()
       setState(DetectionState.LOADING)
+
+      // Reset values to 0 so the needle returns to baseline during loading
+      // This ensures a clean visual transition when rapidly sending detections
+      setLexicalValue(0)
+      setProsodicValue(0)
 
       // Clear any existing cable animation timer before starting new one
       clearCableAnimationTimer()
@@ -208,7 +238,8 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     // Wait one frame before updating values to allow CSS transition to work
     // This is necessary because CSS transitions don't fire when an animation
     // is removed and the property changes in the same frame
-    requestAnimationFrame(() => {
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null
       // Update values - this will now trigger a CSS transition
       if (values.lexical !== undefined) {
         setLexicalValue(values.lexical)
