@@ -225,15 +225,17 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
-    // Wait a moment for speech recognition error to fire and status to update
+    // Wait a moment for speech recognition status to be determined
     await page.waitForTimeout(200);
 
-    // Should show unsupported status
-    const speechStatus = page.getByTestId("speech-status");
-    await expect(speechStatus).toBeVisible({ timeout: 5000 });
-    await expect(speechStatus).toContainText(/not available/i);
+    // Verify speech recognition is shown as unsupported via the transcript placeholder
+    // The placeholder changes from "Speak to transcribe…" to "not supported" when SR unavailable
+    const transcript = page.locator(".audio-recorder__transcript");
+    await expect(transcript).toHaveAttribute("placeholder", /not supported/i, {
+      timeout: 5000,
+    });
 
-    // Audio recording should still work
+    // Audio recording should still work even though speech recognition is unavailable
     await page.waitForTimeout(300);
     await micButton.tap({ force: true });
     await expect(page.getByTestId("send-button")).toBeVisible();

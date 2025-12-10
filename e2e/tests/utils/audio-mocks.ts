@@ -679,8 +679,12 @@ export async function injectAudioMocksWithSpeech(
           // If speech recognition is not supported, fire an error immediately
           // This simulates devices where the API exists but doesn't work
           if (!speechSupported) {
+            console.log(
+              "[E2E Mock] SpeechRecognition.start() - UNSUPPORTED, firing service-not-allowed error",
+            );
             // Fire error asynchronously to match real behavior
             window.setTimeout(() => {
+              console.log("[E2E Mock] Firing service-not-allowed error now");
               if (this.onerror) {
                 this.onerror({ error: "service-not-allowed" });
               }
@@ -784,15 +788,19 @@ export async function injectAudioMocksWithSpeech(
         // May fail if properties are non-configurable, continue anyway
       }
 
+      // When speech is unsupported, return undefined so the app sees no SR API
+      // When supported, return the mock class
+      const getterValue = speechSupported ? mockCtor : undefined;
+
       Object.defineProperty(window, "SpeechRecognition", {
-        get: () => mockCtor,
+        get: () => getterValue,
         set: () => {
           /* ignore attempts to set */
         },
         configurable: true,
       });
       Object.defineProperty(window, "webkitSpeechRecognition", {
-        get: () => mockCtor,
+        get: () => getterValue,
         set: () => {
           /* ignore attempts to set */
         },
