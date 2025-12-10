@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { sendLexicalText, sendProsodicAudio } from './apiService'
-import { formatDuration, clamp01 } from './utils'
-import RecorderContent from './components/RecorderContent'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDetection } from '../meter/useDetection'
+import { sendLexicalText, sendProsodicAudio } from './apiService'
+import RecorderContent from './components/RecorderContent'
+import SpeechStatus from './components/SpeechStatus'
 import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useWaveform } from './hooks/useWaveform'
+import { clamp01, formatDuration } from './utils'
 
 type Nullable<T> = T | null
 
@@ -86,7 +87,13 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     setState(s => ({ ...s, error: message }))
   }, [])
 
-  const { startSpeechRecognition, stopSpeechRecognition, speechSupported } = useSpeechRecognition({
+  const {
+    startSpeechRecognition,
+    stopSpeechRecognition,
+    speechSupported,
+    speechStatus,
+    resetSpeechStatus,
+  } = useSpeechRecognition({
     isRecordingRef,
     onTranscriptUpdate: handleTranscriptUpdate,
     onError: handleSpeechError,
@@ -562,6 +569,11 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         onTogglePlay={togglePlay}
         onDiscard={discardRecording}
         onSend={onSend}
+      />
+      <SpeechStatus
+        status={speechStatus}
+        isRecording={state.isRecording}
+        onDismiss={resetSpeechStatus}
       />
       {state.error && (
         <div className="audio-recorder__error" role="alert" data-testid="audio-error">

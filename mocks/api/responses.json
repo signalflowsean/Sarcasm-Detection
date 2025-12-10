@@ -1,0 +1,60 @@
+{
+  "lexical": {
+    "sarcastic": {
+      "id": "mock-lexical-sarcastic",
+      "value": 0.85,
+      "reliable": true
+    },
+    "sincere": {
+      "id": "mock-lexical-sincere",
+      "value": 0.15,
+      "reliable": true
+    },
+    "uncertain": {
+      "id": "mock-lexical-uncertain",
+      "value": 0.5,
+      "reliable": true
+    },
+    "unreliable": {
+      "id": "mock-lexical-unreliable",
+      "value": 0.5,
+      "reliable": false
+    }
+  },
+  "prosodic": {
+    "sarcastic": {
+      "id": "mock-prosodic-sarcastic",
+      "value": 0.78,
+      "reliable": true
+    },
+    "sincere": {
+      "id": "mock-prosodic-sincere",
+      "value": 0.22,
+      "reliable": true
+    },
+    "uncertain": {
+      "id": "mock-prosodic-uncertain",
+      "value": 0.5,
+      "reliable": true
+    },
+    "unreliable": {
+      "id": "mock-prosodic-unreliable",
+      "value": 0.5,
+      "reliable": false
+    }
+  },
+  "health": {
+    "healthy": {
+      "status": "healthy",
+      "lexical_model": true,
+      "prosodic_model": true,
+      "wav2vec2": true
+    },
+    "degraded": {
+      "status": "degraded",
+      "lexical_model": true,
+      "prosodic_model": false,
+      "wav2vec2": true
+    }
+  }
+}

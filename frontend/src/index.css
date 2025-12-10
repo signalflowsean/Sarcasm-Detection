@@ -509,6 +509,69 @@
     color: #fca5a5;
   }
 
+  /* Speech status indicator for transcription feedback */
+  .speech-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    animation: fade-in 0.2s ease-out;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .speech-status--warning {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+  }
+
+  .speech-status--error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .speech-status__icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .speech-status__message {
+    flex: 1;
+  }
+
+  .speech-status__dismiss {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+  }
+
+  .speech-status__dismiss:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
   /* Mobile modal */
   .audio-recorder__launcher {
     position: absolute;
@@ -689,6 +752,12 @@
   .audio-recorder__modal .audio-recorder__error {
     font-size: clamp(0.94rem, 2.25vw, 1.125rem);
     padding: 0.75rem;
+  }
+
+  .audio-recorder__modal .speech-status {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    padding: 0.625rem 0.875rem;
+    margin-top: 0.75rem;
   }
 
   /* Make modal content larger - Text Input */
@@ -2604,6 +2673,20 @@ body:has(.audio-recorder__modal) .detector-jack {
    ================================================ */
 
 @layer utilities {
+  /* Visually hidden content for screen readers only
+     Use this to provide context to screen reader users without affecting visual layout */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   /* Shared keyboard shortcut styling
      Used by: .audio-recorder__mic__shortcut, .audio-btn__shortcut, .text-input__send-btn__shortcut
      Component-specific variations are applied in their respective classes */
