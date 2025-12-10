@@ -1,15 +1,17 @@
 /**
- * Shared audio mocks for browser environments.
- * Used by frontend tests, E2E tests, and dev mode.
+ * Browser-compatible audio mocks for testing.
+ *
+ * This file works in both Node.js and browser environments.
+ * All functions use pure JavaScript/TypeScript without Node.js dependencies.
+ *
+ * Used by:
+ * - Frontend unit tests (Vitest)
+ * - Browser-based test environments
+ * - Dev mode mocking
+ *
+ * For Node.js-only utilities (like loading files from disk),
+ * see audio-node.ts instead.
  */
-
-import * as fs from "fs";
-import * as path from "path";
-import { fileURLToPath } from "url";
-
-// ES module compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Audio configuration for WAV generation
@@ -86,6 +88,7 @@ function writeString(view: DataView, offset: number, str: string) {
 
 /**
  * Generate a WAV file as base64 string.
+ * Works in both Node.js and browser environments.
  */
 export function generateWavBase64(config?: WavConfig): string {
   const bytes = generateWavBytes(config);
@@ -97,28 +100,13 @@ export function generateWavBase64(config?: WavConfig): string {
 }
 
 /**
- * Create a Blob from WAV bytes (browser only).
+ * Create a Blob from WAV bytes.
+ * Works in both Node.js (with polyfill) and browser environments.
  */
 export function createWavBlob(config?: WavConfig): Blob {
   const bytes = generateWavBytes(config);
-  return new Blob([bytes], { type: "audio/wav" });
-}
-
-/**
- * Load test audio fixture from disk (Node.js only).
- * Falls back to generating audio if fixture doesn't exist.
- */
-export function loadTestAudioBase64(): string {
-  const fixturePath = path.join(__dirname, "../fixtures/test-audio.wav");
-  try {
-    if (fs.existsSync(fixturePath)) {
-      const buffer = fs.readFileSync(fixturePath);
-      return buffer.toString("base64");
-    }
-  } catch {
-    // Fall through to generation
-  }
-  return generateWavBase64();
+  // Type assertion is safe here because generateWavBytes creates an ArrayBuffer
+  return new Blob([bytes.buffer as ArrayBuffer], { type: "audio/wav" });
 }
 
 /**
@@ -343,7 +331,7 @@ export interface SpeechRecognitionMockConfig {
 }
 
 export function createMockSpeechRecognition(
-  config: SpeechRecognitionMockConfig = {},
+  config: SpeechRecognitionMockConfig = {}
 ) {
   const {
     supported = true,
@@ -367,8 +355,8 @@ export function createMockSpeechRecognition(
     onerror: ((event: unknown) => void) | null = null;
     onend: (() => void) | null = null;
 
-    private _started = false;
-    private _timeout: number | null = null;
+    /** @internal */ _started = false;
+    /** @internal */ _timeout: number | null = null;
 
     start() {
       if (this._started) return;

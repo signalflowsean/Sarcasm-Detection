@@ -2673,6 +2673,20 @@ body:has(.audio-recorder__modal) .detector-jack {
    ================================================ */
 
 @layer utilities {
+  /* Visually hidden content for screen readers only
+     Use this to provide context to screen reader users without affecting visual layout */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   /* Shared keyboard shortcut styling
      Used by: .audio-recorder__mic__shortcut, .audio-btn__shortcut, .text-input__send-btn__shortcut
      Component-specific variations are applied in their respective classes */

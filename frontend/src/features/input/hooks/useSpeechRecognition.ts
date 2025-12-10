@@ -265,12 +265,13 @@ export function useSpeechRecognition({
     setSpeechStatus(speechSupported ? 'idle' : 'unsupported')
   }, [speechSupported])
 
-  // Reset speech status to idle (useful when dismissing warnings)
+  // Reset speech status (useful when dismissing warnings)
+  // If recording is active, reset to 'listening'; otherwise reset to 'idle'
   const resetSpeechStatus = useCallback(() => {
     if (speechSupported) {
-      setSpeechStatus('idle')
+      setSpeechStatus(isRecordingRef.current ? 'listening' : 'idle')
     }
-  }, [speechSupported])
+  }, [speechSupported, isRecordingRef])
 
   return {
     startSpeechRecognition,

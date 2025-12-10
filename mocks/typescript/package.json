@@ -1,0 +1,16 @@
+{
+  "name": "@sarcasm-detection/mocks-typescript",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared TypeScript mocks for testing",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./audio": "./audio.ts",
+    "./audio-node": "./audio-node.ts",
+    "./fetch": "./fetch.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}

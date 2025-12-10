@@ -1,11 +1,11 @@
+import { sendLexicalText, sendProsodicAudio } from '@/features/input/apiService'
 import React, { createContext, useEffect, useRef, useState } from 'react'
+import type { DetectionStateType } from './meterConstants'
 import {
   DetectionState,
-  RESULT_HOLD_DURATION_MS,
   NEEDLE_RETURN_DURATION_MS,
+  RESULT_HOLD_DURATION_MS,
 } from './meterConstants'
-import type { DetectionStateType } from './meterConstants'
-import { sendLexicalText, sendProsodicAudio } from '../input/apiService'
 import { useWhichInput } from './useWhichInput'
 
 export type DetectionValues = {
@@ -59,9 +59,19 @@ type DetectionProviderProps = {
   children: React.ReactNode
 }
 
-// Test phrases from shared mocks
-import testPhrases from '../../../mocks/fixtures/test-phrases.json'
-const TEST_PHRASES = testPhrases.sarcastic
+// Test phrases for dev mode 'h' key detection (sarcastic examples)
+const TEST_PHRASES = [
+  'Oh great, another meeting that could have been an email.',
+  'I just love waking up at 5am on a Monday.',
+  'What a surprise, the printer is jammed again.',
+  "Sure, I'd love to hear more about your cryptocurrency investments.",
+  'Nothing says fun like doing taxes on a Saturday.',
+  'Wow, traffic is so enjoyable today.',
+  "I'm absolutely thrilled to be here.",
+  'This is exactly what I wanted to do with my weekend.',
+  'Oh wonderful, my code works on the first try. Said no one ever.',
+  'Yes, I definitely wanted to spend my Friday night debugging.',
+]
 
 /**
  * Create a minimal valid WAV audio blob for testing prosodic endpoint.

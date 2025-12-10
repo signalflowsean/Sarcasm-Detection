@@ -641,9 +641,7 @@ test.describe("Mobile Speech Recognition - Degraded Mode", () => {
 });
 
 test.describe("Mobile Speech Recognition - Unsupported", () => {
-  // Skip: Complex mock timing for unsupported state detection
-  // The speech status feature works - these tests need refinement for mock injection timing
-  test.skip("should show unsupported message when speech recognition not available", async ({
+  test("should show unsupported message when speech recognition not available", async ({
     page,
   }) => {
     const audioBase64 = loadTestAudioBase64();

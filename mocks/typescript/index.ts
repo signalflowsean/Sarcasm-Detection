@@ -1,11 +1,14 @@
 /**
- * Shared mocks for TypeScript environments (frontend tests, E2E tests, dev mode).
+ * Shared mocks for TypeScript environments.
  *
- * Usage:
+ * Browser-compatible exports (work everywhere):
  *   import { createWavBlob, mockResponses, createMockFetch } from '../../mocks/typescript'
+ *
+ * Node.js-only exports (for E2E tests, build scripts):
+ *   import { loadTestAudioBase64 } from '../../mocks/typescript/audio-node'
  */
 
-// Audio mocks
+// Audio mocks (browser-compatible)
 export {
   createFakeMediaStream,
   createMockAudioContext,
@@ -14,10 +17,18 @@ export {
   createWavBlob,
   generateWavBase64,
   generateWavBytes,
-  loadTestAudioBase64,
   type SpeechRecognitionMockConfig,
   type WavConfig,
 } from "./audio";
+
+// Node.js-only audio utilities
+// These are re-exported here for convenience but will fail in browser environments
+export {
+  loadTestAudioBase64,
+  saveWavFile,
+  TEST_AUDIO_PATH,
+  testAudioFixtureExists,
+} from "./audio-node";
 
 // Fetch/API mocks
 export {
