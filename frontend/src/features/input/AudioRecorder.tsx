@@ -87,17 +87,12 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     setState(s => ({ ...s, error: message }))
   }, [])
 
-  const {
-    startSpeechRecognition,
-    stopSpeechRecognition,
-    speechSupported,
-    speechStatus,
-    resetSpeechStatus,
-  } = useSpeechRecognition({
-    isRecordingRef,
-    onTranscriptUpdate: handleTranscriptUpdate,
-    onError: handleSpeechError,
-  })
+  const { startSpeechRecognition, stopSpeechRecognition, speechStatus, resetSpeechStatus } =
+    useSpeechRecognition({
+      isRecordingRef,
+      onTranscriptUpdate: handleTranscriptUpdate,
+      onError: handleSpeechError,
+    })
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Cleanup blob URL on unmount to prevent memory leaks
@@ -550,7 +545,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         canvasRef={canvasRef}
         audioRef={audioRef}
         audioSrc={state.audioUrl ?? undefined}
-        speechSupported={speechSupported}
+        speechStatus={speechStatus}
         transcript={state.transcript}
         interimTranscript={state.interimTranscript}
         isPlaying={isPlaying}
