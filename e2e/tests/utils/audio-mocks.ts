@@ -659,8 +659,8 @@ export async function injectAudioMocksWithSpeech(
         MockAudioContext;
 
       // Mock SpeechRecognition
-      // Note: We always create a mock class because Chromium's native SpeechRecognition
-      // cannot be reliably removed. Instead, we make the mock throw errors when unsupported.
+      // We use getters to return undefined when unsupported, simulating browsers without the API.
+      // The mock class is only returned when speechSupported is true.
       let noSpeechCounter = 0;
 
       class MockSpeechRecognition {
@@ -676,25 +676,6 @@ export async function injectAudioMocksWithSpeech(
         private _timeout: number | null = null;
 
         start() {
-          // If speech recognition is not supported, fire an error immediately
-          // This simulates devices where the API exists but doesn't work
-          if (!speechSupported) {
-            console.log(
-              "[E2E Mock] SpeechRecognition.start() - UNSUPPORTED, firing service-not-allowed error",
-            );
-            // Fire error asynchronously to match real behavior
-            window.setTimeout(() => {
-              console.log("[E2E Mock] Firing service-not-allowed error now");
-              if (this.onerror) {
-                this.onerror({ error: "service-not-allowed" });
-              }
-              if (this.onend) {
-                this.onend();
-              }
-            }, 10);
-            return;
-          }
-
           if (this._started) {
             console.warn("[E2E Mock] SpeechRecognition already started");
             return;

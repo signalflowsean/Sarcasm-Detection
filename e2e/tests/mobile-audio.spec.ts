@@ -206,9 +206,9 @@ test.describe("Mobile Speech Recognition - Degraded Mode", () => {
 });
 
 test.describe("Mobile Speech Recognition - Unsupported", () => {
-  // Tests for scenarios where speech recognition API exists but doesn't work
-  // (e.g., some Android devices, restricted browsers). Mock simulates this by
-  // firing 'service-not-allowed' error on start, which the app detects as unsupported.
+  // Tests for scenarios where the Speech Recognition API doesn't exist
+  // (browsers without Web Speech API support). The mock returns undefined for
+  // window.SpeechRecognition, causing the app to detect it as unsupported.
 
   test("should show unsupported message when speech recognition not available", async ({
     page,
@@ -252,12 +252,12 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     await page.goto("/audio-input");
     await page.locator(".audio-recorder__launcher").tap();
 
-    // Start recording to trigger speech recognition attempt (which will fail)
+    // Start recording - speech recognition won't be available (API doesn't exist in this test)
     const micButton = page.getByTestId("mic-button");
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
-    // Wait for the error to be detected and status to update
+    // Wait for React to re-render with updated unsupported status
     await page.waitForTimeout(200);
 
     // Stop recording
