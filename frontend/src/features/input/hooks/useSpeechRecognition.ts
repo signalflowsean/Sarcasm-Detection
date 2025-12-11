@@ -1,5 +1,5 @@
 import * as Moonshine from '@moonshine-ai/moonshine-js'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type TranscriptUpdate = {
   interim: string
@@ -35,7 +35,25 @@ export function useSpeechRecognition({
   onError,
 }: UseSpeechRecognitionOptions) {
   const transcriberRef = useRef<Moonshine.MicrophoneTranscriber | null>(null)
+  const isMountedRef = useRef(true)
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle')
+
+  // Track mounted state for cleanup during async operations
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      // Cleanup any running transcriber on unmount
+      if (transcriberRef.current) {
+        try {
+          transcriberRef.current.stop()
+        } catch {
+          /* noop */
+        }
+        transcriberRef.current = null
+      }
+    }
+  }, [])
 
   const startSpeechRecognition = useCallback(async () => {
     // Don't start if already running
@@ -64,15 +82,29 @@ export function useSpeechRecognition({
             }
           },
         },
-        false // Disable VAD for continuous streaming during recording
+        // Disable VAD (Voice Activity Detection) for continuous streaming.
+        // This ensures immediate, responsive transcription without delays detecting
+        // speech start. Appropriate for press-to-record UX with short recordings.
+        // For always-on listening, consider enabling VAD for battery efficiency.
+        false
       )
 
       transcriberRef.current = transcriber
 
       // Start the transcriber - this will request microphone permission
       await transcriber.start()
+
+      // Check if component unmounted during async start
+      if (!isMountedRef.current) {
+        transcriber.stop()
+        return
+      }
+
       setSpeechStatus('listening')
     } catch (err) {
+      // Don't update state if unmounted
+      if (!isMountedRef.current) return
+
       transcriberRef.current = null
 
       // Handle specific error types
@@ -85,7 +117,20 @@ export function useSpeechRecognition({
           onError(`Speech recognition error: ${err.message}`)
         }
       } else {
-        onError('Failed to start speech recognition')
+        // Attempt to provide more info about the error
+        let errorMsg = 'Failed to start speech recognition'
+        if (typeof err === 'string') {
+          errorMsg += `: ${err}`
+        } else if (typeof err === 'object' && err !== null) {
+          try {
+            errorMsg += `: ${JSON.stringify(err)}`
+          } catch {
+            errorMsg += `: [object could not be stringified]`
+          }
+        } else if (err !== undefined) {
+          errorMsg += `: ${String(err)}`
+        }
+        onError(errorMsg)
       }
 
       setSpeechStatus('error')

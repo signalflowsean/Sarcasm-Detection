@@ -9,9 +9,10 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Smoke Tests", () => {
   test("Moonshine model URL is valid", async ({ request }) => {
-    // This is the URL constructed by MoonshineJS for the tiny model
-    // If this fails, speech-to-text won't work at all
-    const modelBaseUrl = "https://download.moonshine.ai/model/tiny/quantized";
+    // Derive model URL from env var to stay in sync with application config
+    // Default to "tiny" - must match the model used in useSpeechRecognition.ts
+    const modelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
+    const modelBaseUrl = `https://download.moonshine.ai/model/${modelName}/quantized`;
     const encoderUrl = `${modelBaseUrl}/encoder_model.onnx`;
 
     // HEAD request to check if the file exists (doesn't download the full 190MB)

@@ -684,7 +684,7 @@ export async function injectAudioMocksWithMoonshine(
         };
         private _enableVAD: boolean;
         private _listening = false;
-        private _transcriptInterval: number | null = null;
+        private _pendingTimeouts: number[] = [];
 
         constructor(
           model: string,
@@ -719,7 +719,7 @@ export async function injectAudioMocksWithMoonshine(
           this._listening = true;
 
           // Simulate interim transcript after 500ms
-          setTimeout(() => {
+          const interimTimeout = window.setTimeout(() => {
             if (this._listening && this._callbacks.onTranscriptionUpdated) {
               console.log("[E2E Mock] Firing interim transcript");
               this._callbacks.onTranscriptionUpdated(
@@ -727,23 +727,26 @@ export async function injectAudioMocksWithMoonshine(
               );
             }
           }, 500);
+          this._pendingTimeouts.push(interimTimeout);
 
           // Simulate final transcript after 1500ms
-          setTimeout(() => {
+          const finalTimeout = window.setTimeout(() => {
             if (this._listening && this._callbacks.onTranscriptionCommitted) {
               console.log("[E2E Mock] Firing committed transcript");
               this._callbacks.onTranscriptionCommitted(speechTranscript);
             }
           }, 1500);
+          this._pendingTimeouts.push(finalTimeout);
         }
 
         stop(): void {
           console.log("[E2E Mock] MockMicrophoneTranscriber.stop()");
           this._listening = false;
-          if (this._transcriptInterval) {
-            clearInterval(this._transcriptInterval);
-            this._transcriptInterval = null;
+          // Clear all pending timeouts
+          for (const timeoutId of this._pendingTimeouts) {
+            window.clearTimeout(timeoutId);
           }
+          this._pendingTimeouts = [];
         }
 
         isListening(): boolean {
@@ -804,11 +807,5 @@ export async function injectAudioMocksWithSpeech(
   audioBase64: string,
   speechOptions: SpeechRecognitionMockOptions = {},
 ) {
-  // Map old options to new Moonshine options
-  const moonshineOptions: MoonshineMockOptions = {
-    transcript: speechOptions.transcript || "Test transcript from speech.",
-    modelLoadDelay: 100,
-    throwError: speechOptions.error || null,
-  };
-  return injectAudioMocksWithMoonshine(page, audioBase64, moonshineOptions);
+  return injectAudioMocksWithMoonshine(page, audioBase64, speechOptions);
 }

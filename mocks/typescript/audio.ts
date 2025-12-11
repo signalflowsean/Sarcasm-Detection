@@ -362,7 +362,7 @@ export function createMockMicrophoneTranscriber(
     };
     private _enableVAD: boolean;
     private _listening = false;
-    private _transcriptTimeout: number | null = null;
+    private _pendingTimeouts: number[] = [];
 
     constructor(
       model: string,
@@ -390,28 +390,31 @@ export function createMockMicrophoneTranscriber(
       this._listening = true;
 
       // Simulate interim transcript
-      setTimeout(() => {
+      const interimTimeout = window.setTimeout(() => {
         if (this._listening && this._callbacks.onTranscriptionUpdated) {
           this._callbacks.onTranscriptionUpdated(
             transcript.split(" ").slice(0, 2).join(" ")
           );
         }
       }, 500);
+      this._pendingTimeouts.push(interimTimeout);
 
       // Simulate final transcript
-      this._transcriptTimeout = window.setTimeout(() => {
+      const finalTimeout = window.setTimeout(() => {
         if (this._listening && this._callbacks.onTranscriptionCommitted) {
           this._callbacks.onTranscriptionCommitted(transcript);
         }
       }, 1500);
+      this._pendingTimeouts.push(finalTimeout);
     }
 
     stop(): void {
       this._listening = false;
-      if (this._transcriptTimeout) {
-        clearTimeout(this._transcriptTimeout);
-        this._transcriptTimeout = null;
+      // Clear all pending timeouts
+      for (const timeoutId of this._pendingTimeouts) {
+        window.clearTimeout(timeoutId);
       }
+      this._pendingTimeouts = [];
     }
 
     isListening(): boolean {
@@ -421,7 +424,12 @@ export function createMockMicrophoneTranscriber(
 }
 
 /**
- * @deprecated Use MoonshineMockConfig instead. Kept for backwards compatibility.
+ * @deprecated Use MoonshineMockConfig with createMockMicrophoneTranscriber instead.
+ * Migration guide:
+ * - `transcript` → same
+ * - `error` → `throwError`
+ * - `supported` → no equivalent (mock always works)
+ * - `noSpeechCount` → no equivalent (Moonshine uses VAD, not speech events)
  */
 export interface SpeechRecognitionMockConfig {
   /** Whether to support speech recognition */
