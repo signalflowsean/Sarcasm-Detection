@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSpeechRecognition } from './useSpeechRecognition'
 
@@ -68,29 +68,29 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('startSpeechRecognition', () => {
-    it('should transition from idle to loading to listening', async () => {
-      // Make start take a bit longer so we can observe the loading state
-      mockTranscriber.start.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 50))
-      )
-
+    it('should transition from idle to loading to listening via MoonshineJS callbacks', async () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
       expect(result.current.speechStatus).toBe('idle')
 
-      // Start without awaiting to observe loading state
-      act(() => {
-        result.current.startSpeechRecognition()
+      // Start speech recognition
+      await act(async () => {
+        await result.current.startSpeechRecognition()
       })
 
-      // Should be loading while start() is in progress
+      // Simulate MoonshineJS callbacks
+      act(() => {
+        capturedCallbacks.onModelLoadStart?.()
+      })
       expect(result.current.speechStatus).toBe('loading')
 
-      // Wait for transition to listening
-      await waitFor(() => {
-        expect(result.current.speechStatus).toBe('listening')
+      // Simulate model load completion and listening start
+      mockTranscriber.isListening.mockReturnValue(true)
+      act(() => {
+        capturedCallbacks.onModelLoadComplete?.()
       })
+      expect(result.current.speechStatus).toBe('listening')
     })
 
     it('should create MicrophoneTranscriber with default model when env not set', async () => {
@@ -165,6 +165,12 @@ describe('useSpeechRecognition', () => {
 
       await act(async () => {
         await result.current.startSpeechRecognition()
+      })
+
+      // Simulate the callbacks that would normally set status to listening
+      mockTranscriber.isListening.mockReturnValue(true)
+      act(() => {
+        capturedCallbacks.onModelLoadComplete?.()
       })
 
       expect(result.current.speechStatus).toBe('listening')
@@ -365,6 +371,25 @@ describe('useSpeechRecognition', () => {
         'Failed to start speech recognition: Unknown error'
       )
     })
+
+    it('should handle runtime transcription errors via onError callback', async () => {
+      const options = createMockOptions()
+      const { result } = renderHook(() => useSpeechRecognition(options))
+
+      // Start successfully first
+      await act(async () => {
+        await result.current.startSpeechRecognition()
+      })
+
+      // Simulate runtime error during transcription
+      const runtimeError = new Error('Audio processing failed')
+      act(() => {
+        capturedCallbacks.onError?.(runtimeError)
+      })
+
+      expect(options.onError).toHaveBeenCalledWith('Transcription error: Audio processing failed')
+      expect(result.current.speechStatus).toBe('error')
+    })
   })
 
   describe('resetSpeechStatus', () => {
@@ -420,6 +445,12 @@ describe('useSpeechRecognition', () => {
       // Start successfully
       await act(async () => {
         await result.current.startSpeechRecognition()
+      })
+
+      // Simulate the callbacks that would normally set status to listening
+      mockTranscriber.isListening.mockReturnValue(true)
+      act(() => {
+        capturedCallbacks.onModelLoadComplete?.()
       })
 
       expect(result.current.speechStatus).toBe('listening')

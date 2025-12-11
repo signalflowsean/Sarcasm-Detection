@@ -9,9 +9,9 @@ type TranscriptUpdate = {
 /**
  * Speech recognition status
  * - 'idle': Not started yet
- * - 'loading': Model is being loaded (first time only, ~190MB download)
- * - 'listening': Actively listening and transcribing
- * - 'error': Critical error occurred (permission denied, etc.)
+ * - 'loading': Model is being loaded (triggered by onModelLoadStart callback)
+ * - 'listening': Actively listening and transcribing (triggered by onModelLoadComplete)
+ * - 'error': Critical error occurred (permission denied, startup errors, or runtime errors)
  */
 export type SpeechStatus = 'idle' | 'loading' | 'listening' | 'error'
 
@@ -61,8 +61,6 @@ export function useSpeechRecognition({
       return
     }
 
-    setSpeechStatus('loading')
-
     try {
       // Create the MicrophoneTranscriber (model is cached by browser after first download)
       // Options: model/tiny (~190MB, fastest), model/base, model/small
@@ -84,6 +82,26 @@ export function useSpeechRecognition({
               onTranscriptUpdate({ interim: text, final: '' })
             }
           },
+          onModelLoadStart: () => {
+            // Model loading has actually started (more accurate than setting loading immediately)
+            if (isMountedRef.current) {
+              setSpeechStatus('loading')
+            }
+          },
+          onModelLoadComplete: () => {
+            // Model loading finished - ready to listen
+            if (isMountedRef.current && transcriberRef.current?.isListening()) {
+              setSpeechStatus('listening')
+            }
+          },
+          onError: (error: Error) => {
+            // Runtime transcription errors (different from startup errors)
+            if (isMountedRef.current) {
+              console.error('MoonshineJS runtime error:', error)
+              onError(`Transcription error: ${error.message}`)
+              setSpeechStatus('error')
+            }
+          },
         },
         // Disable VAD (Voice Activity Detection) for continuous streaming.
         // This ensures immediate, responsive transcription without delays detecting
@@ -103,7 +121,8 @@ export function useSpeechRecognition({
         return
       }
 
-      setSpeechStatus('listening')
+      // Note: Status transitions are now handled by MoonshineJS callbacks
+      // onModelLoadStart, onModelLoadComplete, and onError
     } catch (err) {
       // Don't update state if unmounted
       if (!isMountedRef.current) return
