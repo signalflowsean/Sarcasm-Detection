@@ -355,8 +355,10 @@ export function createMockMicrophoneTranscriber(
   } = config;
 
   return class MockMicrophoneTranscriber {
-    // Using underscore prefix convention for internal properties
-    // (can't use `private` on anonymous class returned from function)
+    // Using underscore prefix convention for internal properties.
+    // TypeScript errors on `private` because the class type is inferred as part
+    // of the exported function's return type, exposing private members in the API.
+    // Could use ES2022 `#` private fields, but underscore is sufficient for mocks.
     _model: string;
     _callbacks: {
       onTranscriptionCommitted?: (text: string) => void;
@@ -426,7 +428,8 @@ export function createMockMicrophoneTranscriber(
 }
 
 /**
- * @deprecated Use MoonshineMockConfig with createMockMicrophoneTranscriber instead.
+ * @deprecated
+ * Use MoonshineMockConfig with createMockMicrophoneTranscriber instead.
  * Migration guide:
  * - `transcript` → same
  * - `error` → `throwError`
@@ -445,7 +448,8 @@ export interface SpeechRecognitionMockConfig {
 }
 
 /**
- * @deprecated Use createMockMicrophoneTranscriber instead. Kept for backwards compatibility.
+ * @deprecated
+ * Use createMockMicrophoneTranscriber instead. Kept for backwards compatibility.
  * Create a mock SpeechRecognition for testing.
  * @browser This function mocks browser SpeechRecognition API (uses window.setTimeout).
  */
