@@ -330,7 +330,122 @@ export function createMockMediaRecorder(audioBase64: string) {
 }
 
 /**
- * Configuration for mock SpeechRecognition.
+ * Configuration for mock MoonshineJS MicrophoneTranscriber.
+ */
+export interface MoonshineMockConfig {
+  /** Transcript to return */
+  transcript?: string;
+  /** Simulated model loading delay in ms */
+  modelLoadDelay?: number;
+  /** Error to throw on start */
+  throwError?: string | null;
+}
+
+/**
+ * Create a mock MoonshineJS MicrophoneTranscriber for testing.
+ * @browser This function mocks the MoonshineJS library (uses window.setTimeout).
+ */
+export function createMockMicrophoneTranscriber(
+  config: MoonshineMockConfig = {}
+) {
+  const {
+    transcript = "Mock transcript from Moonshine.",
+    modelLoadDelay = 100,
+    throwError = null,
+  } = config;
+
+  return class MockMicrophoneTranscriber {
+    // Using underscore prefix convention for internal properties.
+    // TypeScript errors on `private` because the class type is inferred as part
+    // of the exported function's return type, exposing private members in the API.
+    // Could use ES2022 `#` private fields, but underscore is sufficient for mocks.
+    _model: string;
+    _callbacks: {
+      onTranscriptionCommitted?: (text: string) => void;
+      onTranscriptionUpdated?: (text: string) => void;
+    };
+    _enableVAD: boolean;
+    _listening = false;
+    _pendingTimeouts: number[] = [];
+
+    constructor(
+      model: string,
+      callbacks?: {
+        onTranscriptionCommitted?: (text: string) => void;
+        onTranscriptionUpdated?: (text: string) => void;
+      },
+      enableVAD?: boolean
+    ) {
+      this._model = model;
+      this._callbacks = callbacks || {};
+      this._enableVAD = enableVAD ?? true;
+    }
+
+    async start(): Promise<void> {
+      if (throwError) {
+        const error = new Error(throwError);
+        error.name = "NotAllowedError";
+        throw error;
+      }
+
+      // Simulate model loading delay
+      await new Promise((resolve) => setTimeout(resolve, modelLoadDelay));
+
+      this._listening = true;
+
+      // Simulate interim transcript
+      const interimTimeout = window.setTimeout(() => {
+        if (this._listening && this._callbacks.onTranscriptionUpdated) {
+          this._callbacks.onTranscriptionUpdated(
+            transcript.split(" ").slice(0, 2).join(" ")
+          );
+        }
+      }, 500);
+      this._pendingTimeouts.push(interimTimeout);
+
+      // Simulate final transcript
+      const finalTimeout = window.setTimeout(() => {
+        if (
+          this._listening &&
+          this._callbacks.onTranscriptionCommitted &&
+          transcript.trim()
+        ) {
+          this._callbacks.onTranscriptionCommitted(transcript);
+        }
+      }, 1500);
+      this._pendingTimeouts.push(finalTimeout);
+    }
+
+    stop(): void {
+      this._listening = false;
+      // Clear all pending timeouts
+      for (const timeoutId of this._pendingTimeouts) {
+        window.clearTimeout(timeoutId);
+      }
+      this._pendingTimeouts = [];
+    }
+
+    isListening(): boolean {
+      return this._listening;
+    }
+  };
+}
+
+/**
+ * @deprecated
+ * Use MoonshineMockConfig with createMockMicrophoneTranscriber instead.
+ * Migration guide:
+ * - `transcript` → same
+ * - `error` → `throwError`
+ * - `supported` → no equivalent (MoonshineJS always works in all browsers, as it is implemented in JavaScript/WASM)
+ * - `noSpeechCount` → no equivalent (Moonshine uses VAD, not speech events)
+ *
+ * Note:
+ * - In MoonshineJS, browser support is no longer a concern; the mock always works regardless of browser capabilities.
+ * - You can only simulate runtime errors (such as network/model download failures) using the `throwError` option in MoonshineMockConfig.
+ * - Simulating the absence of the Web Speech API (`supported: false`) is not applicable, as MoonshineJS does not depend on browser APIs.
+ * - To simulate mobile speech recognition timeout behavior (`noSpeechCount`), there is currently no equivalent in MoonshineJS, as VAD is disabled and no-speech events are not generated.
+ * - These edge cases are no longer testable at the mock level with MoonshineJS. Consider testing them at a higher integration level if needed.
  */
 export interface SpeechRecognitionMockConfig {
   /** Whether to support speech recognition */
@@ -344,6 +459,8 @@ export interface SpeechRecognitionMockConfig {
 }
 
 /**
+ * @deprecated
+ * Use createMockMicrophoneTranscriber instead. Kept for backwards compatibility.
  * Create a mock SpeechRecognition for testing.
  * @browser This function mocks browser SpeechRecognition API (uses window.setTimeout).
  */

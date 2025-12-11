@@ -57,10 +57,10 @@ open http://localhost
 
 ```bash
 cd backend
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
+pip3 install -r requirements.txt
+python3 app.py
 ```
 
 #### Frontend
@@ -414,28 +414,6 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 
 ## TODO / Future Improvements
 
-### 🐳 Docker Image Optimization (ONNX Migration)
-
-**Previous size:** ~3.4GB | **Current size:** ~2.0GB (~40% reduction)
-
-The backend uses ONNX Runtime (~150MB) instead of PyTorch (~700MB) for Wav2Vec2 inference. Key optimizations:
-
-- **Multi-stage build:** Builder stage compiles packages, runtime stage only has what's needed
-- **Model downloaded from GitHub releases:** The `wav2vec2.onnx` file (~360MB) is downloaded during Docker build with SHA256 verification, not copied from local
-- **Optimal layer caching:** Model download is in builder stage, so app code changes don't trigger re-download
-
-**Local development (optional):**
-
-```bash
-# Only needed if you want to regenerate the ONNX model
-cd ml/prosodic
-pip install torch transformers onnx onnxruntime
-python export_onnx.py
-python verify_onnx.py  # optional verification
-```
-
-The Docker build automatically downloads the model from GitHub releases - no local setup required.
-
 ### 🎨 CSS Variables Cleanup
 
 Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
@@ -468,6 +446,18 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 - [ ] Add OpenAPI/Swagger documentation for API
 - [ ] Performance monitoring/logging
 - [ ] Model versioning and A/B testing support
+
+---
+
+## Known Issues
+
+### MoonshineJS VAD Dependency Warning
+
+The `@moonshine-ai/moonshine-js` package (v0.1.29) has a broken file path dependency on `@ricky0123/vad-web` that references a path only valid in their monorepo. Running `npm ls` will show an "invalid" warning.
+
+**Impact:** None for this project. We disable VAD by passing `false` to the `MicrophoneTranscriber` constructor, so the vad-web code path is never executed. Both `npm install` and `npm run build` succeed.
+
+**Status:** Known issue in the upstream package. Does not affect functionality.
 
 ---
 

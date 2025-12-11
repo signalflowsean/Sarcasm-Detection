@@ -18,10 +18,12 @@ export {
   createFakeMediaStream,
   createMockAudioContext,
   createMockMediaRecorder,
+  createMockMicrophoneTranscriber,
   createMockSpeechRecognition,
   createWavBlob,
   generateWavBase64,
   generateWavBytes,
+  type MoonshineMockConfig,
   type SpeechRecognitionMockConfig,
   type WavConfig,
 } from "./audio";

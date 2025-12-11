@@ -1,29 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
-import { isIOSDevice, isMobileBrowser } from '../utils'
-
-// Minimal typings for Web Speech API
-type SpeechRecognitionLike = {
-  interimResults: boolean
-  continuous?: boolean
-  maxAlternatives?: number
-  lang: string
-  onresult: (event: {
-    resultIndex: number
-    results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-  }) => void
-  onerror: (event: unknown) => void
-  onend: () => void
-  start: () => void
-  stop: () => void
-}
-
-const getSpeechRecognitionCtor = (): (new () => SpeechRecognitionLike) | null => {
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike
-  }
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null
-}
+import * as Moonshine from '@moonshine-ai/moonshine-js'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type TranscriptUpdate = {
   interim: string
@@ -31,301 +7,179 @@ type TranscriptUpdate = {
 }
 
 /**
- * Speech recognition health status
+ * Speech recognition status
  * - 'idle': Not started yet
- * - 'listening': Actively listening and working
- * - 'degraded': Working but having issues (frequent restarts, no-speech errors)
- * - 'error': Critical error occurred (permission denied, network error)
- * - 'unsupported': Browser doesn't support speech recognition
+ * - 'loading': Model is being loaded (triggered by onModelLoadStart callback)
+ * - 'listening': Actively listening and transcribing (triggered by onModelLoadComplete)
+ * - 'error': Critical error occurred (permission denied, startup errors, or runtime errors)
  */
-export type SpeechStatus = 'idle' | 'listening' | 'degraded' | 'error' | 'unsupported'
+export type SpeechStatus = 'idle' | 'loading' | 'listening' | 'error'
 
 type UseSpeechRecognitionOptions = {
   /** Ref that tracks whether recording is currently active */
   isRecordingRef: React.MutableRefObject<boolean>
   /** Called when transcript updates (interim or final) */
   onTranscriptUpdate: (update: TranscriptUpdate) => void
-  /** Called on critical errors (permission denied, network error) */
+  /** Called on critical errors (permission denied, etc.) */
   onError: (message: string) => void
 }
 
 /**
- * Hook for managing Web Speech API speech recognition during audio recording.
- * Handles browser compatibility, mobile quirks (iOS Safari continuous mode issues),
- * and automatic restart when recognition ends prematurely.
+ * Hook for managing speech recognition using MoonshineJS.
+ * Provides reliable cross-browser speech-to-text using an on-device model.
+ * The ~190MB model is downloaded once and cached by the browser.
  */
 export function useSpeechRecognition({
   isRecordingRef,
   onTranscriptUpdate,
   onError,
 }: UseSpeechRecognitionOptions) {
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
-  const speechSupported = !!getSpeechRecognitionCtor()
+  const transcriberRef = useRef<Moonshine.MicrophoneTranscriber | null>(null)
+  const isMountedRef = useRef(true)
+  const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle')
 
-  // Speech recognition health status
-  const [speechStatus, setSpeechStatus] = useState<SpeechStatus>(
-    speechSupported ? 'idle' : 'unsupported'
-  )
-
-  // Track restart attempts for iOS Safari workaround
-  const restartAttemptsRef = useRef(0)
-  const maxRestartAttempts = 50 // Allow many restarts during a recording session
-  const restartDelayRef = useRef<number | null>(null)
-
-  // Track health metrics for degraded detection
-  const healthMetricsRef = useRef({
-    consecutiveNoSpeech: 0,
-    consecutiveErrors: 0,
-    lastResultTime: 0,
-    hasReceivedAnyResult: false,
-    isUnsupported: false, // Track if speech is permanently unsupported (prevents restart loops)
-  })
-
-  // Threshold for considering speech recognition "degraded"
-  const DEGRADED_NO_SPEECH_THRESHOLD = 3
-  const DEGRADED_ERROR_THRESHOLD = 2
-
-  const startSpeechRecognition = useCallback(() => {
-    if (!speechSupported) {
-      setSpeechStatus('unsupported')
-      return
+  // Track mounted state for cleanup during async operations
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      // Cleanup any running transcriber on unmount
+      if (transcriberRef.current) {
+        try {
+          transcriberRef.current.stop()
+        } catch {
+          /* noop */
+        }
+        transcriberRef.current = null
+      }
     }
-    const Ctor = getSpeechRecognitionCtor()
-    if (!Ctor) {
-      setSpeechStatus('unsupported')
+  }, [])
+
+  const startSpeechRecognition = useCallback(async () => {
+    // Don't start if already running
+    if (transcriberRef.current) {
       return
     }
 
-    // Reset restart counter and health metrics when starting fresh
-    restartAttemptsRef.current = 0
-    healthMetricsRef.current = {
-      consecutiveNoSpeech: 0,
-      consecutiveErrors: 0,
-      lastResultTime: Date.now(),
-      hasReceivedAnyResult: false,
-      isUnsupported: false,
-    }
-    setSpeechStatus('listening')
-
-    let recognition: SpeechRecognitionLike
     try {
-      recognition = new Ctor()
-    } catch (e) {
-      // Constructor failed - API exists but doesn't work (common on some Android devices)
-      if (import.meta.env.DEV) console.warn('Failed to construct SpeechRecognition:', e)
-      setSpeechStatus('unsupported')
-      return
-    }
-    recognition.interimResults = true
-
-    // Mobile browsers (iOS Safari, Chrome on Android, etc.) have issues with continuous mode
-    // It often stops after a few seconds. Use non-continuous mode with auto-restart instead.
-    const isMobile = isMobileBrowser()
-    const isIOS = isIOSDevice()
-    recognition.continuous = !isMobile
-    recognition.maxAlternatives = 1
-    // Use browser's language setting with fallback to en-US
-    recognition.lang = navigator.language || 'en-US'
-
-    recognition.onresult = (event: {
-      resultIndex: number
-      results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
-    }) => {
-      let interim = ''
-      let final = ''
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const res = event.results[i]
-        if (res.isFinal) final += res[0].transcript
-        else interim += res[0].transcript
-      }
-      onTranscriptUpdate({ interim, final })
-
-      // Reset health metrics on successful result
-      healthMetricsRef.current.consecutiveNoSpeech = 0
-      healthMetricsRef.current.consecutiveErrors = 0
-      healthMetricsRef.current.lastResultTime = Date.now()
-      healthMetricsRef.current.hasReceivedAnyResult = true
-
-      // If we were degraded but now got a result, we're back to listening
-      setSpeechStatus('listening')
-    }
-
-    recognition.onerror = (event: unknown) => {
-      const errorEvent = event as { error?: string; message?: string }
-      const errorType = errorEvent.error || 'unknown'
-
-      // service-not-allowed and language-not-supported always indicate the API doesn't work
-      // These errors mean the service itself is unavailable, not a permission issue
-      if (errorType === 'service-not-allowed' || errorType === 'language-not-supported') {
-        if (import.meta.env.DEV) {
-          console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
-        }
-        // Mark as permanently unsupported to prevent restart loops in onend
-        healthMetricsRef.current.isUnsupported = true
-        setSpeechStatus('unsupported')
-        return
-      }
-
-      // not-allowed before any results means API exists but doesn't work (unsupported)
-      // not-allowed after results means user revoked permission (show error)
-      if (errorType === 'not-allowed') {
-        if (!healthMetricsRef.current.hasReceivedAnyResult) {
-          if (import.meta.env.DEV) {
-            console.warn(`Speech recognition unavailable (${errorType}) - marking as unsupported`)
-          }
-          healthMetricsRef.current.isUnsupported = true
-          setSpeechStatus('unsupported')
-          return
-        }
-        // Permission revoked after we were working - show error
-        onError('Microphone permission denied for speech recognition')
-        setSpeechStatus('error')
-        return
-      } else if (errorType === 'network') {
-        onError('Network error: Speech recognition unavailable')
-        setSpeechStatus('error')
-      } else if (errorType === 'no-speech') {
-        // This is common on mobile when recognition times out without detecting speech
-        healthMetricsRef.current.consecutiveNoSpeech += 1
-        if (import.meta.env.DEV) {
-          console.warn(
-            `Speech recognition: No speech detected (${healthMetricsRef.current.consecutiveNoSpeech} consecutive)`
-          )
-        }
-
-        // Check if we should mark as degraded
-        if (healthMetricsRef.current.consecutiveNoSpeech >= DEGRADED_NO_SPEECH_THRESHOLD) {
-          setSpeechStatus('degraded')
-        }
-      } else if (errorType === 'audio-capture') {
-        // Audio capture failed - common on mobile when mic access is interrupted
-        healthMetricsRef.current.consecutiveErrors += 1
-        if (import.meta.env.DEV) {
-          console.warn(
-            `Speech recognition: Audio capture failed (${healthMetricsRef.current.consecutiveErrors} consecutive)`
-          )
-        }
-
-        if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
-          setSpeechStatus('degraded')
-        }
-      } else if (errorType !== 'aborted') {
-        // Log other errors but don't show to user (might be transient)
-        healthMetricsRef.current.consecutiveErrors += 1
-        if (import.meta.env.DEV) console.warn('Speech recognition error:', errorType)
-
-        if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
-          setSpeechStatus('degraded')
-        }
-      }
-    }
-
-    recognition.onend = () => {
-      // Clear any existing restart timeout
-      if (restartDelayRef.current != null) {
-        clearTimeout(restartDelayRef.current)
-        restartDelayRef.current = null
-      }
-
-      // Don't try to restart if speech recognition is permanently unsupported
-      if (healthMetricsRef.current.isUnsupported) {
-        recognitionRef.current = null
-        return
-      }
-
-      if (isRecordingRef.current && restartAttemptsRef.current < maxRestartAttempts) {
-        restartAttemptsRef.current += 1
-
-        // On mobile browsers, add a delay before restarting to prevent rapid cycling
-        // iOS needs longer delay, Android Chrome needs shorter delay
-        const delay = isMobile ? (isIOS ? 150 : 100) : 0
-
-        if (delay > 0) {
-          restartDelayRef.current = window.setTimeout(() => {
+      // Create the MicrophoneTranscriber (model is cached by browser after first download)
+      // Options: model/tiny (~190MB, fastest), model/base, model/small
+      const envModel = import.meta.env.VITE_MOONSHINE_MODEL
+      const modelPath =
+        typeof envModel === 'string' && envModel.trim() !== '' ? envModel.trim() : 'model/tiny'
+      const transcriber = new Moonshine.MicrophoneTranscriber(
+        modelPath,
+        {
+          onTranscriptionCommitted: (text: string) => {
+            // Final transcription - speech segment completed
+            if (isRecordingRef.current && text.trim()) {
+              onTranscriptUpdate({ interim: '', final: text })
+            }
+          },
+          onTranscriptionUpdated: (text: string) => {
+            // Interim transcription - speech in progress
             if (isRecordingRef.current) {
-              try {
-                recognition.start()
-              } catch (e) {
-                if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
-                healthMetricsRef.current.consecutiveErrors += 1
-                if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
-                  setSpeechStatus('degraded')
-                }
+              onTranscriptUpdate({ interim: text, final: '' })
+            }
+          },
+          onModelLoadStart: () => {
+            // Model loading has actually started (more accurate than setting loading immediately)
+            if (isMountedRef.current) {
+              setSpeechStatus('loading')
+            }
+          },
+          onModelLoadComplete: () => {
+            // Model loading finished - ready to listen
+            if (isMountedRef.current && transcriberRef.current?.isListening()) {
+              setSpeechStatus('listening')
+            }
+          },
+          onError: (error: Error) => {
+            // Runtime transcription errors (different from startup errors)
+            if (isMountedRef.current) {
+              if (import.meta.env.DEV) {
+                console.error('MoonshineJS runtime error:', error)
               }
+              onError(`Transcription error: ${error.message}`)
+              setSpeechStatus('error')
             }
-          }, delay)
+          },
+        },
+        // Disable VAD (Voice Activity Detection) for continuous streaming.
+        // This ensures immediate, responsive transcription without delays detecting
+        // speech start. Appropriate for press-to-record UX with short recordings.
+        // For always-on listening, consider enabling VAD for battery efficiency.
+        false
+      )
+
+      transcriberRef.current = transcriber
+
+      // Start the transcriber - this will request microphone permission
+      await transcriber.start()
+
+      // Check if component unmounted during async start
+      if (!isMountedRef.current) {
+        transcriber.stop()
+        return
+      }
+
+      // Note: Status transitions are now handled by MoonshineJS callbacks
+      // onModelLoadStart, onModelLoadComplete, and onError
+    } catch (err) {
+      // Don't update state if unmounted
+      if (!isMountedRef.current) return
+
+      transcriberRef.current = null
+
+      // Handle specific error types
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          onError('Microphone access denied. Please allow microphone access.')
+        } else if (err.name === 'NotFoundError') {
+          onError('No microphone found. Please connect a microphone or check your device settings.')
+        } else if (err.message.toLowerCase().includes('permission')) {
+          // Fallback: some browsers/MoonshineJS versions may not set error.name
+          // but include 'permission' in the message for denied mic access
+          onError('Microphone access denied. Please allow microphone access.')
         } else {
-          try {
-            recognition.start()
-          } catch (e) {
-            if (import.meta.env.DEV) console.warn('Failed to restart speech recognition:', e)
-            healthMetricsRef.current.consecutiveErrors += 1
-            if (healthMetricsRef.current.consecutiveErrors >= DEGRADED_ERROR_THRESHOLD) {
-              setSpeechStatus('degraded')
-            }
-          }
+          onError('An unexpected error occurred during speech recognition. Please try again.')
         }
       } else {
-        recognitionRef.current = null
-        // If we hit max restarts and never got a result, mark as degraded
-        if (!healthMetricsRef.current.hasReceivedAnyResult && isRecordingRef.current) {
-          setSpeechStatus('degraded')
-        }
+        // For non-Error objects, provide a generic error message
+        onError('Failed to start speech recognition: Unknown error')
       }
-    }
 
-    recognitionRef.current = recognition
-
-    // Start immediately to preserve user gesture context (required on some mobile browsers)
-    // The delay is only used for REstarting after onend events
-    try {
-      recognition.start()
-    } catch (e) {
-      // If start() throws immediately, treat as unsupported (API exists but doesn't work)
-      if (import.meta.env.DEV) console.warn('Failed to start speech recognition:', e)
-      setSpeechStatus('unsupported')
+      setSpeechStatus('error')
     }
-  }, [speechSupported, isRecordingRef, onTranscriptUpdate, onError])
+  }, [isRecordingRef, onTranscriptUpdate, onError])
 
   const stopSpeechRecognition = useCallback(() => {
-    // Clear any pending restart timeout
-    if (restartDelayRef.current != null) {
-      clearTimeout(restartDelayRef.current)
-      restartDelayRef.current = null
-    }
+    const transcriber = transcriberRef.current
+    if (!transcriber) return
 
-    const rec = recognitionRef.current
-    if (!rec) return
     try {
-      rec.stop()
+      transcriber.stop()
     } catch {
-      /* noop */
+      /* noop - may already be stopped */
     }
-    recognitionRef.current = null
-    // Preserve 'unsupported' status if we detected speech recognition doesn't work
-    // Otherwise reset to 'idle' (or 'unsupported' if API doesn't exist)
-    setSpeechStatus(prev => {
-      if (prev === 'unsupported') return 'unsupported'
-      return speechSupported ? 'idle' : 'unsupported'
-    })
-  }, [speechSupported])
 
-  // Reset speech status (useful when dismissing warnings)
-  // Preserve 'unsupported' status since it means the API doesn't work
-  // For other statuses, reset to 'listening' if recording, otherwise 'idle'
+    transcriberRef.current = null
+    setSpeechStatus('idle')
+  }, [])
+
+  // Reset speech status (useful when dismissing error warnings)
+  // Only sets to 'listening' if transcriber is actually running
   const resetSpeechStatus = useCallback(() => {
-    setSpeechStatus(prev => {
-      // Don't reset if unsupported - the API still doesn't work
-      if (prev === 'unsupported') return 'unsupported'
-      if (!speechSupported) return 'unsupported'
-      return isRecordingRef.current ? 'listening' : 'idle'
-    })
-  }, [speechSupported, isRecordingRef])
+    if (transcriberRef.current && isRecordingRef.current) {
+      setSpeechStatus('listening')
+    } else {
+      setSpeechStatus('idle')
+    }
+  }, [isRecordingRef])
 
   return {
     startSpeechRecognition,
     stopSpeechRecognition,
-    speechSupported,
     speechStatus,
     resetSpeechStatus,
   }

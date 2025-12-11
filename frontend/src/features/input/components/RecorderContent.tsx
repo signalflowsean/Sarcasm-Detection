@@ -58,13 +58,13 @@ const RecorderContent = ({
   onDiscard,
   onSend,
 }: Props) => {
-  // Speech is available if status isn't 'unsupported' (covers both API not existing and API not working)
-  const speechAvailable = speechStatus !== 'unsupported'
-
   const transcriptDescriptionId = 'transcript-description'
-  const transcriptDescription = speechAvailable
-    ? 'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
-    : 'Transcript area: Speech-to-text is not supported in this browser. Audio will be recorded, but automatic transcription is unavailable.'
+  const transcriptDescription =
+    'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
+
+  // Show loading indicator in placeholder when model is loading
+  const placeholder =
+    speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
 
   return (
     <div className="audio-recorder" aria-live="polite" data-testid="audio-recorder">
@@ -115,9 +115,7 @@ const RecorderContent = ({
 
       <SharedTextArea
         value={(transcript + ' ' + interimTranscript).trim()}
-        placeholder={
-          speechAvailable ? 'Speak to transcribe…' : 'Speech-to-text not supported in this browser.'
-        }
+        placeholder={placeholder}
         disabled={true}
         className="audio-recorder__transcript"
         rows={2}

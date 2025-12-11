@@ -1,46 +1,35 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
-  injectAudioMocksWithSpeech,
+  injectAudioMocksWithMoonshine,
   loadTestAudioBase64,
-  type SpeechRecognitionMockOptions,
+  type MoonshineMockOptions,
   waitForAudioMocksReady,
 } from "./utils/audio-mocks";
 
 /**
  * Mobile Audio Recording E2E Tests
  *
- * These tests verify audio recording and speech recognition behavior on mobile devices.
+ * These tests verify audio recording behavior on mobile devices.
  * Playwright provides real device emulation with proper touch events, viewport, and
  * user agent strings that trigger mobile code paths in the app.
  *
- * Key mobile-specific behaviors tested:
- * - Speech recognition uses non-continuous mode with auto-restart
- * - Mobile modal UI for audio recording
- * - Touch interactions
- * - Error handling for speech recognition issues
+ * Note: Speech-to-text transcript content cannot be mocked in E2E tests because
+ * ES module imports (MoonshineJS) can't be intercepted at runtime. The transcript
+ * tests verify the UI elements exist and recording works, but not transcript content.
+ * Transcript content is tested via unit tests where MoonshineJS can be properly mocked.
  */
 
 /**
- * Inject audio mocks with configurable speech recognition behavior.
- * Wrapper around shared utilities for mobile-specific options interface.
+ * Inject audio mocks (MediaRecorder, AudioContext).
+ * Note: MoonshineJS cannot be mocked at runtime in E2E tests.
  */
 async function injectMobileMocks(
   page: Page,
   audioBase64: string,
-  options: {
-    speechRecognitionSupported?: boolean;
-    speechRecognitionError?: string | null;
-    speechRecognitionNoSpeechCount?: number;
-  } = {},
+  options: MoonshineMockOptions = {},
 ) {
-  const speechOptions: SpeechRecognitionMockOptions = {
-    supported: options.speechRecognitionSupported ?? true,
-    error: options.speechRecognitionError ?? null,
-    noSpeechCount: options.speechRecognitionNoSpeechCount ?? 0,
-  };
-
-  await injectAudioMocksWithSpeech(page, audioBase64, speechOptions);
+  await injectAudioMocksWithMoonshine(page, audioBase64, options);
 }
 
 // Export helpers for use in other test files
@@ -116,7 +105,9 @@ test.describe("Mobile Audio Recording", () => {
     await expect(page.getByTestId("send-button")).toBeVisible();
   });
 
-  test("should show speech-to-text transcript on mobile", async ({ page }) => {
+  test("should have transcript area visible during recording", async ({
+    page,
+  }) => {
     await page.goto("/audio-input");
     await waitForAudioMocksReady(page);
 
@@ -128,155 +119,75 @@ test.describe("Mobile Audio Recording", () => {
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
-    // Wait for speech recognition to fire (mock fires after 2 seconds)
-    await page.waitForTimeout(2500);
-
-    // Should see the transcript (from our mock)
+    // Transcript area should be visible and accessible
     const transcript = page.locator(".audio-recorder__transcript");
-    await expect(transcript).toContainText("Test transcript", {
-      timeout: 5000,
-    });
+    await expect(transcript).toBeVisible();
+    await expect(transcript).toHaveAttribute("aria-label", "Speech transcript");
 
     // Stop recording
     await micButton.tap({ force: true });
-  });
-});
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
-test.describe("Mobile Speech Recognition - Degraded Mode", () => {
-  // Skip: Complex mock timing for degraded state detection
-  // The speech status feature works - these tests need refinement for mock injection timing
-  test.skip("should show degraded status after multiple no-speech errors", async ({
-    page,
-  }) => {
-    const audioBase64 = loadTestAudioBase64();
-    // Configure to fire 4 no-speech errors (threshold is 3)
-    await injectMobileMocks(page, audioBase64, {
-      speechRecognitionNoSpeechCount: 4,
-    });
-
-    await page.goto("/audio-input");
-    await waitForAudioMocksReady(page);
-
-    // Open modal
-    await page.locator(".audio-recorder__launcher").tap();
-
-    const micButton = page.getByTestId("mic-button");
-    await expect(micButton).toBeEnabled();
-    await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
-
-    // Wait for multiple no-speech errors to fire
-    // Each cycle is about 2 seconds, need 3+ cycles
-    await page.waitForTimeout(7000);
-
-    // Should show speech status warning
-    const speechStatus = page.getByTestId("speech-status");
-    await expect(speechStatus).toBeVisible({ timeout: 5000 });
-    await expect(speechStatus).toContainText(
-      /may not be working|Audio is still recording/i,
-    );
-
-    // Stop recording
-    await micButton.tap({ force: true });
-  });
-
-  test.skip("should allow dismissing degraded status warning", async ({
-    page,
-  }) => {
-    const audioBase64 = loadTestAudioBase64();
-    await injectMobileMocks(page, audioBase64, {
-      speechRecognitionNoSpeechCount: 4,
-    });
-
-    await page.goto("/audio-input");
-    await page.locator(".audio-recorder__launcher").tap();
-
-    const micButton = page.getByTestId("mic-button");
-    await micButton.tap({ force: true });
-
-    // Wait for degraded status
-    await page.waitForTimeout(7000);
-
-    const speechStatus = page.getByTestId("speech-status");
-    await expect(speechStatus).toBeVisible({ timeout: 5000 });
-
-    // Dismiss the warning
-    const dismissButton = page.locator(".speech-status__dismiss");
-    await dismissButton.tap();
-
-    // Status should be hidden
-    await expect(speechStatus).not.toBeVisible();
-
-    // Stop recording
-    await micButton.tap({ force: true });
-  });
-});
-
-test.describe("Mobile Speech Recognition - Unsupported", () => {
-  // Tests for scenarios where the Speech Recognition API doesn't exist
-  // (browsers without Web Speech API support). The mock returns undefined for
-  // window.SpeechRecognition, causing the app to detect it as unsupported.
-
-  test("should show unsupported message when speech recognition not available", async ({
-    page,
-  }) => {
-    const audioBase64 = loadTestAudioBase64();
-    await injectMobileMocks(page, audioBase64, {
-      speechRecognitionSupported: false,
-    });
-
-    await page.goto("/audio-input");
-    await waitForAudioMocksReady(page);
-    await page.locator(".audio-recorder__launcher").tap();
-
-    const micButton = page.getByTestId("mic-button");
-    await expect(micButton).toBeEnabled();
-    await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
-
-    // Wait a moment for speech recognition status to be determined
-    await page.waitForTimeout(200);
-
-    // Verify speech recognition is shown as unsupported via the transcript placeholder
-    // The placeholder changes from "Speak to transcribe…" to "not supported" when SR unavailable
-    const transcript = page.locator(".audio-recorder__transcript");
-    await expect(transcript).toHaveAttribute("placeholder", /not supported/i, {
-      timeout: 5000,
-    });
-
-    // Audio recording should still work even though speech recognition is unavailable
-    await page.waitForTimeout(300);
-    await micButton.tap({ force: true });
+    // Send button should be available after recording
     await expect(page.getByTestId("send-button")).toBeVisible();
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+  });
+});
+
+test.describe("Mobile Audio UI", () => {
+  test.beforeEach(async ({ page }) => {
+    const audioBase64 = loadTestAudioBase64();
+    await injectMobileMocks(page, audioBase64);
   });
 
-  test("should show placeholder message in transcript area when unsupported", async ({
+  test("should show correct placeholder in transcript area", async ({
     page,
   }) => {
-    const audioBase64 = loadTestAudioBase64();
-    await injectMobileMocks(page, audioBase64, {
-      speechRecognitionSupported: false,
-    });
-
     await page.goto("/audio-input");
     await waitForAudioMocksReady(page);
+
+    // Open modal
     await page.locator(".audio-recorder__launcher").tap();
 
-    // Start recording - speech recognition won't be available (API doesn't exist in this test)
+    const transcript = page.locator(".audio-recorder__transcript");
+    await expect(transcript).toBeVisible();
+
+    // Placeholder should show "Speak to transcribe..." or "Loading speech model..."
+    const placeholder = await transcript.getAttribute("placeholder");
+    expect(
+      placeholder?.includes("Speak to transcribe") ||
+        placeholder?.includes("Loading speech model"),
+    ).toBe(true);
+  });
+
+  test("should complete full recording workflow on mobile", async ({
+    page,
+  }) => {
+    await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
+
+    // Open modal
+    await page.locator(".audio-recorder__launcher").tap();
+
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeEnabled();
+
+    // Start recording
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
-    // Wait for React to re-render with updated unsupported status
-    await page.waitForTimeout(200);
+    // Wait for some recording time
+    await page.waitForTimeout(500);
 
     // Stop recording
     await micButton.tap({ force: true });
-    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
-    // Check placeholder text indicates no speech support (after detection)
-    const transcript = page.locator(".audio-recorder__transcript");
-    await expect(transcript).toHaveAttribute("placeholder", /not supported/i);
+    // Verify all controls are available
+    await expect(page.getByTestId("send-button")).toBeVisible();
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+    await expect(page.getByTestId("discard-button")).toBeVisible();
+    await expect(page.getByTestId("discard-button")).toBeEnabled();
+    await expect(page.getByTestId("play-button")).toBeVisible();
   });
 });
