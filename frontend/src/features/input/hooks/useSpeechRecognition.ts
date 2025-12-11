@@ -97,7 +97,9 @@ export function useSpeechRecognition({
           onError: (error: Error) => {
             // Runtime transcription errors (different from startup errors)
             if (isMountedRef.current) {
-              console.error('MoonshineJS runtime error:', error)
+              if (import.meta.env.DEV) {
+                console.error('MoonshineJS runtime error:', error)
+              }
               onError(`Transcription error: ${error.message}`)
               setSpeechStatus('error')
             }
