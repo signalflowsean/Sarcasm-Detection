@@ -321,7 +321,9 @@ describe('useSpeechRecognition', () => {
         await result.current.startSpeechRecognition()
       })
 
-      expect(options.onError).toHaveBeenCalledWith('Speech recognition error: Something went wrong')
+      expect(options.onError).toHaveBeenCalledWith(
+        'An unexpected error occurred during speech recognition. Please try again.'
+      )
       expect(result.current.speechStatus).toBe('error')
     })
 
