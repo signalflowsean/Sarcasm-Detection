@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState, useEffectEvent } from 'react'
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useWhichInput } from '../useWhichInput'
+import { angleFromPoints, circularDistance, normalizeDegrees } from '../utils'
 import { DefaultIcon } from './icons'
-import { normalizeDegrees, circularDistance, angleFromPoints } from '../utils'
 
 type CSSVarProps = React.CSSProperties & Record<`--${string}`, string | number>
 
@@ -135,11 +135,11 @@ const RotarySwitch: React.FC = () => {
       style={knobVars}
       data-testid="rotary-switch"
     >
-      <span className="rotary__plate" aria-hidden />
+      <span className="rotary__plate" aria-hidden="true" />
       <span
         className={`rotary__knob ${isFirstTime ? 'rotary__knob--pulse' : ''}`}
         data-role="knob"
-        aria-hidden
+        aria-hidden="true"
       />
       {positions.map((p, i) => (
         <span
@@ -147,7 +147,7 @@ const RotarySwitch: React.FC = () => {
           className={`rotary__icon rotary__icon--${p.value} ${i === index ? 'is-active' : ''}`}
           style={{ '--deg': `${normalizeDegrees(p.degrees)}deg` } as CSSVarProps}
           title={p.name}
-          aria-hidden
+          aria-hidden="true"
         >
           <span className="rotary__icon__glyph">{p.icon ?? <DefaultIcon value={p.value} />}</span>
         </span>
