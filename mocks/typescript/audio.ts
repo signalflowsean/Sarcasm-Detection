@@ -355,14 +355,16 @@ export function createMockMicrophoneTranscriber(
   } = config;
 
   return class MockMicrophoneTranscriber {
-    private _model: string;
-    private _callbacks: {
+    // Using underscore prefix convention for internal properties
+    // (can't use `private` on anonymous class returned from function)
+    _model: string;
+    _callbacks: {
       onTranscriptionCommitted?: (text: string) => void;
       onTranscriptionUpdated?: (text: string) => void;
     };
-    private _enableVAD: boolean;
-    private _listening = false;
-    private _pendingTimeouts: number[] = [];
+    _enableVAD: boolean;
+    _listening = false;
+    _pendingTimeouts: number[] = [];
 
     constructor(
       model: string,

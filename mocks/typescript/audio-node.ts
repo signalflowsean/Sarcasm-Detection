@@ -30,7 +30,7 @@ const __dirname = path.dirname(__filename);
  */
 export const TEST_AUDIO_PATH = path.join(
   __dirname,
-  "../fixtures/test-audio.wav"
+  "../fixtures/test-audio.wav",
 );
 
 /**

@@ -64,10 +64,11 @@ export function useSpeechRecognition({
     setSpeechStatus('loading')
 
     try {
-      // Create the MicrophoneTranscriber with the tiny model (~190MB, fastest)
-      // The model is cached by the browser after first download
+      // Create the MicrophoneTranscriber (model is cached by browser after first download)
+      // Options: model/tiny (~190MB, fastest), model/base, model/small
+      const modelPath = import.meta.env.VITE_MOONSHINE_MODEL || 'model/tiny'
       const transcriber = new Moonshine.MicrophoneTranscriber(
-        'model/tiny', // Smallest and fastest model
+        modelPath,
         {
           onTranscriptionCommitted: (text: string) => {
             // Final transcription - speech segment completed
