@@ -119,16 +119,12 @@ test.describe("Audio Recording", () => {
 
   test("should send recording to detector API", async ({ page, request }) => {
     const backendUrl = process.env.E2E_BACKEND_URL || "http://localhost:5000";
-    try {
-      const healthCheck = await request.get(`${backendUrl}/api/health`);
-      if (!healthCheck.ok()) {
-        test.skip();
-        return;
-      }
-    } catch {
-      test.skip();
-      return;
-    }
+
+    // Skip test if backend is not available
+    const healthCheck = await request
+      .get(`${backendUrl}/api/health`)
+      .catch(() => null);
+    test.skip(!healthCheck?.ok(), "Backend not available");
 
     await page.goto("/audio-input");
     await waitForAudioMocksReady(page);
@@ -182,29 +178,5 @@ test.describe("Audio Recording", () => {
     await expect(page).toHaveURL(/audio-input/);
     await expect(page.getByTestId("audio-recorder")).toBeVisible();
     await expect(page.getByTestId("mic-button")).toBeVisible();
-  });
-});
-
-test.describe("Audio Recording - Error States", () => {
-  test.skip("should handle getUserMedia rejection gracefully", async ({
-    page,
-  }) => {
-    await page.addInitScript(() => {
-      if (navigator.mediaDevices) {
-        navigator.mediaDevices.getUserMedia = async () => {
-          throw new DOMException("Permission denied", "NotAllowedError");
-        };
-      }
-    });
-
-    await page.goto("/audio-input");
-
-    const micButton = page.getByTestId("mic-button");
-    await expect(micButton).toBeVisible();
-    await micButton.click({ force: true });
-
-    const errorMessage = page.getByTestId("audio-error");
-    await expect(errorMessage).toBeVisible({ timeout: 3000 });
-    await expect(errorMessage).toContainText(/denied|permission|access/i);
   });
 });

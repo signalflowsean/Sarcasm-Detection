@@ -10,21 +10,15 @@ type StatusConfig = {
   message: string
   srPrefix: string // Screen reader prefix for context
   icon: string
-  variant: 'warning' | 'error'
+  variant: 'info' | 'error'
 }
 
-const STATUS_CONFIG: Record<'unsupported' | 'degraded' | 'error', StatusConfig> = {
-  unsupported: {
-    message: 'Speech-to-text is not available in this browser. Your audio is still being recorded.',
-    srPrefix: 'Notice:',
-    icon: '⚠',
-    variant: 'warning',
-  },
-  degraded: {
-    message: 'Speech-to-text may not be working correctly. Your audio is still being recorded.',
-    srPrefix: 'Warning:',
-    icon: '⚠',
-    variant: 'warning',
+const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
+  loading: {
+    message: 'Loading speech recognition model... (first time only)',
+    srPrefix: 'Info:',
+    icon: '⏳',
+    variant: 'info',
   },
   error: {
     message: 'Speech-to-text encountered an error. Your audio is still being recorded.',
@@ -36,7 +30,7 @@ const STATUS_CONFIG: Record<'unsupported' | 'degraded' | 'error', StatusConfig> 
 
 /**
  * Accessible status indicator for speech recognition.
- * Shows warnings when speech-to-text is having issues.
+ * Shows loading state during model download or errors.
  *
  * Accessibility features:
  * - aria-live="polite" announces status changes without interrupting
@@ -70,7 +64,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
         <span className="sr-only">{config.srPrefix} </span>
         {config.message}
       </span>
-      {onDismiss && (
+      {onDismiss && status === 'error' && (
         <button
           type="button"
           className="speech-status__dismiss"

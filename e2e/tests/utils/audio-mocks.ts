@@ -84,11 +84,13 @@ export function generateWavBase64(): string {
   return Buffer.from(bytes).toString("base64");
 }
 
-export interface SpeechRecognitionMockOptions {
-  supported?: boolean;
-  error?: string | null;
-  noSpeechCount?: number;
+export interface MoonshineMockOptions {
+  /** Transcript to return from speech recognition */
   transcript?: string;
+  /** Simulated model loading delay in ms (default: 100ms for tests) */
+  modelLoadDelay?: number;
+  /** Whether to throw an error on start */
+  throwError?: string | null;
 }
 
 /**
@@ -383,38 +385,33 @@ export async function waitForAudioMocksReady(
 }
 
 /**
- * Inject audio mocks with SpeechRecognition support.
- * Use this for mobile audio recording tests that need speech recognition.
+ * Inject audio mocks with MoonshineJS mock for speech recognition.
+ * Use this for tests that need speech-to-text functionality.
  */
-export async function injectAudioMocksWithSpeech(
+export async function injectAudioMocksWithMoonshine(
   page: Page,
   audioBase64: string,
-  speechOptions: SpeechRecognitionMockOptions = {},
+  moonshineOptions: MoonshineMockOptions = {},
 ) {
   const {
-    supported = true,
-    error = null,
-    noSpeechCount = 0,
     transcript = "Test transcript from speech.",
-  } = speechOptions;
+    modelLoadDelay = 100,
+    throwError = null,
+  } = moonshineOptions;
 
   await page.addInitScript(
     ({
       audioData,
-      speechSupported,
-      speechError,
-      speechNoSpeechCount,
       speechTranscript,
+      loadDelay,
+      errorToThrow,
     }: {
       audioData: string;
-      speechSupported: boolean;
-      speechError: string | null;
-      speechNoSpeechCount: number;
       speechTranscript: string;
+      loadDelay: number;
+      errorToThrow: string | null;
     }) => {
-      console.log(
-        "[E2E Mock] Initializing audio mocks with speech recognition",
-      );
+      console.log("[E2E Mock] Initializing audio mocks with Moonshine");
 
       // Store audio data for MediaRecorder mock
       (window as unknown as { __testAudioBase64: string }).__testAudioBase64 =
@@ -678,156 +675,140 @@ export async function injectAudioMocksWithSpeech(
       (window as { webkitAudioContext?: unknown }).webkitAudioContext =
         MockAudioContext;
 
-      // Mock SpeechRecognition
-      // We use getters to return undefined when unsupported, simulating browsers without the API.
-      // The mock class is only returned when speechSupported is true.
-      let noSpeechCounter = 0;
+      // Mock MoonshineJS MicrophoneTranscriber
+      class MockMicrophoneTranscriber {
+        private _model: string;
+        private _callbacks: {
+          onTranscriptionCommitted?: (text: string) => void;
+          onTranscriptionUpdated?: (text: string) => void;
+        };
+        private _enableVAD: boolean;
+        private _listening = false;
+        private _transcriptInterval: number | null = null;
 
-      class MockSpeechRecognition {
-        interimResults = false;
-        continuous = false;
-        maxAlternatives = 1;
-        lang = "en-US";
-        onresult: ((event: unknown) => void) | null = null;
-        onerror: ((event: unknown) => void) | null = null;
-        onend: (() => void) | null = null;
-
-        private _started = false;
-        private _timeout: number | null = null;
-
-        start() {
-          if (this._started) {
-            console.warn("[E2E Mock] SpeechRecognition already started");
-            return;
-          }
+        constructor(
+          model: string,
+          callbacks?: {
+            onTranscriptionCommitted?: (text: string) => void;
+            onTranscriptionUpdated?: (text: string) => void;
+          },
+          enableVAD?: boolean,
+        ) {
+          this._model = model;
+          this._callbacks = callbacks || {};
+          this._enableVAD = enableVAD ?? true;
           console.log(
-            "[E2E Mock] SpeechRecognition.start() - continuous:",
-            this.continuous,
+            "[E2E Mock] MockMicrophoneTranscriber created with model:",
+            model,
           );
-          this._started = true;
-
-          // Simulate mobile behavior: ends after a short time in non-continuous mode
-          const duration = this.continuous ? 5000 : 2000;
-
-          this._timeout = window.setTimeout(() => {
-            if (!this._started) return;
-
-            // If configured to throw error, do that
-            if (speechError && this.onerror) {
-              console.log("[E2E Mock] Firing speech error:", speechError);
-              this.onerror({ error: speechError });
-              this._started = false;
-              if (this.onend) this.onend();
-              return;
-            }
-
-            // Simulate no-speech errors (common on mobile)
-            if (
-              speechNoSpeechCount > 0 &&
-              noSpeechCounter < speechNoSpeechCount
-            ) {
-              noSpeechCounter++;
-              console.log(
-                `[E2E Mock] Firing no-speech error (${noSpeechCounter}/${speechNoSpeechCount})`,
-              );
-              if (this.onerror) {
-                this.onerror({ error: "no-speech" });
-              }
-              this._started = false;
-              if (this.onend) this.onend();
-              return;
-            }
-
-            // Otherwise, simulate getting a result
-            if (this.onresult) {
-              console.log("[E2E Mock] Firing speech result");
-              this.onresult({
-                resultIndex: 0,
-                results: [
-                  {
-                    isFinal: true,
-                    0: { transcript: speechTranscript },
-                    length: 1,
-                  },
-                ],
-              });
-            }
-
-            // In non-continuous mode (mobile), recognition ends after each result
-            if (!this.continuous) {
-              this._started = false;
-              if (this.onend) this.onend();
-            }
-          }, duration);
         }
 
-        stop() {
-          console.log("[E2E Mock] SpeechRecognition.stop()");
-          if (this._timeout) {
-            clearTimeout(this._timeout);
-            this._timeout = null;
+        async start(): Promise<void> {
+          console.log("[E2E Mock] MockMicrophoneTranscriber.start()");
+
+          // Simulate error if configured
+          if (errorToThrow) {
+            const error = new Error(errorToThrow);
+            error.name = "NotAllowedError";
+            throw error;
           }
-          this._started = false;
-          if (this.onend) this.onend();
+
+          // Simulate model loading delay
+          await new Promise((resolve) => setTimeout(resolve, loadDelay));
+
+          this._listening = true;
+
+          // Simulate interim transcript after 500ms
+          setTimeout(() => {
+            if (this._listening && this._callbacks.onTranscriptionUpdated) {
+              console.log("[E2E Mock] Firing interim transcript");
+              this._callbacks.onTranscriptionUpdated(
+                speechTranscript.split(" ").slice(0, 2).join(" "),
+              );
+            }
+          }, 500);
+
+          // Simulate final transcript after 1500ms
+          setTimeout(() => {
+            if (this._listening && this._callbacks.onTranscriptionCommitted) {
+              console.log("[E2E Mock] Firing committed transcript");
+              this._callbacks.onTranscriptionCommitted(speechTranscript);
+            }
+          }, 1500);
         }
 
-        abort() {
-          this.stop();
+        stop(): void {
+          console.log("[E2E Mock] MockMicrophoneTranscriber.stop()");
+          this._listening = false;
+          if (this._transcriptInterval) {
+            clearInterval(this._transcriptInterval);
+            this._transcriptInterval = null;
+          }
+        }
+
+        isListening(): boolean {
+          return this._listening;
         }
       }
 
-      // Store the mock in a variable that our getters will return
-      // Use getters to intercept ALL access to these properties
-      // This prevents Chromium from restoring the native implementation
-      const mockCtor = MockSpeechRecognition;
+      // Create mock Moonshine module
+      const MockMoonshine = {
+        MicrophoneTranscriber: MockMicrophoneTranscriber,
+      };
 
-      // Delete existing properties first to avoid conflicts
-      try {
-        delete (window as Record<string, unknown>).SpeechRecognition;
-        delete (window as Record<string, unknown>).webkitSpeechRecognition;
-      } catch {
-        // May fail if properties are non-configurable, continue anyway
-      }
+      // Store the mock globally so it can be imported
+      (
+        window as unknown as {
+          __moonshineJsMock: typeof MockMoonshine;
+        }
+      ).__moonshineJsMock = MockMoonshine;
 
-      // When speech is unsupported, return undefined so the app sees no SR API
-      // When supported, return the mock class
-      const getterValue = speechSupported ? mockCtor : undefined;
-
-      Object.defineProperty(window, "SpeechRecognition", {
-        get: () => getterValue,
-        set: () => {
-          /* ignore attempts to set */
-        },
-        configurable: true,
-      });
-      Object.defineProperty(window, "webkitSpeechRecognition", {
-        get: () => getterValue,
-        set: () => {
-          /* ignore attempts to set */
-        },
-        configurable: true,
+      // Override ES module imports for @moonshine-ai/moonshine-js
+      // This intercepts dynamic imports
+      const originalImport = (
+        window as unknown as { __moonshineJsMock: unknown }
+      ).__moonshineJsMock;
+      Object.defineProperty(window, "__moonshineJsMock", {
+        value: originalImport,
+        writable: false,
+        configurable: false,
       });
 
-      console.log(
-        "[E2E Mock] SpeechRecognition mocked with getters, support=",
-        speechSupported,
-        ", error=",
-        speechError,
-        ", noSpeechCount=",
-        speechNoSpeechCount,
-      );
+      console.log("[E2E Mock] Moonshine mock initialized");
 
       // Signal that mocks are ready
       (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =
         true;
-      console.log("[E2E Mock] Audio mocks with speech initialized and ready");
+      console.log(
+        "[E2E Mock] Audio mocks with Moonshine initialized and ready",
+      );
     },
     {
       audioData: audioBase64,
-      speechSupported: supported,
-      speechError: error,
-      speechNoSpeechCount: noSpeechCount,
       speechTranscript: transcript,
+      loadDelay: modelLoadDelay,
+      errorToThrow: throwError,
     },
   );
+}
+
+// Keep the old interface name for backwards compatibility during transition
+export type SpeechRecognitionMockOptions = MoonshineMockOptions;
+
+/**
+ * @deprecated Use injectAudioMocksWithMoonshine instead
+ * Kept for backwards compatibility during transition
+ */
+export async function injectAudioMocksWithSpeech(
+  page: Page,
+  audioBase64: string,
+  speechOptions: SpeechRecognitionMockOptions = {},
+) {
+  // Map old options to new Moonshine options
+  const moonshineOptions: MoonshineMockOptions = {
+    transcript: speechOptions.transcript || "Test transcript from speech.",
+    modelLoadDelay: 100,
+    throwError: speechOptions.error || null,
+  };
+  return injectAudioMocksWithMoonshine(page, audioBase64, moonshineOptions);
 }
