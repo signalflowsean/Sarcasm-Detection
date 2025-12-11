@@ -137,7 +137,7 @@ const RecorderContent = ({
         sending={sending}
       />
 
-      <audio ref={audioRef} src={audioSrc} preload="metadata" />
+      <audio ref={audioRef} src={audioSrc} preload="metadata" aria-label="Recorded audio preview" />
     </div>
   )
 }

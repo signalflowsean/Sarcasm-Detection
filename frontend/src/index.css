@@ -1884,7 +1884,7 @@
 
 .subtitle {
   font-family: 'Libre Baskerville', Georgia, serif;
-  color: rgba(212, 175, 55, 0.5);
+  color: #6b5530; /* Darker gold for WCAG AA contrast (5.5:1) on cream background */
   font-style: italic;
   letter-spacing: 0.1em;
   font-weight: 400;
