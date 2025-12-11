@@ -121,7 +121,7 @@ export function useSpeechRecognition({
           // but include 'permission' in the message for denied mic access
           onError('Microphone access denied. Please allow microphone access.')
         } else {
-          onError(`Speech recognition error: ${err.message}`)
+          onError('An unexpected error occurred during speech recognition. Please try again.')
         }
       } else {
         // For non-Error objects, provide a generic error message
