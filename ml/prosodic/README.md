@@ -5,6 +5,7 @@ Audio-based sarcasm detection using Wav2Vec2 embeddings and classical machine le
 ## Overview
 
 This module trains a prosodic sarcasm detector on the MUStARD dataset using:
+
 - **Feature Extraction**: facebook/wav2vec2-base-960h pretrained speech encoder
 - **Classifier**: Logistic Regression on mean-pooled embeddings
 - **Dataset**: MUStARD (690 samples: 345 sarcastic / 345 non-sarcastic)
@@ -19,6 +20,7 @@ pip install -r requirements.txt
 ```
 
 Also ensure ffmpeg is installed:
+
 ```bash
 # macOS
 brew install ffmpeg
@@ -36,6 +38,7 @@ python mustard_prepare.py
 ```
 
 This will:
+
 - Download annotations from MUStARD GitHub repo
 - Download videos from HuggingFace (several GB)
 - Extract audio as 16kHz mono WAV files
@@ -50,6 +53,7 @@ python mustard_embeddings.py
 ```
 
 This will:
+
 - Load each audio file
 - Extract 768-dimensional embeddings via Wav2Vec2
 - Save embeddings to `data/processed/embeddings/`
@@ -64,6 +68,7 @@ python train_prosodic.py
 ```
 
 This will:
+
 - Evaluate with 5-fold cross-validation (MUStARD standard)
 - Train final model on all data
 - Save to `backend/prosodic_model.pkl`
@@ -144,13 +149,26 @@ Audio (any format)
 
 Based on MUStARD paper and similar work:
 
-| Approach | Weighted F1 |
-|----------|-------------|
-| MFCC + SVM (MUStARD baseline) | ~60-65% |
-| Wav2Vec2 + LogReg (this) | ~65-72% |
-| Fine-tuned Wav2Vec2 | ~70-75% |
+| Approach                      | Weighted F1 |
+| ----------------------------- | ----------- |
+| MFCC + SVM (MUStARD baseline) | ~60-65%     |
+| Wav2Vec2 + LogReg (this)      | ~65-72%     |
+| Fine-tuned Wav2Vec2           | ~70-75%     |
 
 Note: Audio-only performance is inherently limited compared to multimodal approaches.
+
+## ONNX Export (for Deployment)
+
+The backend uses ONNX Runtime instead of PyTorch for lighter Docker images (~2GB vs ~3.4GB). To regenerate the ONNX model:
+
+```bash
+cd ml/prosodic
+pip install torch transformers onnx onnxruntime
+python export_onnx.py
+python verify_onnx.py  # optional verification
+```
+
+The exported `wav2vec2.onnx` file (~360MB) should be uploaded to GitHub releases for the Docker build to download.
 
 ## API Integration
 

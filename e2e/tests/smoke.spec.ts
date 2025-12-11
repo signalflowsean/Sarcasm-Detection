@@ -9,8 +9,10 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Smoke Tests", () => {
   test("Moonshine model URL is valid", async ({ request }) => {
-    // Derive model URL from env var to stay in sync with application config
-    // Default to "tiny" - must match the model used in useSpeechRecognition.ts
+    // Verify that the Moonshine model CDN is accessible.
+    // Note: This URL pattern is reverse-engineered from MoonshineJS behavior.
+    // The app passes 'model/tiny' to MoonshineJS, which internally constructs the URL.
+    // If MoonshineJS changes their URL structure, this test may need updating.
     const modelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
     const modelBaseUrl = `https://download.moonshine.ai/model/${modelName}/quantized`;
     const encoderUrl = `${modelBaseUrl}/encoder_model.onnx`;

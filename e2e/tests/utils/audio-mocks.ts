@@ -385,8 +385,21 @@ export async function waitForAudioMocksReady(
 }
 
 /**
- * Inject audio mocks with MoonshineJS mock for speech recognition.
- * Use this for tests that need speech-to-text functionality.
+ * Inject audio mocks (MediaRecorder, AudioContext, getUserMedia).
+ *
+ * IMPORTANT: This does NOT mock MoonshineJS itself. ES module imports cannot
+ * be intercepted at runtime - the app will use the real MoonshineJS library.
+ * This means E2E tests are true integration tests that depend on the Moonshine
+ * CDN being available for model downloads.
+ *
+ * What IS mocked:
+ * - navigator.mediaDevices.getUserMedia (returns fake stream)
+ * - MediaRecorder (returns test audio blob on stop)
+ * - AudioContext (for waveform visualization)
+ *
+ * What is NOT mocked:
+ * - MoonshineJS MicrophoneTranscriber (uses real library)
+ * - ONNX model downloads (use page.route() to intercept if needed)
  */
 export async function injectAudioMocksWithMoonshine(
   page: Page,
@@ -754,30 +767,31 @@ export async function injectAudioMocksWithMoonshine(
         }
       }
 
-      // Create mock Moonshine module
-      const MockMoonshine = {
-        MicrophoneTranscriber: MockMicrophoneTranscriber,
-      };
-
-      // Store the mock globally so it can be imported
+      // Store mock for potential use, but note the limitation below
       (
         window as unknown as {
-          __moonshineJsMock: typeof MockMoonshine;
+          __MockMicrophoneTranscriber: typeof MockMicrophoneTranscriber;
         }
-      ).__moonshineJsMock = MockMoonshine;
+      ).__MockMicrophoneTranscriber = MockMicrophoneTranscriber;
 
-      // Override ES module imports for @moonshine-ai/moonshine-js
-      // This intercepts dynamic imports
-      const originalImport = (
-        window as unknown as { __moonshineJsMock: unknown }
-      ).__moonshineJsMock;
-      Object.defineProperty(window, "__moonshineJsMock", {
-        value: originalImport,
-        writable: false,
-        configurable: false,
-      });
+      // IMPORTANT LIMITATION:
+      // This mock CANNOT intercept the real MoonshineJS library because ES module
+      // imports are resolved at build time, not runtime. The app's static import:
+      //   import * as Moonshine from '@moonshine-ai/moonshine-js'
+      // will always use the real library.
+      //
+      // For E2E tests, this means:
+      // - The real MoonshineJS library will be used (integration testing)
+      // - Tests depend on the model being downloadable from Moonshine CDN
+      // - To fully mock, you would need to intercept network requests via
+      //   Playwright's page.route() to mock ONNX model downloads
+      //
+      // The MediaRecorder and AudioContext mocks above DO work because they
+      // replace global browser APIs before the app loads.
 
-      console.log("[E2E Mock] Moonshine mock initialized");
+      console.log(
+        "[E2E Mock] Audio mocks initialized (MoonshineJS uses real library)",
+      );
 
       // Signal that mocks are ready
       (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =
