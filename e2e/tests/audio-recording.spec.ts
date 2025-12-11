@@ -1,5 +1,23 @@
-import { expect, test } from "@playwright/test";
-import { injectAudioMocks, loadTestAudioBase64 } from "./utils/audio-mocks";
+import { expect, test, type Page } from "@playwright/test";
+import {
+  injectAudioMocks,
+  loadTestAudioBase64,
+  waitForAudioMocksReady,
+} from "./utils/audio-mocks";
+
+/**
+ * Click the mic button using JavaScript instead of Playwright's click.
+ * This is needed because Playwright's click({ force: true }) doesn't
+ * properly trigger React's click handler on this specific button.
+ */
+async function clickMicButton(page: Page) {
+  await page.evaluate(() => {
+    const btn = document.querySelector(
+      '[data-testid="mic-button"]',
+    ) as HTMLButtonElement;
+    btn?.click();
+  });
+}
 
 // Use a desktop viewport to avoid the mobile modal behavior
 // The app's mobile breakpoint is 1440px
@@ -28,19 +46,20 @@ test.describe("Audio Recording", () => {
 
   test("should start and stop recording", async ({ page }) => {
     await page.goto("/audio-input");
-    await page.waitForTimeout(500);
+    await waitForAudioMocksReady(page);
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
     // Start recording
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
     await page.waitForTimeout(500);
 
     // Stop recording
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
 
     await expect(page.getByTestId("send-button")).toBeVisible({
@@ -50,17 +69,18 @@ test.describe("Audio Recording", () => {
 
   test("should show playback controls after recording", async ({ page }) => {
     await page.goto("/audio-input");
-    await page.waitForTimeout(500);
+    await waitForAudioMocksReady(page);
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
     // Start recording
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
     await page.waitForTimeout(500);
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
 
     await expect(page.getByTestId("send-button")).toBeVisible({
@@ -72,17 +92,18 @@ test.describe("Audio Recording", () => {
     page,
   }) => {
     await page.goto("/audio-input");
-    await page.waitForTimeout(500);
+    await waitForAudioMocksReady(page);
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
     // Start recording
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
     await page.waitForTimeout(500);
-    await micButton.click({ force: true });
+    await clickMicButton(page);
 
     const sendButton = page.getByTestId("send-button");
     await expect(sendButton).toBeVisible({ timeout: 5000 });
@@ -110,16 +131,17 @@ test.describe("Audio Recording", () => {
     }
 
     await page.goto("/audio-input");
-    await page.waitForTimeout(500);
+    await waitForAudioMocksReady(page);
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
-    await micButton.click({ force: true });
+    await clickMicButton(page);
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
     await page.waitForTimeout(500);
-    await micButton.click({ force: true });
+    await clickMicButton(page);
 
     const sendButton = page.getByTestId("send-button");
     await expect(sendButton).toBeVisible({ timeout: 5000 });
@@ -135,10 +157,13 @@ test.describe("Audio Recording", () => {
     page,
   }) => {
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
+    // Focus the page so keyboard events work
     await page.locator("body").click();
 
     // Press R to start recording
@@ -147,7 +172,7 @@ test.describe("Audio Recording", () => {
 
     // Press R again to stop
     await page.keyboard.press("r");
-    await expect(micButton).not.toHaveClass(/is-recording/);
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
   });
 
   test("should navigate to audio mode via rotary switch", async ({ page }) => {

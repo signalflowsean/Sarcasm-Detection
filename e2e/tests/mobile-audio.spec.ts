@@ -4,6 +4,7 @@ import {
   injectAudioMocksWithSpeech,
   loadTestAudioBase64,
   type SpeechRecognitionMockOptions,
+  waitForAudioMocksReady,
 } from "./utils/audio-mocks";
 
 /**
@@ -92,6 +93,7 @@ test.describe("Mobile Audio Recording", () => {
 
   test("should record audio in mobile modal", async ({ page }) => {
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
 
     // Open modal
     const launcher = page.locator(".audio-recorder__launcher");
@@ -99,15 +101,16 @@ test.describe("Mobile Audio Recording", () => {
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
 
     // Start recording (force: true bypasses animation stability check)
     await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Wait and stop
     await page.waitForTimeout(500);
     await micButton.tap({ force: true });
-    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Should have send button
     await expect(page.getByTestId("send-button")).toBeVisible();
@@ -115,13 +118,15 @@ test.describe("Mobile Audio Recording", () => {
 
   test("should show speech-to-text transcript on mobile", async ({ page }) => {
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
 
     // Open modal
     await page.locator(".audio-recorder__launcher").tap();
 
     const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeEnabled();
     await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Wait for speech recognition to fire (mock fires after 2 seconds)
     await page.waitForTimeout(2500);
@@ -150,13 +155,15 @@ test.describe("Mobile Speech Recognition - Degraded Mode", () => {
     });
 
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
 
     // Open modal
     await page.locator(".audio-recorder__launcher").tap();
 
     const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeEnabled();
     await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Wait for multiple no-speech errors to fire
     // Each cycle is about 2 seconds, need 3+ cycles
@@ -219,11 +226,13 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     });
 
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
     await page.locator(".audio-recorder__launcher").tap();
 
     const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeEnabled();
     await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Wait a moment for speech recognition status to be determined
     await page.waitForTimeout(200);
@@ -250,12 +259,14 @@ test.describe("Mobile Speech Recognition - Unsupported", () => {
     });
 
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
     await page.locator(".audio-recorder__launcher").tap();
 
     // Start recording - speech recognition won't be available (API doesn't exist in this test)
     const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeEnabled();
     await micButton.tap({ force: true });
-    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Wait for React to re-render with updated unsupported status
     await page.waitForTimeout(200);

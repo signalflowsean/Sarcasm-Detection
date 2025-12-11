@@ -359,7 +359,27 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
     (window as { AudioContext: unknown }).AudioContext = MockAudioContext;
     (window as { webkitAudioContext?: unknown }).webkitAudioContext =
       MockAudioContext;
+
+    // Signal that mocks are ready
+    (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =
+      true;
+    console.log("[E2E Mock] Audio mocks initialized and ready");
   }, audioBase64);
+}
+
+/**
+ * Wait for audio mocks to be ready in the page.
+ * Call this after page.goto() to ensure mocks are set up.
+ */
+export async function waitForAudioMocksReady(
+  page: Page,
+  timeout = 5000,
+): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      (window as unknown as { __audioMocksReady?: boolean }).__audioMocksReady,
+    { timeout },
+  );
 }
 
 /**
@@ -796,6 +816,11 @@ export async function injectAudioMocksWithSpeech(
         ", noSpeechCount=",
         speechNoSpeechCount,
       );
+
+      // Signal that mocks are ready
+      (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =
+        true;
+      console.log("[E2E Mock] Audio mocks with speech initialized and ready");
     },
     {
       audioData: audioBase64,
