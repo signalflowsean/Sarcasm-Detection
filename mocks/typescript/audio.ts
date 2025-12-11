@@ -437,11 +437,13 @@ export function createMockMicrophoneTranscriber(
  * Migration guide:
  * - `transcript` → same
  * - `error` → `throwError`
- * - `supported` → no equivalent (mock always works)
+ * - `supported` → no equivalent (MoonshineJS always works in all browsers, as it is implemented in JavaScript/WASM)
  * - `noSpeechCount` → no equivalent (Moonshine uses VAD, not speech events)
  *
  * Note:
- * - To simulate browsers without the Web Speech API (`supported: false`), you can test for network/model download failures using the `throwError` option in MoonshineMockConfig.
+ * - In MoonshineJS, browser support is no longer a concern; the mock always works regardless of browser capabilities.
+ * - You can only simulate runtime errors (such as network/model download failures) using the `throwError` option in MoonshineMockConfig.
+ * - Simulating the absence of the Web Speech API (`supported: false`) is not applicable, as MoonshineJS does not depend on browser APIs.
  * - To simulate mobile speech recognition timeout behavior (`noSpeechCount`), there is currently no equivalent in MoonshineJS, as VAD is disabled and no-speech events are not generated.
  * - These edge cases are no longer testable at the mock level with MoonshineJS. Consider testing them at a higher integration level if needed.
  */
