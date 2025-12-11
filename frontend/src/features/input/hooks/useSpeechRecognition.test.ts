@@ -328,7 +328,7 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('resetSpeechStatus', () => {
-    it('should reset to idle when not recording', async () => {
+    it('should reset to idle when transcriber is not running', async () => {
       const options = createMockOptions()
       options.isRecordingRef.current = false
 
@@ -346,14 +346,15 @@ describe('useSpeechRecognition', () => {
         result.current.resetSpeechStatus()
       })
 
+      // Should be idle because transcriber is null after error
       expect(result.current.speechStatus).toBe('idle')
     })
 
-    it('should reset to listening when recording', async () => {
+    it('should reset to idle even if isRecordingRef is true but transcriber not running', async () => {
       const options = createMockOptions()
       options.isRecordingRef.current = true
 
-      // Force error state first
+      // Force error state (transcriberRef becomes null)
       mockTranscriber.start.mockRejectedValueOnce(new Error('test'))
       const { result } = renderHook(() => useSpeechRecognition(options))
 
@@ -363,6 +364,27 @@ describe('useSpeechRecognition', () => {
 
       expect(result.current.speechStatus).toBe('error')
 
+      act(() => {
+        result.current.resetSpeechStatus()
+      })
+
+      // Should be idle because transcriber is null (prevents UI inconsistency)
+      expect(result.current.speechStatus).toBe('idle')
+    })
+
+    it('should reset to listening when transcriber is running and recording', async () => {
+      const options = createMockOptions()
+      options.isRecordingRef.current = true
+      const { result } = renderHook(() => useSpeechRecognition(options))
+
+      // Start successfully
+      await act(async () => {
+        await result.current.startSpeechRecognition()
+      })
+
+      expect(result.current.speechStatus).toBe('listening')
+
+      // Reset should stay listening since transcriber is running
       act(() => {
         result.current.resetSpeechStatus()
       })

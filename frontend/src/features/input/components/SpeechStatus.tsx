@@ -64,7 +64,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
         <span className="sr-only">{config.srPrefix} </span>
         {config.message}
       </span>
-      {onDismiss && status === 'error' && (
+      {onDismiss && (
         <button
           type="button"
           className="speech-status__dismiss"

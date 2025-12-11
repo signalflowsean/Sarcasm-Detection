@@ -152,9 +152,14 @@ export function useSpeechRecognition({
     setSpeechStatus('idle')
   }, [])
 
-  // Reset speech status (useful when dismissing warnings)
+  // Reset speech status (useful when dismissing error warnings)
+  // Only sets to 'listening' if transcriber is actually running
   const resetSpeechStatus = useCallback(() => {
-    setSpeechStatus(isRecordingRef.current ? 'listening' : 'idle')
+    if (transcriberRef.current && isRecordingRef.current) {
+      setSpeechStatus('listening')
+    } else {
+      setSpeechStatus('idle')
+    }
   }, [isRecordingRef])
 
   return {

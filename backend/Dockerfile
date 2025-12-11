@@ -18,16 +18,18 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download ONNX model (with retries for transient GitHub 504 errors)
-RUN for i in 1 2 3 4 5; do \
+# Explicitly fail if all attempts are exhausted
+RUN rm -f /opt/wav2vec2.onnx && \
+    for i in 1 2 3 4 5; do \
     echo "Attempt $i: Downloading wav2vec2.onnx..." && \
     curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 600 \
     -o /opt/wav2vec2.onnx \
     https://github.com/signalflowsean/Sarcasm-Detection/releases/download/v1.0.0-models/wav2vec2.onnx && \
     echo "d610dfa7dec087846f4f5c74562de176a4eeb9a1bd7ed23a35cfe33b8036e038  /opt/wav2vec2.onnx" | sha256sum -c - && \
     break || \
-    (echo "Attempt $i failed, waiting 30s..." && sleep 30); \
+    (rm -f /opt/wav2vec2.onnx && echo "Attempt $i failed, waiting 30s..." && sleep 30); \
     done && \
-    test -f /opt/wav2vec2.onnx
+    test -f /opt/wav2vec2.onnx || (echo "ERROR: All download attempts failed" && exit 1)
 
 
 # Stage 2: Runtime - minimal image with only runtime deps
