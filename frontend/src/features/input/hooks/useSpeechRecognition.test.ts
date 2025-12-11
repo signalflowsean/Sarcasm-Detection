@@ -69,21 +69,31 @@ describe('useSpeechRecognition', () => {
 
   describe('startSpeechRecognition', () => {
     it('should transition from idle to loading to listening', async () => {
+      // Make start take a bit longer so we can observe the loading state
+      mockTranscriber.start.mockImplementation(
+        () => new Promise(resolve => setTimeout(resolve, 50))
+      )
+
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
       expect(result.current.speechStatus).toBe('idle')
 
-      await act(async () => {
+      // Start without awaiting to observe loading state
+      act(() => {
         result.current.startSpeechRecognition()
       })
 
+      // Should be loading while start() is in progress
+      expect(result.current.speechStatus).toBe('loading')
+
+      // Wait for transition to listening
       await waitFor(() => {
         expect(result.current.speechStatus).toBe('listening')
       })
     })
 
-    it('should create MicrophoneTranscriber with correct parameters', async () => {
+    it('should create MicrophoneTranscriber with default model when env not set', async () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
@@ -99,6 +109,35 @@ describe('useSpeechRecognition', () => {
         }),
         false // VAD disabled
       )
+    })
+
+    it('should use VITE_MOONSHINE_MODEL env var when set', async () => {
+      // Mock the environment variable
+      const originalEnv = import.meta.env.VITE_MOONSHINE_MODEL
+      vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
+
+      const options = createMockOptions()
+      const { result } = renderHook(() => useSpeechRecognition(options))
+
+      await act(async () => {
+        await result.current.startSpeechRecognition()
+      })
+
+      expect(Moonshine.MicrophoneTranscriber).toHaveBeenCalledWith(
+        'model/base', // Custom model from env
+        expect.objectContaining({
+          onTranscriptionCommitted: expect.any(Function),
+          onTranscriptionUpdated: expect.any(Function),
+        }),
+        false // VAD disabled
+      )
+
+      // Restore original env
+      if (originalEnv === undefined) {
+        vi.unstubAllEnvs()
+      } else {
+        vi.stubEnv('VITE_MOONSHINE_MODEL', originalEnv)
+      }
     })
 
     it('should not start if already running', async () => {
@@ -296,7 +335,8 @@ describe('useSpeechRecognition', () => {
       )
     })
 
-    it('should handle string errors', async () => {
+    it('should handle non-Error thrown values with generic message', async () => {
+      // Test string error
       mockTranscriber.start.mockRejectedValueOnce('String error message')
 
       const options = createMockOptions()
@@ -307,11 +347,11 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(options.onError).toHaveBeenCalledWith(
-        'Failed to start speech recognition: String error message'
+        'Failed to start speech recognition: Unknown error'
       )
     })
 
-    it('should handle object errors', async () => {
+    it('should handle object errors with generic message', async () => {
       mockTranscriber.start.mockRejectedValueOnce({ code: 'ERR_001', detail: 'test' })
 
       const options = createMockOptions()
@@ -322,7 +362,7 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(options.onError).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to start speech recognition:')
+        'Failed to start speech recognition: Unknown error'
       )
     })
   })

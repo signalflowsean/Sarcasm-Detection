@@ -66,7 +66,9 @@ export function useSpeechRecognition({
     try {
       // Create the MicrophoneTranscriber (model is cached by browser after first download)
       // Options: model/tiny (~190MB, fastest), model/base, model/small
-      const modelPath = import.meta.env.VITE_MOONSHINE_MODEL || 'model/tiny'
+      const envModel = import.meta.env.VITE_MOONSHINE_MODEL
+      const modelPath =
+        typeof envModel === 'string' && envModel.trim() !== '' ? envModel.trim() : 'model/tiny'
       const transcriber = new Moonshine.MicrophoneTranscriber(
         modelPath,
         {
@@ -110,28 +112,20 @@ export function useSpeechRecognition({
 
       // Handle specific error types
       if (err instanceof Error) {
-        if (err.name === 'NotAllowedError' || err.message.includes('permission')) {
+        if (err.name === 'NotAllowedError') {
           onError('Microphone access denied. Please allow microphone access.')
         } else if (err.name === 'NotFoundError') {
           onError('No microphone found. Please connect a microphone.')
+        } else if (err.message.toLowerCase().includes('permission')) {
+          // Fallback: some browsers/MoonshineJS versions may not set error.name
+          // but include 'permission' in the message for denied mic access
+          onError('Microphone access denied. Please allow microphone access.')
         } else {
           onError(`Speech recognition error: ${err.message}`)
         }
       } else {
-        // Attempt to provide more info about the error
-        let errorMsg = 'Failed to start speech recognition'
-        if (typeof err === 'string') {
-          errorMsg += `: ${err}`
-        } else if (typeof err === 'object' && err !== null) {
-          try {
-            errorMsg += `: ${JSON.stringify(err)}`
-          } catch {
-            errorMsg += `: [object could not be stringified]`
-          }
-        } else if (err !== undefined) {
-          errorMsg += `: ${String(err)}`
-        }
-        onError(errorMsg)
+        // For non-Error objects, provide a generic error message
+        onError('Failed to start speech recognition: Unknown error')
       }
 
       setSpeechStatus('error')
