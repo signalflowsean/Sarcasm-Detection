@@ -49,7 +49,7 @@ export function useSpeechRecognition({
       // Create the MicrophoneTranscriber with the tiny model (~190MB, fastest)
       // The model is cached by the browser after first download
       const transcriber = new Moonshine.MicrophoneTranscriber(
-        'moonshine/tiny', // Smallest and fastest model
+        'model/tiny', // Smallest and fastest model
         {
           onTranscriptionCommitted: (text: string) => {
             // Final transcription - speech segment completed

@@ -26,7 +26,7 @@ declare module '@moonshine-ai/moonshine-js' {
   export class MicrophoneTranscriber {
     /**
      * Create a new MicrophoneTranscriber
-     * @param model - Model identifier (e.g., 'moonshine/tiny', 'moonshine/base')
+     * @param model - Model identifier (e.g., 'model/tiny', 'model/base')
      * @param callbacks - Callbacks for transcription events
      * @param enableVAD - Whether to enable Voice Activity Detection (default: true)
      */
