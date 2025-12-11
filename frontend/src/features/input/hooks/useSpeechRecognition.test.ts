@@ -300,7 +300,7 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(options.onError).toHaveBeenCalledWith(
-        'No microphone found. Please connect a microphone.'
+        'No microphone found. Please connect a microphone or check your device settings.'
       )
       expect(result.current.speechStatus).toBe('error')
     })

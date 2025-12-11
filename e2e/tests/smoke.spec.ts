@@ -14,16 +14,24 @@ import { expect, test } from "@playwright/test";
  */
 function validateModelConfig(): string {
   const e2eModelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
-  const frontendModelPath = process.env.VITE_MOONSHINE_MODEL || "model/tiny";
 
-  // Extract model name from frontend path (remove 'model/' prefix)
-  const frontendModelName = frontendModelPath.replace(/^model\//, "");
+  // Mirror the exact logic from useSpeechRecognition.ts
+  const envModel = process.env.VITE_MOONSHINE_MODEL;
+  const effectiveModelPath =
+    typeof envModel === "string" && envModel.trim() !== ""
+      ? envModel.trim()
+      : "model/tiny";
+
+  // Extract model name from effective path (remove 'model/' prefix)
+  const frontendModelName = effectiveModelPath.replace(/^model\//, "");
 
   if (e2eModelName !== frontendModelName) {
     console.warn(
       `⚠️  Configuration mismatch detected:\n` +
         `   MOONSHINE_MODEL_NAME="${e2eModelName}" (e2e)\n` +
-        `   VITE_MOONSHINE_MODEL="${frontendModelPath}" → "${frontendModelName}" (frontend)\n` +
+        `   VITE_MOONSHINE_MODEL="${
+          process.env.VITE_MOONSHINE_MODEL || "undefined"
+        }" → "${frontendModelName}" (effective)\n` +
         `   These should refer to the same model. See env.example files.`,
     );
   }
@@ -33,10 +41,20 @@ function validateModelConfig(): string {
 
 test.describe("Smoke Tests", () => {
   test("Moonshine model URL is valid", async ({ request }) => {
-    // Verify that the Moonshine model CDN is accessible.
-    // Note: This URL pattern is reverse-engineered from MoonshineJS behavior.
-    // The app passes 'model/tiny' to MoonshineJS, which internally constructs the URL.
-    // If MoonshineJS changes their URL structure, this test may need updating.
+    // Best-effort smoke test: Verify Moonshine model CDN is accessible.
+    // This is NOT a guarantee the app works - just that models are downloadable.
+    //
+    // URL pattern is reverse-engineered from MoonshineJS behavior.
+    // The app passes 'model/tiny' to MoonshineJS, which internally constructs URLs.
+    //
+    // If MoonshineJS changes URL structure, update this test AND frontend env.example.
+    // Moonshine models typically include: encoder_model.onnx, decoder_model.onnx, tokenizer.json
+    // We only check encoder_model.onnx as it's the largest/most critical file.
+    //
+    // Failure modes:
+    // - MoonshineJS URL change: Update test pattern
+    // - Model name change: Update MOONSHINE_MODEL_NAME in e2e/env.example
+    // - Network outage: Models temporarily unavailable (false positive)
     const modelName = validateModelConfig();
     const modelBaseUrl = `https://download.moonshine.ai/model/${modelName}/quantized`;
     const encoderUrl = `${modelBaseUrl}/encoder_model.onnx`;

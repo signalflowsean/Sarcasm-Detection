@@ -115,7 +115,7 @@ export function useSpeechRecognition({
         if (err.name === 'NotAllowedError') {
           onError('Microphone access denied. Please allow microphone access.')
         } else if (err.name === 'NotFoundError') {
-          onError('No microphone found. Please connect a microphone.')
+          onError('No microphone found. Please connect a microphone or check your device settings.')
         } else if (err.message.toLowerCase().includes('permission')) {
           // Fallback: some browsers/MoonshineJS versions may not set error.name
           // but include 'permission' in the message for denied mic access

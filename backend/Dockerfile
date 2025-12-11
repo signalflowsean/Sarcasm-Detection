@@ -18,9 +18,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download ONNX model (with retries for transient GitHub 504 errors)
-# Uses curl's built-in retry: 5 attempts with 30s delay between each
+# Timeout behavior: 3 attempts × 300s max per attempt + 2 delays × 15s = ~930s (~15min) worst case
+# For 360MB model, 5min per attempt is typically sufficient even on slow connections
 RUN echo "Downloading wav2vec2.onnx..." && \
-    curl -fL --retry 5 --retry-delay 30 --connect-timeout 30 --max-time 600 \
+    curl -fL --retry 3 --retry-delay 15 --connect-timeout 30 --max-time 300 \
     -o /opt/wav2vec2.onnx \
     https://github.com/signalflowsean/Sarcasm-Detection/releases/download/v1.0.0-models/wav2vec2.onnx && \
     echo "d610dfa7dec087846f4f5c74562de176a4eeb9a1bd7ed23a35cfe33b8036e038  /opt/wav2vec2.onnx" | sha256sum -c -

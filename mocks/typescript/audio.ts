@@ -405,7 +405,11 @@ export function createMockMicrophoneTranscriber(
 
       // Simulate final transcript
       const finalTimeout = window.setTimeout(() => {
-        if (this._listening && this._callbacks.onTranscriptionCommitted) {
+        if (
+          this._listening &&
+          this._callbacks.onTranscriptionCommitted &&
+          transcript.trim()
+        ) {
           this._callbacks.onTranscriptionCommitted(transcript);
         }
       }, 1500);
@@ -435,6 +439,11 @@ export function createMockMicrophoneTranscriber(
  * - `error` → `throwError`
  * - `supported` → no equivalent (mock always works)
  * - `noSpeechCount` → no equivalent (Moonshine uses VAD, not speech events)
+ *
+ * Note:
+ * - To simulate browsers without the Web Speech API (`supported: false`), you can test for network/model download failures using the `throwError` option in MoonshineMockConfig.
+ * - To simulate mobile speech recognition timeout behavior (`noSpeechCount`), there is currently no equivalent in MoonshineJS, as VAD is disabled and no-speech events are not generated.
+ * - These edge cases are no longer testable at the mock level with MoonshineJS. Consider testing them at a higher integration level if needed.
  */
 export interface SpeechRecognitionMockConfig {
   /** Whether to support speech recognition */
