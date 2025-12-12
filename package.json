@@ -1,0 +1,15 @@
+{
+  "name": "sarcasm-detection",
+  "private": true,
+  "scripts": {
+    "install:all": "npm run install:backend && npm run install:frontend && npm run install:e2e",
+    "install:backend": "cd backend && python3 -m venv venv && venv/bin/pip install -r requirements.txt",
+    "install:frontend": "cd frontend && npm install",
+    "install:e2e": "cd e2e && npm install",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "dev:backend": "backend/venv/bin/python backend/app.py",
+    "dev:frontend": "cd frontend && npm run dev",
+    "e2e": "cd e2e && npm test",
+    "e2e:docker": "docker compose up -d && cd e2e && E2E_BASE_URL=http://localhost npm test; docker compose down"
+  }
+}

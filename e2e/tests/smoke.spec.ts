@@ -7,39 +7,34 @@
 
 import { expect, test } from "@playwright/test";
 
-/**
- * Validate that MOONSHINE_MODEL_NAME and VITE_MOONSHINE_MODEL are in sync.
- * MOONSHINE_MODEL_NAME: "tiny" (no prefix)
- * VITE_MOONSHINE_MODEL: "model/tiny" (with prefix)
- */
-function validateModelConfig(): string {
-  const e2eModelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
-
-  // Mirror the exact logic from useSpeechRecognition.ts
-  const envModel = process.env.VITE_MOONSHINE_MODEL;
-  const effectiveModelPath =
-    typeof envModel === "string" && envModel.trim() !== ""
-      ? envModel.trim()
-      : "model/tiny";
-
-  // Extract model name from effective path (remove 'model/' prefix)
-  const frontendModelName = effectiveModelPath.replace(/^model\//, "");
-
-  if (e2eModelName !== frontendModelName) {
-    console.warn(
-      `⚠️  Configuration mismatch detected:\n` +
-        `   MOONSHINE_MODEL_NAME="${e2eModelName}" (e2e)\n` +
-        `   VITE_MOONSHINE_MODEL="${
-          process.env.VITE_MOONSHINE_MODEL || "undefined"
-        }" → "${frontendModelName}" (effective)\n` +
-        `   These should refer to the same model. See env.example files.`,
-    );
-  }
-
-  return e2eModelName;
-}
-
 test.describe("Smoke Tests", () => {
+  test("model configuration is valid", () => {
+    // Validate that MOONSHINE_MODEL_NAME and VITE_MOONSHINE_MODEL are in sync
+    // This is a critical configuration check that must pass
+    const e2eModelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
+
+    // Mirror the exact logic from useSpeechRecognition.ts
+    const envModel = process.env.VITE_MOONSHINE_MODEL;
+    const effectiveModelPath =
+      typeof envModel === "string" && envModel.trim() !== ""
+        ? envModel.trim()
+        : "model/tiny";
+
+    // Extract model name from effective path (remove 'model/' prefix)
+    const frontendModelName = effectiveModelPath.replace(/^model\//, "");
+
+    // This should be an exact match - configuration must be correct
+    expect(
+      e2eModelName,
+      `Model configuration mismatch:
+  MOONSHINE_MODEL_NAME="${e2eModelName}" (e2e)
+  VITE_MOONSHINE_MODEL="${
+    process.env.VITE_MOONSHINE_MODEL || "undefined"
+  }" → "${frontendModelName}" (effective)
+  These must refer to the same model. See env.example files.`,
+    ).toBe(frontendModelName);
+  });
+
   test("Moonshine model URL is valid", async ({ request }) => {
     // Best-effort smoke test: Verify Moonshine model CDN is accessible.
     // This is NOT a guarantee the app works - just that models are downloadable.
@@ -55,7 +50,7 @@ test.describe("Smoke Tests", () => {
     // - MoonshineJS URL change: Update test pattern
     // - Model name change: Update MOONSHINE_MODEL_NAME in e2e/env.example
     // - Network outage: Models temporarily unavailable (false positive)
-    const modelName = validateModelConfig();
+    const modelName = process.env.MOONSHINE_MODEL_NAME || "tiny";
     const modelBaseUrl = `https://download.moonshine.ai/model/${modelName}/quantized`;
     const encoderUrl = `${modelBaseUrl}/encoder_model.onnx`;
 

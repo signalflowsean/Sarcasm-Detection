@@ -41,34 +41,52 @@ The Sarcasm Detector analyzes input through two detection modes:
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Install (One-Time Setup)
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Access the application
-open http://localhost
+# Install all dependencies (backend, frontend, and e2e)
+npm run install:all
 ```
 
-### Manual Development Setup
-
-#### Backend
+Or install individually:
 
 ```bash
+npm run install:backend  # Python venv + dependencies
+npm run install:frontend # Frontend npm packages
+npm run install:e2e      # E2E test dependencies
+```
+
+### Development (Recommended)
+
+Start both servers with hot reload:
+
+```bash
+# Backend (Terminal 1)
 cd backend
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip3 install -r requirements.txt
-python3 app.py
+source venv/bin/activate  # or venv/bin/activate on Windows
+python app.py
+
+# Frontend (Terminal 2)
+cd frontend
+npm run dev
+
+# Or use the root helper script (no venv activation needed)
+npm run dev
 ```
 
-#### Frontend
+### E2E Tests
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# Make sure dev servers are running, then:
+npm run e2e
+```
+
+### Docker (Production Build)
+
+Only needed for testing production builds:
+
+```bash
+docker compose up --build
 ```
 
 ## Project Structure
