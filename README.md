@@ -63,7 +63,7 @@ Start both servers with hot reload:
 ```bash
 # Backend (Terminal 1)
 cd backend
-source venv/bin/activate  # or venv/bin/activate on Windows
+source venv/bin/activate  # or venv\Scripts\activate on Windows
 python app.py
 
 # Frontend (Terminal 2)
