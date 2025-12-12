@@ -102,7 +102,7 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(Moonshine.MicrophoneTranscriber).toHaveBeenCalledWith(
-        'model/tiny', // Default model
+        'model/base', // Default model (changed from tiny to base for better accuracy)
         expect.objectContaining({
           onTranscriptionCommitted: expect.any(Function),
           onTranscriptionUpdated: expect.any(Function),

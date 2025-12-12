@@ -5,6 +5,7 @@ import GettingStarted from './GettingStarted'
 import TextInput from './TextInput'
 import AudioRecorder from './AudioRecorder'
 import MobileInputOverlay from './components/MobileInputOverlay'
+import { ModelSelector } from './components/ModelSelector'
 import { MEDIA_QUERIES } from '../../breakpoints'
 
 const InputContainer = () => {
@@ -58,6 +59,7 @@ const InputContainer = () => {
             return <AudioRecorder onClose={onClose} />
           }}
         </MobileInputOverlay>
+        <ModelSelector />
       </section>
     )
   }
@@ -66,6 +68,7 @@ const InputContainer = () => {
     <section className="input-container" data-testid="input-container">
       <div className="input-container__port" data-cable-anchor="input" aria-hidden="true" />
       <div className="input-container__content">{content}</div>
+      <ModelSelector />
     </section>
   )
 }

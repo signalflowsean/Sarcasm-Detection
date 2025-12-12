@@ -548,6 +548,9 @@
   .speech-status__icon {
     font-size: 1rem;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .speech-status__message {
@@ -570,6 +573,34 @@
   .speech-status__dismiss:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Retro loading spinner - matches VU meter aesthetic */
+  .retro-spinner {
+    display: inline-block;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+
+  /* Vintage brass/bronze color for loading spinner in info state */
+  .speech-status--info .retro-spinner {
+    color: var(--level-clr-secondary, #cd7f32);
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .retro-spinner circle {
+      animation: none;
+    }
+    .retro-spinner animateTransform,
+    .retro-spinner animate {
+      display: none;
+    }
+    /* Show static spinner instead */
+    .retro-spinner circle:first-child {
+      stroke-dasharray: 0;
+      opacity: 0.4;
+    }
   }
 
   /* Mobile modal */
