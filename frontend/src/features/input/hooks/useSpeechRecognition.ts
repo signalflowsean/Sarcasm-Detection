@@ -1,5 +1,6 @@
 import * as Moonshine from '@moonshine-ai/moonshine-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getNetworkSpeedEstimate, trackModelPerformance } from '../utils/telemetry'
 
 type TranscriptUpdate = {
   interim: string
@@ -38,6 +39,11 @@ export function useSpeechRecognition({
   const isMountedRef = useRef(true)
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle')
 
+  // Telemetry tracking refs (dev mode only)
+  const modelLoadStartTime = useRef<number>(0)
+  const currentModelName = useRef<string>('')
+  const transcriptAccumulator = useRef<string>('')
+
   // Track mounted state for cleanup during async operations
   useEffect(() => {
     isMountedRef.current = true
@@ -63,10 +69,20 @@ export function useSpeechRecognition({
 
     try {
       // Create the MicrophoneTranscriber (model is cached by browser after first download)
-      // Options: model/tiny (~190MB, fastest), model/base, model/small
+      // Options: model/tiny (~190MB, fastest), model/base (~400MB, accurate)
+      // In dev mode, check localStorage for model override from ModelSelector
+      const devOverride =
+        import.meta.env.MODE === 'development'
+          ? localStorage.getItem('moonshine_model_override')
+          : null
       const envModel = import.meta.env.VITE_MOONSHINE_MODEL
       const modelPath =
-        typeof envModel === 'string' && envModel.trim() !== '' ? envModel.trim() : 'model/tiny'
+        devOverride ||
+        (typeof envModel === 'string' && envModel.trim() !== '' ? envModel.trim() : 'model/base')
+
+      // Store model name for telemetry
+      currentModelName.current = modelPath
+
       const transcriber = new Moonshine.MicrophoneTranscriber(
         modelPath,
         {
@@ -74,6 +90,8 @@ export function useSpeechRecognition({
             // Final transcription - speech segment completed
             if (isRecordingRef.current && text.trim()) {
               onTranscriptUpdate({ interim: '', final: text })
+              // Accumulate transcript for telemetry
+              transcriptAccumulator.current += text + ' '
             }
           },
           onTranscriptionUpdated: (text: string) => {
@@ -84,6 +102,9 @@ export function useSpeechRecognition({
           },
           onModelLoadStart: () => {
             // Model loading has actually started (more accurate than setting loading immediately)
+            // Record start time for telemetry
+            modelLoadStartTime.current = performance.now()
+
             if (isMountedRef.current) {
               setSpeechStatus('loading')
             }
@@ -92,6 +113,20 @@ export function useSpeechRecognition({
             // Model loading finished - ready to listen
             if (isMountedRef.current && transcriberRef.current?.isListening()) {
               setSpeechStatus('listening')
+
+              // Track model load performance (dev mode only)
+              const loadTimeMs = performance.now() - modelLoadStartTime.current
+              const cacheHit = loadTimeMs < 1000 // If load was under 1s, likely from cache
+
+              trackModelPerformance({
+                modelName: currentModelName.current,
+                loadTimeMs,
+                cacheHit,
+                networkSpeedEstimate: getNetworkSpeedEstimate(),
+                transcriptLength: 0, // Will be updated when transcription completes
+                timestamp: Date.now(),
+                success: true,
+              })
             }
           },
           onError: (error: Error) => {
@@ -102,6 +137,17 @@ export function useSpeechRecognition({
               }
               onError(`Transcription error: ${error.message}`)
               setSpeechStatus('error')
+
+              // Track error in telemetry (dev mode only)
+              trackModelPerformance({
+                modelName: currentModelName.current,
+                loadTimeMs: 0,
+                cacheHit: false,
+                transcriptLength: transcriptAccumulator.current.length,
+                timestamp: Date.now(),
+                success: false,
+                errorMessage: error.message,
+              })
             }
           },
         },
@@ -132,7 +178,9 @@ export function useSpeechRecognition({
       transcriberRef.current = null
 
       // Handle specific error types
+      let errorMessage = 'Unknown error'
       if (err instanceof Error) {
+        errorMessage = err.message
         if (err.name === 'NotAllowedError') {
           onError('Microphone access denied. Please allow microphone access.')
         } else if (err.name === 'NotFoundError') {
@@ -149,6 +197,17 @@ export function useSpeechRecognition({
         onError('Failed to start speech recognition: Unknown error')
       }
 
+      // Track startup error in telemetry (dev mode only)
+      trackModelPerformance({
+        modelName: currentModelName.current || 'unknown',
+        loadTimeMs: 0,
+        cacheHit: false,
+        transcriptLength: 0,
+        timestamp: Date.now(),
+        success: false,
+        errorMessage,
+      })
+
       setSpeechStatus('error')
     }
   }, [isRecordingRef, onTranscriptUpdate, onError])
@@ -159,6 +218,21 @@ export function useSpeechRecognition({
 
     try {
       transcriber.stop()
+
+      // Track final transcription metrics if we have accumulated text (dev mode only)
+      if (transcriptAccumulator.current.trim()) {
+        trackModelPerformance({
+          modelName: currentModelName.current,
+          loadTimeMs: 0, // Already tracked during load
+          cacheHit: true, // Model was already loaded
+          transcriptLength: transcriptAccumulator.current.trim().length,
+          timestamp: Date.now(),
+          success: true,
+        })
+      }
+
+      // Reset transcript accumulator for next recording
+      transcriptAccumulator.current = ''
     } catch {
       /* noop - may already be stopped */
     }

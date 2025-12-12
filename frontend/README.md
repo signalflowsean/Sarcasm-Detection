@@ -84,27 +84,28 @@ src/
 
 ## Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | TypeScript check + production build |
-| `npm run lint` | Run ESLint for code quality |
-| `npm run preview` | Preview production build locally |
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `npm run dev`     | Start development server with hot reload |
+| `npm run build`   | TypeScript check + production build      |
+| `npm run lint`    | Run ESLint for code quality              |
+| `npm run preview` | Preview production build locally         |
 
 ## Routing
 
-| Path | Description |
-|------|-------------|
-| `/` | Redirects to `/getting-started` |
-| `/getting-started` | Onboarding / welcome screen |
-| `/text` | Text (lexical) input mode |
-| `/audio` | Audio (prosodic) input mode |
+| Path               | Description                     |
+| ------------------ | ------------------------------- |
+| `/`                | Redirects to `/getting-started` |
+| `/getting-started` | Onboarding / welcome screen     |
+| `/text`            | Text (lexical) input mode       |
+| `/audio`           | Audio (prosodic) input mode     |
 
 ## Key Components
 
 ### MeterSection
 
 The main VU meter display featuring:
+
 - Animated needle responding to sarcasm scores
 - Dual level indicators (lexical and prosodic)
 - Power state management with on/off transitions
@@ -113,12 +114,14 @@ The main VU meter display featuring:
 ### InputContainer
 
 Routes to the appropriate input component based on the current mode:
+
 - **Text Mode**: Text area for typing input
 - **Audio Mode**: Microphone recording with waveform
 
 ### DetectionProvider
 
 Global state management for detection results:
+
 - Manages lexical and prosodic sarcasm scores
 - Handles loading states
 - Coordinates between input and display components
@@ -161,6 +164,7 @@ docker run -p 80:80 sarcasm-frontend
 ```
 
 The Nginx configuration (`nginx.conf`) handles:
+
 - Static file serving
 - SPA routing (redirects to index.html)
 - API proxying to backend service

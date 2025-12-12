@@ -41,34 +41,52 @@ The Sarcasm Detector analyzes input through two detection modes:
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Install (One-Time Setup)
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Access the application
-open http://localhost
+# Install all dependencies (backend, frontend, and e2e)
+npm run install:all
 ```
 
-### Manual Development Setup
-
-#### Backend
+Or install individually:
 
 ```bash
+npm run install:backend  # Python venv + dependencies
+npm run install:frontend # Frontend npm packages
+npm run install:e2e      # E2E test dependencies
+```
+
+### Development (Recommended)
+
+Start both servers with hot reload:
+
+```bash
+# Backend (Terminal 1)
 cd backend
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip3 install -r requirements.txt
-python3 app.py
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+python app.py
+
+# Frontend (Terminal 2)
+cd frontend
+npm run dev
+
+# Or use the root helper script (no venv activation needed)
+npm run dev
 ```
 
-#### Frontend
+### E2E Tests
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# Make sure dev servers are running, then:
+npm run e2e
+```
+
+### Docker (Production Build)
+
+Only needed for testing production builds:
+
+```bash
+docker compose up --build
 ```
 
 ## Project Structure
@@ -210,6 +228,8 @@ Health check endpoint for container orchestration.
 
 ### Environment Variables
 
+**Backend:**
+
 | Variable              | Default         | Description                                                                   |
 | --------------------- | --------------- | ----------------------------------------------------------------------------- |
 | `API_DELAY_SECONDS`   | `2.0`           | Artificial delay for showcasing loading animations (set to `0` in production) |
@@ -219,6 +239,43 @@ Health check endpoint for container orchestration.
 | `RATE_LIMIT_LEXICAL`  | `30 per minute` | Rate limit for text analysis endpoint                                         |
 | `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint                                        |
 | `RATE_LIMIT_STORAGE`  | `memory://`     | Storage backend (`memory://` or `redis://host:port`)                          |
+
+**Frontend:**
+
+| Variable               | Default                 | Description                                             |
+| ---------------------- | ----------------------- | ------------------------------------------------------- |
+| `VITE_API_URL`         | `http://localhost:5000` | Backend API URL                                         |
+| `VITE_MOONSHINE_MODEL` | `model/base`            | Speech recognition model (`model/tiny` or `model/base`) |
+
+#### Moonshine Speech Recognition Configuration
+
+The app uses [Moonshine](https://www.moonshine.ai/) for on-device speech-to-text. Models are downloaded once and cached by the browser.
+
+**Why Moonshine?** The Web Speech API isn't fully implemented across mobile browsers (especially iOS Safari). Moonshine provides consistent speech-to-text behavior across all platforms with predictable accuracy.
+
+**Available Models:**
+
+| Model        | Size   | Accuracy (WER) | Use Case                    |
+| ------------ | ------ | -------------- | --------------------------- |
+| `model/tiny` | ~190MB | 15-20%         | Fast, mobile-friendly       |
+| `model/base` | ~400MB | 10-12%         | **Default** - Best accuracy |
+
+**Default:** `model/base` for better speech-to-text accuracy, which improves the lexical detection component. The app combines both lexical (text-based) and prosodic (audio-based) detection for overall sarcasm scoring.
+
+**Switching Models:**
+
+1. **Development:** Edit `frontend/.env.local` and set `VITE_MOONSHINE_MODEL=model/{name}`
+2. **Production:** Update environment variable in Railway dashboard (requires rebuild)
+3. **Dev Mode Testing:** Use the model selector (bottom-left corner in dev mode)
+
+**Important:**
+
+- Changing models requires a rebuild and redeploy
+- Users only re-download when you **change which model** is used (e.g., tiny → base)
+- Regular app deployments (same model) do NOT require re-download - models stay cached
+- Models are served from Moonshine CDN, independent of your app deployment
+
+See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for detailed model comparison, performance metrics, and selection guidance.
 
 ### Running Tests
 
@@ -271,6 +328,69 @@ ruff check .              # Lint
 ruff check . --fix        # Auto-fix
 ruff format .             # Format
 ```
+
+### Mobile Testing
+
+Since prosodic detection is the core use case, testing on actual mobile devices is critical. Mobile browsers require **HTTPS for microphone access**, so use one of these methods:
+
+#### Option A: LocalTunnel (Easiest)
+
+```bash
+# Terminal 1: Start dev server
+cd frontend
+npm run dev
+
+# Terminal 2: Create HTTPS tunnel
+npx localtunnel --port 5173
+# Output: https://random-name.loca.lt
+
+# Open the URL on your phone to test!
+```
+
+**Pros:** No configuration, instant HTTPS
+**Cons:** Random URL changes each restart
+
+#### Option B: ngrok (More Reliable)
+
+```bash
+# One-time install
+brew install ngrok  # or: npm install -g ngrok
+
+# Terminal 1: Start dev server
+cd frontend
+npm run dev
+
+# Terminal 2: Create tunnel
+ngrok http 5173
+# Output: https://abc123.ngrok-free.app
+```
+
+**Pros:** Stable URLs (with account), better performance
+**Cons:** Requires account for persistent URLs
+
+#### Option C: Local Network (No Microphone)
+
+```bash
+# Start with network access
+cd frontend
+npm run dev -- --host
+
+# Find your IP: ifconfig | grep "inet " (macOS/Linux)
+# Access from phone: http://YOUR_IP:5173
+```
+
+⚠️ **Warning:** Microphone won't work on iOS/Safari without HTTPS
+
+#### Mobile Testing Workflow
+
+1. Start dev server with tunnel (Option A or B recommended)
+2. Open tunnel URL on your phone
+3. Use the model selector (visible in dev mode) to test different models
+4. Record speech and test prosodic detection
+5. Open browser console and run `window.viewMoonshineMetrics()` to see performance data
+6. Compare load times and accuracy across models on real mobile connection
+
+See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for model comparison and testing guidance.
 
 ## Features
 
@@ -386,12 +506,45 @@ Configure these in the Railway dashboard for each service:
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_URL` | Backend URL (e.g., `https://backend-production-xxxx.up.railway.app`) |
+| `VITE_MOONSHINE_MODEL` | Speech model: `model/tiny` or `model/base` (default: `model/base`) |
 
 **Backend:**
 | Variable | Description |
 |----------|-------------|
 | `API_DELAY_SECONDS` | Set to `0` for production |
 | `FLASK_ENV` | Set to `production` |
+
+#### Changing Moonshine Model in Production
+
+**Important Distinction:**
+
+- **Same model + app update**: Users keep cached model ✅ (instant load)
+- **Different model**: Users must re-download ❌ (400MB for base)
+
+Models are served from Moonshine CDN (`download.moonshine.ai`), not from your app. Regular deploys don't affect model caching.
+
+**Process to Change Models:**
+
+1. Navigate to Railway dashboard → Frontend service → Variables
+2. Update `VITE_MOONSHINE_MODEL=model/{name}` (e.g., `model/base`)
+3. Redeploy: `railway up -s Frontend` or push to main branch
+4. Monitor first-user experience for load times (only affects users switching models)
+5. Consider announcing model change if it significantly affects UX
+
+**Example Timeline:**
+
+- Day 1: Deploy with `model/base` → Users download 400MB
+- Day 5: Deploy bug fix (same `model/base`) → Users load instantly from cache ✅
+- Day 10: Switch to `model/tiny` → Users download 190MB (new model)
+
+**Model Selection Guidance:**
+
+- **`model/base`** (400MB): Default - Best transcription accuracy for lexical detection
+- **`model/tiny`** (190MB): Fastest, use if users report long load times
+
+Note: Prosodic detection (audio analysis) is unaffected by transcription quality. Better models improve the lexical (text) component of sarcasm detection.
+
+See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for detailed model comparison.
 
 ### Custom Domain
 
@@ -440,6 +593,19 @@ Extract hardcoded "magic numbers" into CSS custom properties for maintainability
 **Shadows:** Button, card/modal, inset depth, brass/metallic highlights
 
 **Suggested naming:** `--space-{xs,sm,md,lg,xl}`, `--radius-{sm,md,lg}`, `--duration-{fast,normal,slow}`, `--shadow-{sm,md,lg}`
+
+### 🎙️ Moonshine Model Optimization (Phase 2)
+
+Phase 1 (completed): Switched to base model for better accuracy, added dev-only selector and telemetry.
+
+Future Phase 2 options (data-driven decision):
+
+- [ ] **Dynamic Model Selection**: Auto-detect network speed and load optimal model (tiny/base)
+- [ ] **Progressive Loading**: Load tiny model first, upgrade to base in background for instant UX
+- [ ] **Model Streaming**: Download models in chunks to improve perceived load time
+- [ ] **Analytics Integration**: Track real user metrics to optimize model selection strategy
+
+See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for detailed model comparison and trade-offs.
 
 ### 📝 Other Improvements
 

@@ -13,9 +13,94 @@ type StatusConfig = {
   variant: 'info' | 'error'
 }
 
+/**
+ * Get the current model name for display
+ */
+function getCurrentModelName(): string {
+  // In dev mode, check for model override
+  if (import.meta.env.MODE === 'development') {
+    const override = localStorage.getItem('moonshine_model_override')
+    if (override) {
+      return override.replace('model/', '')
+    }
+  }
+
+  // Fall back to env variable
+  const envModel = import.meta.env.VITE_MOONSHINE_MODEL
+  if (envModel && typeof envModel === 'string') {
+    return envModel.replace('model/', '')
+  }
+
+  return 'base'
+}
+
+/**
+ * Get model size for display
+ */
+function getModelSize(modelName: string): string {
+  const sizes: Record<string, string> = {
+    tiny: '190MB',
+    base: '400MB',
+  }
+  return sizes[modelName] || '~400MB'
+}
+
+/**
+ * Retro loading spinner component matching the VU meter aesthetic
+ */
+function RetroSpinner() {
+  return (
+    <svg
+      className="retro-spinner"
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle
+        cx="10"
+        cy="10"
+        r="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeDasharray="25 15"
+        opacity="0.6"
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          from="0 10 10"
+          to="360 10 10"
+          dur="1.5s"
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle
+        cx="10"
+        cy="10"
+        r="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        opacity="0.4"
+      >
+        <animate attributeName="r" values="3;5;3" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.4;0.8;0.4" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+    </svg>
+  )
+}
+
 const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
   loading: {
-    message: 'Loading speech recognition model... (first time only)',
+    message: (() => {
+      const modelName = getCurrentModelName()
+      const modelSize = getModelSize(modelName)
+      return `Loading ${modelName} model (${modelSize})... This may take a moment on first load.`
+    })(),
     srPrefix: 'Info:',
     icon: '⏳',
     variant: 'info',
@@ -58,7 +143,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
       {shouldShow && config && (
         <div className={`speech-status speech-status--${config.variant}`}>
           <span className="speech-status__icon" aria-hidden="true">
-            {config.icon}
+            {status === 'loading' ? <RetroSpinner /> : config.icon}
           </span>
           <span className="speech-status__message">
             {/* Visually hidden prefix for screen readers */}
