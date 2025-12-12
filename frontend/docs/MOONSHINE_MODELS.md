@@ -215,12 +215,7 @@ High Accuracy Required? ──Yes──> base model
          No
          │
          ▼
-Fast Load Critical? ──Yes──> tiny model
-         │
-         No
-         │
-         ▼
-      small model
+      tiny model
 ```
 
 ## Switching Models
@@ -322,6 +317,7 @@ Monitor these metrics (Phase 2):
 ## Changelog
 
 - **2025-01-XX**: Initial documentation (Phase 1)
-  - Documented tiny, small, and base models
+  - Documented available models (tiny and base only)
   - Set base as default for accuracy
   - Added network impact analysis and caching details
+  - Note: Early versions incorrectly mentioned a "small" model that doesn't exist on CDN

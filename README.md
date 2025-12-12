@@ -242,10 +242,10 @@ Health check endpoint for container orchestration.
 
 **Frontend:**
 
-| Variable               | Default                 | Description                                                             |
-| ---------------------- | ----------------------- | ----------------------------------------------------------------------- |
-| `VITE_API_URL`         | `http://localhost:5000` | Backend API URL                                                         |
-| `VITE_MOONSHINE_MODEL` | `model/base`            | Speech recognition model (`model/tiny`, `model/small`, or `model/base`) |
+| Variable               | Default                 | Description                                             |
+| ---------------------- | ----------------------- | ------------------------------------------------------- |
+| `VITE_API_URL`         | `http://localhost:5000` | Backend API URL                                         |
+| `VITE_MOONSHINE_MODEL` | `model/base`            | Speech recognition model (`model/tiny` or `model/base`) |
 
 #### Moonshine Speech Recognition Configuration
 
@@ -255,11 +255,10 @@ The app uses [Moonshine](https://www.moonshine.ai/) for on-device speech-to-text
 
 **Available Models:**
 
-| Model         | Size   | Accuracy (WER) | Use Case                    |
-| ------------- | ------ | -------------- | --------------------------- |
-| `model/tiny`  | ~190MB | 15-20%         | Fast, mobile-friendly       |
-| `model/small` | ~300MB | 12-15%         | Balanced                    |
-| `model/base`  | ~400MB | 10-12%         | **Default** - Best accuracy |
+| Model        | Size   | Accuracy (WER) | Use Case                    |
+| ------------ | ------ | -------------- | --------------------------- |
+| `model/tiny` | ~190MB | 15-20%         | Fast, mobile-friendly       |
+| `model/base` | ~400MB | 10-12%         | **Default** - Best accuracy |
 
 **Default:** `model/base` for better speech-to-text accuracy, which improves the lexical detection component. The app combines both lexical (text-based) and prosodic (audio-based) detection for overall sarcasm scoring.
 
@@ -507,7 +506,7 @@ Configure these in the Railway dashboard for each service:
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_URL` | Backend URL (e.g., `https://backend-production-xxxx.up.railway.app`) |
-| `VITE_MOONSHINE_MODEL` | Speech model: `model/tiny`, `model/base`, or `model/small` (default: `model/base`) |
+| `VITE_MOONSHINE_MODEL` | Speech model: `model/tiny` or `model/base` (default: `model/base`) |
 
 **Backend:**
 | Variable | Description |
@@ -536,12 +535,11 @@ Models are served from Moonshine CDN (`download.moonshine.ai`), not from your ap
 
 - Day 1: Deploy with `model/base` → Users download 400MB
 - Day 5: Deploy bug fix (same `model/base`) → Users load instantly from cache ✅
-- Day 10: Switch to `model/small` → Users download 300MB (new model)
+- Day 10: Switch to `model/tiny` → Users download 190MB (new model)
 
 **Model Selection Guidance:**
 
 - **`model/base`** (400MB): Default - Best transcription accuracy for lexical detection
-- **`model/small`** (300MB): Balance between size and accuracy
 - **`model/tiny`** (190MB): Fastest, use if users report long load times
 
 Note: Prosodic detection (audio analysis) is unaffected by transcription quality. Better models improve the lexical (text) component of sarcasm detection.
@@ -602,7 +600,7 @@ Phase 1 (completed): Switched to base model for better accuracy, added dev-only 
 
 Future Phase 2 options (data-driven decision):
 
-- [ ] **Dynamic Model Selection**: Auto-detect network speed and load optimal model (tiny/base/small)
+- [ ] **Dynamic Model Selection**: Auto-detect network speed and load optimal model (tiny/base)
 - [ ] **Progressive Loading**: Load tiny model first, upgrade to base in background for instant UX
 - [ ] **Model Streaming**: Download models in chunks to improve perceived load time
 - [ ] **Analytics Integration**: Track real user metrics to optimize model selection strategy

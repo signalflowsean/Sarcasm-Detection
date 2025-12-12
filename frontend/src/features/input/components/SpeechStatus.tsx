@@ -40,7 +40,6 @@ function getCurrentModelName(): string {
 function getModelSize(modelName: string): string {
   const sizes: Record<string, string> = {
     tiny: '190MB',
-    small: '300MB',
     base: '400MB',
   }
   return sizes[modelName] || '~400MB'

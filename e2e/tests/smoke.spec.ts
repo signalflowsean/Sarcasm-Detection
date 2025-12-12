@@ -22,7 +22,7 @@ test.describe("Smoke Tests", () => {
       effectiveModelPath.startsWith("model/"),
       `Invalid VITE_MOONSHINE_MODEL format:
   Got: "${effectiveModelPath}"
-  Expected format: "model/{name}" (e.g., model/base, model/tiny, model/small)
+  Expected format: "model/{name}" (e.g., model/base, model/tiny)
 
   See env.example files and frontend/docs/MOONSHINE_MODELS.md for configuration.`,
     ).toBe(true);

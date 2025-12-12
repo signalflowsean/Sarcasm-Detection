@@ -69,7 +69,7 @@ export function useSpeechRecognition({
 
     try {
       // Create the MicrophoneTranscriber (model is cached by browser after first download)
-      // Options: model/tiny (~190MB, fastest), model/base (~400MB, accurate), model/small (~300MB, balanced)
+      // Options: model/tiny (~190MB, fastest), model/base (~400MB, accurate)
       // In dev mode, check localStorage for model override from ModelSelector
       const devOverride =
         import.meta.env.MODE === 'development'

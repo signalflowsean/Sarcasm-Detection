@@ -5,7 +5,7 @@ import { useState } from 'react'
  *
  * NOTE: This component IS dev-mode only - it's hidden in production builds.
  * It's visible only in development to allow manual testing and comparison
- * of different Moonshine models (tiny/small/base).
+ * of different Moonshine models (tiny/base).
  *
  * The selected model persists to localStorage so developers can test consistently
  * across page reloads. The default value comes from VITE_MOONSHINE_MODEL env var.
