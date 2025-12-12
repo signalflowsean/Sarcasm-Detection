@@ -6,14 +6,14 @@ Text-based sarcasm detection using various ML approaches.
 
 This module provides multiple training scripts for lexical (text-based) sarcasm detection:
 
-| Script | Model | Accuracy | Description |
-|--------|-------|----------|-------------|
-| `train_sklearn_model.py` | TF-IDF + LogReg | ~80% | Simple, fast, production-ready |
-| `train_sklearn_model_improved.py` | Ensemble | ~85% | Hyperparameter tuning, multiple classifiers |
-| `train_transformer.py` | **DistilBERT** | **~90%** | **Fine-tuned transformer (recommended for best accuracy)** |
-| `train_multi_dataset.py` | TF-IDF + LogReg | ~82% | Multiple dataset sources |
-| `train_huggingface.py` | TF-IDF + Multi-data | ~83% | HuggingFace datasets |
-| `train_keras.py` | Embedding + Dense | ~82% | TensorFlow/Keras neural network |
+| Script                            | Model               | Accuracy | Description                                                |
+| --------------------------------- | ------------------- | -------- | ---------------------------------------------------------- |
+| `train_sklearn_model.py`          | TF-IDF + LogReg     | ~80%     | Simple, fast, production-ready                             |
+| `train_sklearn_model_improved.py` | Ensemble            | ~85%     | Hyperparameter tuning, multiple classifiers                |
+| `train_transformer.py`            | **DistilBERT**      | **~90%** | **Fine-tuned transformer (recommended for best accuracy)** |
+| `train_multi_dataset.py`          | TF-IDF + LogReg     | ~82%     | Multiple dataset sources                                   |
+| `train_huggingface.py`            | TF-IDF + Multi-data | ~83%     | HuggingFace datasets                                       |
+| `train_keras.py`                  | Embedding + Dense   | ~82%     | TensorFlow/Keras neural network                            |
 
 ## Quick Start
 
@@ -56,6 +56,7 @@ python train_transformer.py --export-onnx
 ```
 
 **Training time:**
+
 - NVIDIA GPU: ~5-10 minutes
 - Apple M1/M2: ~15-30 minutes
 - CPU: ~1-2 hours (not recommended)
@@ -171,16 +172,17 @@ Score: [0.0, 1.0]
 
 ## Expected Performance
 
-| Model | Accuracy | F1 Score | Size | Inference |
-|-------|----------|----------|------|-----------|
-| TF-IDF + LogReg | ~80% | ~0.80 | ~5 MB | <1ms |
-| TF-IDF + Ensemble | ~85% | ~0.85 | ~15 MB | <5ms |
-| Keras Embedding | ~82% | ~0.82 | ~2 MB | ~10ms |
-| **DistilBERT Fine-tuned** | **~90%** | **~0.90** | ~250 MB | ~50ms |
+| Model                     | Accuracy | F1 Score  | Size    | Inference |
+| ------------------------- | -------- | --------- | ------- | --------- |
+| TF-IDF + LogReg           | ~80%     | ~0.80     | ~5 MB   | <1ms      |
+| TF-IDF + Ensemble         | ~85%     | ~0.85     | ~15 MB  | <5ms      |
+| Keras Embedding           | ~82%     | ~0.82     | ~2 MB   | ~10ms     |
+| **DistilBERT Fine-tuned** | **~90%** | **~0.90** | ~250 MB | ~50ms     |
 
 Note: Results on news headlines dataset. Conversational sarcasm is harder to detect.
 
 **Recommendation:**
+
 - **Production (speed priority)**: Use sklearn (`train_sklearn_model_improved.py`)
 - **Production (accuracy priority)**: Use DistilBERT (`train_transformer.py`) with ONNX export
 

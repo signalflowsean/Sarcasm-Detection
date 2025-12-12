@@ -4,7 +4,7 @@ This guide explains how to test the Sarcasm Detector app on actual mobile device
 
 ## Why Mobile Testing is Essential
 
-1. **Prosodic Detection is Primary Use Case**: The app analyzes *how* you say things, not just what you say
+1. **Prosodic Detection is Primary Use Case**: The app analyzes _how_ you say things, not just what you say
 2. **Real Network Conditions**: Model download performance varies significantly on mobile networks (3G/4G/WiFi)
 3. **Mobile-Specific Behavior**: Touch interactions, screen sizes, and performance characteristics differ from desktop
 4. **Microphone API Differences**: Mobile browsers have stricter security requirements
@@ -43,17 +43,20 @@ npm run tunnel
 Then open `https://random-name-1234.loca.lt` on your phone.
 
 **Pros:**
+
 - ✅ Zero configuration
 - ✅ Works immediately
 - ✅ Free
 - ✅ No account required
 
 **Cons:**
+
 - ❌ Random URL changes on every restart
 - ❌ May show bypass warning on first visit (click "Continue")
 - ❌ Potential rate limits during heavy use
 
 **First-time use:**
+
 1. LocalTunnel may show a warning page on first visit
 2. Click "Continue" to proceed to your app
 3. Grant microphone permissions when prompted
@@ -93,6 +96,7 @@ npm run tunnel:ngrok
 Open the `https://abc123.ngrok-free.app` URL on your phone.
 
 **Pros:**
+
 - ✅ Stable URLs (with free account)
 - ✅ Better performance than LocalTunnel
 - ✅ Built-in request inspector UI (http://localhost:4040)
@@ -100,11 +104,13 @@ Open the `https://abc123.ngrok-free.app` URL on your phone.
 - ✅ Shows real-time traffic
 
 **Cons:**
+
 - ❌ Requires installation
 - ❌ May show interstitial page on ngrok free tier (click "Visit Site")
 
 **ngrok Inspector:**
 While testing, visit http://localhost:4040 on your computer to see:
+
 - All HTTP requests/responses
 - Request headers and body
 - Response times
@@ -133,6 +139,7 @@ npm run dev:mobile
 ⚠️ **Warning:** **Microphone will NOT work** on iOS/Safari without HTTPS. Use Option A or B for prosodic detection testing.
 
 **When to use this:**
+
 - Testing visual layout and UI
 - Testing text input (lexical detection only)
 - Testing touch interactions
@@ -151,6 +158,7 @@ Choose Option A (LocalTunnel) or Option B (ngrok) and start the tunnel.
 3. Grant microphone permissions when prompted
 
 **Permissions Troubleshooting:**
+
 - If permissions dialog doesn't appear, check browser settings
 - iOS: Settings → Safari → Microphone → Allow
 - Android: Chrome → Settings → Site Settings → Microphone → Allow
@@ -165,6 +173,7 @@ The model selector appears in the bottom-left corner in dev mode:
 4. Test each model with real mobile network conditions
 
 **What to test:**
+
 - Model download time on your mobile connection
 - Transcription accuracy for sarcastic phrases
 - App responsiveness during model loading
@@ -174,22 +183,25 @@ The model selector appears in the bottom-left corner in dev mode:
 
 1. Switch to Audio input mode
 2. Press and hold the record button
-3. Say something sarcastic (e.g., "Oh great, *another* meeting")
+3. Say something sarcastic (e.g., "Oh great, _another_ meeting")
 4. Release the button
 5. Check the detection result
 
 **Test phrases:**
-- "Yeah, *that's* what I needed today" (high sarcasm)
+
+- "Yeah, _that's_ what I needed today" (high sarcasm)
 - "Thank you so much for that" (medium sarcasm)
 - "The weather is nice" (low sarcasm)
 
 ### 5. Check Telemetry
 
 Open browser console on your phone:
+
 - iOS Safari: Settings → Safari → Advanced → Web Inspector (requires Mac)
 - Android Chrome: chrome://inspect (requires computer with Chrome)
 
 Or check on desktop:
+
 1. Keep the tunnel running
 2. Switch back to desktop browser
 3. Open `http://localhost:5173` (or your tunnel URL)
@@ -197,6 +209,7 @@ Or check on desktop:
 5. Review metrics table
 
 **Metrics to review:**
+
 - Model load times across different models
 - Cache hit rate (second page load should be instant)
 - Network speed estimates
@@ -207,14 +220,17 @@ Or check on desktop:
 **Simulate different connections:**
 
 On iOS:
+
 - Settings → Developer → Network Link Conditioner
 - Enable and select: "3G", "4G", "WiFi", etc.
 
 On Android:
+
 - Developer Options → Networking → Mobile data always active
 - Use "Network speed" simulator apps
 
 **Test scenarios:**
+
 - **WiFi → 4G transition**: Switch networks mid-test
 - **Slow 3G**: Test tiny vs base model load times
 - **Fast WiFi**: Verify base model loads reasonably
@@ -227,6 +243,7 @@ On Android:
 **Symptoms:** Error message "Microphone access denied"
 
 **Solutions:**
+
 1. Ensure you're using HTTPS (tunnel URL, not http://IP)
 2. Check browser permissions in phone settings
 3. Try in different browser (Safari vs Chrome on iOS)
@@ -237,6 +254,7 @@ On Android:
 **Symptoms:** Can't access tunnel URL from phone
 
 **Solutions:**
+
 1. Verify tunnel is still running in Terminal
 2. Check tunnel URL matches exactly (including https://)
 3. Try different WiFi network (some block tunneling services)
@@ -247,6 +265,7 @@ On Android:
 **Symptoms:** Stuck on "Loading model..." forever
 
 **Solutions:**
+
 1. Check browser console for errors
 2. Verify CDN is accessible (try https://download.moonshine.ai/ in browser)
 3. Check if your network blocks ONNX files
@@ -258,6 +277,7 @@ On Android:
 **Symptoms:** LocalTunnel or ngrok shows interstitial/warning page
 
 **Solutions:**
+
 - **LocalTunnel**: Click "Continue" button
 - **ngrok free tier**: Click "Visit Site" button
 - Both are normal security features, not errors
@@ -267,6 +287,7 @@ On Android:
 **Symptoms:** Speech not recognized accurately
 
 **Solutions:**
+
 1. Switch to base model (better accuracy)
 2. Speak clearly and pause between phrases
 3. Reduce background noise
@@ -277,11 +298,11 @@ On Android:
 
 Expected model download times on mobile:
 
-| Network | tiny (190MB) | base (400MB) |
-|---------|--------------|--------------|
-| **3G Mobile** | ~8 minutes | ~18 minutes |
-| **4G Mobile** | ~76 seconds | ~2.7 minutes |
-| **WiFi (Average)** | ~30 seconds | ~64 seconds |
+| Network            | tiny (190MB) | base (400MB) |
+| ------------------ | ------------ | ------------ |
+| **3G Mobile**      | ~8 minutes   | ~18 minutes  |
+| **4G Mobile**      | ~76 seconds  | ~2.7 minutes |
+| **WiFi (Average)** | ~30 seconds  | ~64 seconds  |
 
 **After first load:** All models load instantly from cache. Models remain cached across app redeployments - only re-download when switching to a different model.
 
@@ -300,6 +321,7 @@ Expected model download times on mobile:
 For beta testing with real users outside your network:
 
 1. **ngrok with custom subdomain** (requires paid plan):
+
    ```bash
    ngrok http --subdomain=sarcasm-detector-beta 5173
    # URL: https://sarcasm-detector-beta.ngrok-free.app
@@ -314,11 +336,13 @@ For beta testing with real users outside your network:
 ### On Device
 
 **iOS Safari Developer Tools:**
+
 1. Connect iPhone to Mac via cable
 2. On Mac: Safari → Develop → [Your iPhone] → [Page]
 3. Full console access, DOM inspection, network tab
 
 **Android Chrome DevTools:**
+
 1. Connect Android to computer via cable
 2. Enable USB debugging in Developer Options
 3. On computer: Chrome → chrome://inspect
@@ -327,6 +351,7 @@ For beta testing with real users outside your network:
 ### Network Analysis
 
 Use browser DevTools Network tab to inspect:
+
 - Model file download progress
 - CDN response times
 - Failed requests
@@ -335,6 +360,7 @@ Use browser DevTools Network tab to inspect:
 ### Console Debugging
 
 Useful dev mode commands:
+
 ```javascript
 // View all collected metrics
 window.viewMoonshineMetrics()
@@ -361,6 +387,7 @@ location.reload()
 ## Need Help?
 
 If you encounter issues not covered here:
+
 1. Check browser console for specific error messages
 2. Verify all prerequisites are met (HTTPS, permissions, etc.)
 3. Try the simplest option first (LocalTunnel with WiFi)

@@ -6,10 +6,10 @@ Machine learning models for detecting sarcasm in text (lexical) and audio (proso
 
 This directory contains training pipelines for two types of sarcasm detection:
 
-| Type | Input | Model | Dataset |
-|------|-------|-------|---------|
-| **Lexical** | Text | TF-IDF + LogReg | News Headlines |
-| **Prosodic** | Audio | Wav2Vec2 + LogReg | MUStARD |
+| Type         | Input | Model             | Dataset        |
+| ------------ | ----- | ----------------- | -------------- |
+| **Lexical**  | Text  | TF-IDF + LogReg   | News Headlines |
+| **Prosodic** | Audio | Wav2Vec2 + LogReg | MUStARD        |
 
 ## Directory Structure
 
@@ -70,6 +70,7 @@ python inference.py path/to/audio.wav
 ## Model Outputs
 
 Both models save to `backend/`:
+
 - `backend/sarcasm_model.pkl` - Lexical model
 - `backend/prosodic_model.pkl` - Prosodic model
 
@@ -107,10 +108,10 @@ pip install -r prosodic/requirements.txt
 
 ## Expected Performance
 
-| Model | Metric | Score |
-|-------|--------|-------|
-| Lexical (TF-IDF + LogReg) | Accuracy | ~85% |
-| Prosodic (Wav2Vec2 + LogReg) | Weighted F1 | ~68% |
+| Model                        | Metric      | Score |
+| ---------------------------- | ----------- | ----- |
+| Lexical (TF-IDF + LogReg)    | Accuracy    | ~85%  |
+| Prosodic (Wav2Vec2 + LogReg) | Weighted F1 | ~68%  |
 
 Note: Prosodic detection is inherently harder due to limited training data and the subtlety of vocal sarcasm.
 
