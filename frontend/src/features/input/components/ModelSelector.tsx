@@ -21,7 +21,9 @@ export function ModelSelector() {
     setSelectedModel(newModel)
     localStorage.setItem('moonshine_model_override', newModel)
 
-    console.log(`Model changed to ${newModel}. Reloading...`)
+    if (import.meta.env.MODE === 'development') {
+      console.log(`Model changed to ${newModel}. Reloading...`)
+    }
 
     // Small delay to ensure localStorage write completes and user sees the selection change
     setTimeout(() => {
