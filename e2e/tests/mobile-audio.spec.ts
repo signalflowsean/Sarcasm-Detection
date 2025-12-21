@@ -62,8 +62,9 @@ test.describe('Mobile Audio Recording', () => {
   test('should show mobile input controls on root page', async ({ page }) => {
     await page.goto('/');
 
-    // On mobile, routing is disabled - everything is on one page
-    await expect(page).toHaveURL('/');
+    // On mobile, routing is disabled - RouteSync will redirect /getting-started back to /
+    // Wait for any redirects to complete
+    await page.waitForURL('/', { timeout: 5000 });
 
     // Mobile input controls should be visible (not in a modal)
     const mobileControls = page.getByTestId('mobile-input-controls');

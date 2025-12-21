@@ -169,6 +169,16 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             recognition.start()
           } catch (e) {
             logError('Failed to restart:', e)
+            // Notify consumers that restart failed and recognition stopped
+            const errorMessage =
+              e instanceof Error
+                ? `Failed to restart speech recognition: ${e.message}`
+                : 'Failed to restart speech recognition'
+            callbacks.onError(errorMessage)
+            callbacks.onStatusChange('error')
+            // Reset state to prevent further restart attempts
+            shouldRestart = false
+            recognition = null
           }
         }
       }

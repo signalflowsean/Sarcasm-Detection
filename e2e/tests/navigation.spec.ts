@@ -60,20 +60,25 @@ test.describe('Navigation (Mobile/Tablet - Routing Disabled)', () => {
   }) => {
     // Try navigating to different routes
     await page.goto('/text-input');
-    // Should redirect to root
+    // Should redirect to root (wait for RouteSync to redirect)
+    await page.waitForURL('/', { timeout: 5000 });
     await expect(page).toHaveURL('/');
 
     await page.goto('/audio-input');
     // Should redirect to root
+    await page.waitForURL('/', { timeout: 5000 });
     await expect(page).toHaveURL('/');
 
     await page.goto('/getting-started');
     // Should redirect to root
+    await page.waitForURL('/', { timeout: 5000 });
     await expect(page).toHaveURL('/');
   });
 
   test('should show mobile controls on root page', async ({ page }) => {
     await page.goto('/');
+    // Wait for any redirects to complete
+    await page.waitForURL('/', { timeout: 5000 });
 
     // Mobile input controls should be visible
     await expect(page.getByTestId('mobile-input-controls')).toBeVisible();

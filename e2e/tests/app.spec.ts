@@ -29,6 +29,8 @@ test.describe('Sarcasm Detector App', () => {
     await page.goto('/');
 
     // Should stay on root (routing is disabled on mobile/tablet)
+    // Wait for RouteSync to redirect /getting-started back to /
+    await page.waitForURL('/', { timeout: 5000 });
     await expect(page).toHaveURL('/');
 
     // Mobile controls should be visible

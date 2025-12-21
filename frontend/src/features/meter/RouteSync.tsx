@@ -20,17 +20,25 @@ export function RouteSync() {
   const hasRedirectedToRoot = useRef(false)
 
   // On mobile/tablet, skip route sync - single page experience
-  // Just ensure we're on a valid route on initial load
+  // Redirect any route (including /getting-started) back to root
   useEffect(() => {
     if (!isTabletOrMobile) {
       hasRedirectedToRoot.current = false
       return
     }
-    if (hasRedirectedToRoot.current) return
+    // On mobile/tablet, always redirect to root (routing is disabled)
     if (location.pathname !== '/') {
-      // Redirect to root on mobile/tablet to avoid route confusion
+      // Reset the flag when pathname changes so we can redirect again
+      if (hasRedirectedToRoot.current && lastPathRef.current === location.pathname) {
+        // Already redirected this path, skip
+        return
+      }
       hasRedirectedToRoot.current = true
+      lastPathRef.current = location.pathname
       navigate('/', { replace: true })
+    } else {
+      // We're on root, reset the flag for next navigation
+      hasRedirectedToRoot.current = false
     }
   }, [isTabletOrMobile, location.pathname, navigate])
 
