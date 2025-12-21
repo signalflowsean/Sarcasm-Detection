@@ -22,9 +22,11 @@ const FirstTimeOverlay = () => {
       setShowOverlay(true)
 
       const tryPositionOverlay = () => {
-        // On mobile/tablet, position relative to the detection switch
+        // On mobile/tablet, position relative to the textarea (where typing happens)
         // On desktop, position relative to the rotary knob
-        const targetSelector = isTabletOrMobile ? '.detection-switch' : '.rotary__knob'
+        const targetSelector = isTabletOrMobile
+          ? '.mobile-input-controls__textarea .shared-textarea, .mobile-input-controls__textarea textarea'
+          : '.rotary__knob'
         const target = document.querySelector(targetSelector) as HTMLElement
         const elapsedTime = Date.now() - startTime
 

@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
-import { useDetection } from '../../meter/useDetection'
+import { useEffect, useRef, useState } from 'react'
+import { useDetection } from '../../meter/hooks/useDetection'
 
 const CableOverlay = () => {
   const [pathD, setPathD] = useState<string>('')

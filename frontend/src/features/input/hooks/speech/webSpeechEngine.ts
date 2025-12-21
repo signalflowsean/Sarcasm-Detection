@@ -64,11 +64,13 @@ function getSpeechRecognition(): SpeechRecognitionType | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
+type RecognitionState = 'idle' | 'starting' | 'listening' | 'ending' | 'restarting'
+
 export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
   let recognition: InstanceType<SpeechRecognitionType> | null = null
   let listening = false
   let shouldRestart = false
-  let isStarting = false // Flag to prevent concurrent start attempts
+  let state: RecognitionState = 'idle' // State machine to prevent race conditions
 
   return {
     name: 'Web Speech API',
@@ -83,12 +85,13 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
         throw new Error('Web Speech API not supported')
       }
 
-      if (recognition || isStarting) {
-        log('Already running or starting, ignoring start()')
+      // Prevent concurrent start attempts or starting while already active
+      if (state !== 'idle') {
+        log('Already running or starting, ignoring start()', { state })
         return
       }
 
-      isStarting = true
+      state = 'starting'
       log('Starting...')
       callbacks.onStatusChange('loading')
 
@@ -101,7 +104,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
       recognition.onstart = () => {
         log('Started listening')
         listening = true
-        isStarting = false
+        state = 'listening'
         callbacks.onStatusChange('listening')
       }
 
@@ -130,7 +133,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        logError('Error:', event.error, event.message)
+        logError('Error:', event.error, event.message, 'state:', state)
 
         // Handle specific errors
         switch (event.error) {
@@ -138,62 +141,90 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             callbacks.onError('Microphone access denied. Please allow microphone access.')
             callbacks.onStatusChange('error')
             shouldRestart = false
+            // Reset state - this is a fatal error
+            if (recognition) {
+              recognition = null
+              state = 'idle'
+            }
             break
           case 'no-speech':
             // This is normal - just means no speech detected, don't show error
+            // State will be handled by onend handler
             log('No speech detected')
             break
           case 'network':
             callbacks.onError('Network error. Web Speech API requires internet.')
             callbacks.onStatusChange('error')
+            // State will be handled by onend handler (may auto-restart)
             break
           case 'aborted':
             // User or code stopped it, not an error
+            // State will be handled by onend handler
             break
           case 'audio-capture':
             callbacks.onError('Audio capture failed. Your device may not support audio input.')
             callbacks.onStatusChange('error')
+            // State will be handled by onend handler
             break
           default:
             callbacks.onError(`Speech recognition error: ${event.error}`)
             callbacks.onStatusChange('error')
+          // State will be handled by onend handler
         }
       }
 
       recognition.onend = () => {
-        log('Ended, shouldRestart:', shouldRestart)
+        log('Ended, shouldRestart:', shouldRestart, 'state:', state)
         listening = false
-        isStarting = false
 
-        // Capture the current recognition instance to avoid race conditions
-        // if start() is called while this handler is executing
+        // Capture the current recognition instance and state atomically
+        // to avoid race conditions if start() is called while this handler is executing
         const currentRecognition = recognition
+        const wasListening = state === 'listening' || state === 'restarting'
+
+        // Transition to ending state to prevent concurrent operations
+        state = 'ending'
 
         // Auto-restart if we didn't intentionally stop
         // Web Speech API tends to stop after silence
-        if (shouldRestart && currentRecognition) {
-          log('Auto-restarting...')
-          try {
-            // Only restart if this is still the current recognition instance
-            // (prevents race condition if start() was called during handler execution)
-            if (recognition === currentRecognition) {
+        if (shouldRestart && currentRecognition && wasListening) {
+          // Double-check that this is still the current instance and we're still in ending state
+          // (prevents race condition if start() or stop() was called during handler execution)
+          if (recognition === currentRecognition && state === 'ending') {
+            state = 'restarting'
+            log('Auto-restarting...')
+            try {
               currentRecognition.start()
-            }
-          } catch (e) {
-            logError('Failed to restart:', e)
-            // Notify consumers that restart failed
-            const errorMessage =
-              e instanceof Error ? e.message : 'Failed to restart speech recognition'
-            callbacks.onError(`Failed to restart speech recognition: ${errorMessage}`)
-            callbacks.onStatusChange('error')
-            // Disable auto-restart to prevent infinite retry loops
-            shouldRestart = false
-            // Null recognition to allow recovery: start() will create a new instance when recognition is null.
-            // This enables recovery from transient errors (consumer can call start() again).
-            // Only null if this is still the current instance (prevents race condition)
-            if (recognition === currentRecognition) {
+              // Note: state will transition to 'listening' when onstart fires
+            } catch (e) {
+              logError('Failed to restart:', e)
+              // Notify consumers that restart failed
+              const errorMessage =
+                e instanceof Error ? e.message : 'Failed to restart speech recognition'
+              callbacks.onError(`Failed to restart speech recognition: ${errorMessage}`)
+              callbacks.onStatusChange('error')
+              // Disable auto-restart to prevent infinite retry loops
+              shouldRestart = false
+              // Reset to idle state to allow recovery
               recognition = null
+              state = 'idle'
             }
+          } else {
+            // Race condition detected: recognition instance changed or state changed
+            log('Restart skipped due to state change', {
+              recognitionChanged: recognition !== currentRecognition,
+              state,
+            })
+            // If recognition changed, we're already in a new session, so just reset state
+            if (recognition !== currentRecognition) {
+              state = 'idle'
+            }
+          }
+        } else {
+          // No restart needed, transition to idle
+          if (recognition === currentRecognition) {
+            recognition = null
+            state = 'idle'
           }
         }
       }
@@ -202,17 +233,19 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
     },
 
     stop(): void {
-      log('Stopping...')
+      log('Stopping...', { state })
       shouldRestart = false
-      isStarting = false
-      if (recognition) {
+      const currentRecognition = recognition
+      if (currentRecognition) {
         try {
-          recognition.stop()
+          currentRecognition.stop()
         } catch {
           // May already be stopped
         }
-        recognition = null
       }
+      // Reset state atomically
+      recognition = null
+      state = 'idle'
       listening = false
       callbacks.onStatusChange('idle')
     },

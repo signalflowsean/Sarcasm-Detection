@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MEDIA_QUERIES } from '../../breakpoints'
-import { useWhichInput } from '../meter/useWhichInput'
+import { useWhichInput } from '../meter/hooks/useWhichInput'
 import AudioRecorder from './AudioRecorder'
 import GettingStarted from './GettingStarted'
 import TextInput from './TextInput'

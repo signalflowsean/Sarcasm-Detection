@@ -47,6 +47,7 @@ export function useSpeechRecognition({
 }: UseSpeechRecognitionOptions) {
   const engineRef = useRef<SpeechEngine | null>(null)
   const isMountedRef = useRef(true)
+  const isStartingRef = useRef(false) // Guard against concurrent start attempts
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle')
   const [activeEngine, setActiveEngine] = useState<string | null>(null)
 
@@ -55,6 +56,7 @@ export function useSpeechRecognition({
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
+      isStartingRef.current = false
       engineRef.current?.stop()
       engineRef.current = null
     }
@@ -84,99 +86,132 @@ export function useSpeechRecognition({
   )
 
   const startSpeechRecognition = useCallback(async () => {
-    if (engineRef.current) {
-      log('Already running')
+    // Prevent concurrent start attempts - guard against rapid clicks or retries
+    if (engineRef.current || isStartingRef.current) {
+      log('Already running or starting, ignoring concurrent start attempt')
       return
     }
 
-    const callbacks = createCallbacks()
+    // Mark that we're starting to prevent concurrent attempts
+    isStartingRef.current = true
 
-    // Track errors from both engines for better error reporting
-    let moonshineError: string | null = null
+    try {
+      const callbacks = createCallbacks()
 
-    // Try MoonshineJS first
-    const moonshine = createMoonshineEngine(callbacks)
-    if (moonshine.isSupported()) {
-      log('Trying MoonshineJS...')
-      try {
-        engineRef.current = moonshine
-        setActiveEngine(moonshine.name)
-        await moonshine.start()
-        log('MoonshineJS started successfully')
-        return
-      } catch (err) {
-        log('MoonshineJS failed:', err)
-        moonshineError = err instanceof Error ? err.message : 'Unknown error'
-        // Clean up any partially initialized resources
+      // Track errors from both engines for better error reporting
+      let moonshineError: string | null = null
+
+      // Try MoonshineJS first
+      const moonshine = createMoonshineEngine(callbacks)
+      if (moonshine.isSupported()) {
+        log('Trying MoonshineJS...')
         try {
-          moonshine.stop()
-        } catch (stopErr) {
-          log('Error cleaning up MoonshineJS:', stopErr)
+          engineRef.current = moonshine
+          setActiveEngine(moonshine.name)
+          await moonshine.start()
+          log('MoonshineJS started successfully')
+          isStartingRef.current = false // Success - clear starting flag
+          return
+        } catch (err) {
+          // Check if stop() was called during start() - if so, don't fallback
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          const wasIntentionallyStopped = errorMessage.includes('was stopped during initialization')
+
+          if (wasIntentionallyStopped) {
+            log(
+              'MoonshineJS start was interrupted by stop() call - not falling back to Web Speech API'
+            )
+            // Clean up and return early - user explicitly stopped
+            try {
+              moonshine.stop()
+            } catch (stopErr) {
+              log('Error cleaning up MoonshineJS:', stopErr)
+            }
+            engineRef.current = null
+            setActiveEngine(null)
+            isStartingRef.current = false
+            return // Don't fall through to Web Speech API
+          }
+
+          log('MoonshineJS failed:', err)
+          moonshineError = errorMessage
+          // Clean up any partially initialized resources
+          try {
+            moonshine.stop()
+          } catch (stopErr) {
+            log('Error cleaning up MoonshineJS:', stopErr)
+          }
+          engineRef.current = null
+          setActiveEngine(null)
+          // Fall through to try Web Speech API only if it was a real failure
         }
-        engineRef.current = null
-        setActiveEngine(null)
-        // Fall through to try Web Speech API
+      } else {
+        log('MoonshineJS not supported (WebAssembly unavailable)')
+        moonshineError = 'MoonshineJS not supported (WebAssembly unavailable)'
       }
-    } else {
-      log('MoonshineJS not supported (WebAssembly unavailable)')
-      moonshineError = 'MoonshineJS not supported (WebAssembly unavailable)'
-    }
 
-    // Fallback to Web Speech API
-    const webSpeech = createWebSpeechEngine(callbacks)
-    if (webSpeech.isSupported()) {
-      log('Falling back to Web Speech API...')
-      try {
-        engineRef.current = webSpeech
-        setActiveEngine(webSpeech.name)
-        await webSpeech.start()
-        log('Web Speech API started successfully')
-        return
-      } catch (err) {
-        log('Web Speech API failed:', err)
+      // Fallback to Web Speech API
+      const webSpeech = createWebSpeechEngine(callbacks)
+      if (webSpeech.isSupported()) {
+        log('Falling back to Web Speech API...')
+        try {
+          engineRef.current = webSpeech
+          setActiveEngine(webSpeech.name)
+          await webSpeech.start()
+          log('Web Speech API started successfully')
+          isStartingRef.current = false // Success - clear starting flag
+          return
+        } catch (err) {
+          log('Web Speech API failed:', err)
+          engineRef.current = null
+          setActiveEngine(null)
+
+          // Both engines failed - provide user-friendly message with technical details in dev
+          const webSpeechError = err instanceof Error ? err.message : 'Unknown error'
+
+          if (import.meta.env.DEV) {
+            // In development, include technical details for debugging
+            const errorParts = ['Speech recognition unavailable.']
+            if (moonshineError) {
+              errorParts.push(`MoonshineJS: ${moonshineError}`)
+            }
+            errorParts.push(`Web Speech API: ${webSpeechError}`)
+            onError(errorParts.join(' '))
+          } else {
+            // In production, show user-friendly message only
+            onError('Speech recognition is unavailable. Please try again or use text input.')
+          }
+          setSpeechStatus('error')
+        }
+      } else {
+        log('Web Speech API not supported')
         engineRef.current = null
         setActiveEngine(null)
-
-        // Both engines failed - provide user-friendly message with technical details in dev
-        const webSpeechError = err instanceof Error ? err.message : 'Unknown error'
-
+        // Both engines unavailable - provide user-friendly message with technical details in dev
         if (import.meta.env.DEV) {
           // In development, include technical details for debugging
-          const errorParts = ['Speech recognition unavailable.']
+          const errorParts = ['Speech recognition is not available in this browser.']
           if (moonshineError) {
             errorParts.push(`MoonshineJS: ${moonshineError}`)
           }
-          errorParts.push(`Web Speech API: ${webSpeechError}`)
+          errorParts.push('Web Speech API: not supported')
           onError(errorParts.join(' '))
         } else {
           // In production, show user-friendly message only
-          onError('Speech recognition is unavailable. Please try again or use text input.')
+          onError('Speech recognition is not available in this browser. Please use text input.')
         }
         setSpeechStatus('error')
       }
-    } else {
-      log('Web Speech API not supported')
-      engineRef.current = null
-      setActiveEngine(null)
-      // Both engines unavailable - provide user-friendly message with technical details in dev
-      if (import.meta.env.DEV) {
-        // In development, include technical details for debugging
-        const errorParts = ['Speech recognition is not available in this browser.']
-        if (moonshineError) {
-          errorParts.push(`MoonshineJS: ${moonshineError}`)
-        }
-        errorParts.push('Web Speech API: not supported')
-        onError(errorParts.join(' '))
-      } else {
-        // In production, show user-friendly message only
-        onError('Speech recognition is not available in this browser. Please use text input.')
-      }
-      setSpeechStatus('error')
+    } finally {
+      // Always clear the starting flag, even if an error occurred
+      // This allows retry attempts after failures
+      isStartingRef.current = false
     }
   }, [createCallbacks, onError])
 
   const stopSpeechRecognition = useCallback(() => {
     log('Stopping', activeEngine)
+    isStartingRef.current = false // Clear starting flag if stopping
     engineRef.current?.stop()
     engineRef.current = null
     setActiveEngine(null)

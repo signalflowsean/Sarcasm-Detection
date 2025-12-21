@@ -115,6 +115,31 @@
     /* Cable jack dimensions */
     --cable-jack-width: 22px;
 
+    /* Z-index layering system
+     * Use these variables to ensure consistent layering across the app
+     * Lower values = behind, higher values = in front
+     * 
+     * Hierarchy:
+     * - Base content (0)
+     * - Elevated elements (1-10)
+     * - Sticky/fixed UI (20-50)
+     * - Dropdowns/popovers (100-200)
+     * - Modals (300-400)
+     * - Toasts/notifications (500)
+     * - Critical overlays (1000+)
+     */
+    --z-base: 0;
+    --z-elevated: 1;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-fixed: 50;
+    --z-popover: 100;
+    --z-modal-backdrop: 200;
+    --z-modal: 300;
+    --z-tooltip: 400;
+    --z-toast: 500;
+    --z-overlay: 1000;
+
     color-scheme: light dark;
   }
 
@@ -662,7 +687,7 @@
   .audio-recorder__modal {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: var(--z-modal);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -2383,8 +2408,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   top: -9px;
   left: 50%;
   transform: translateX(-50%);
-  width: 21px;
-  height: 21px;
+  width: var(--cable-jack-width);
+  height: var(--cable-jack-width);
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #777, #3a3a3a 60%, #1f1f1f 100%);
   box-shadow:
@@ -2752,6 +2777,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-cable {
     display: block;
     position: absolute;
+    /* Position cable at center of jack (jack width / 2) with 2px offset for visual alignment */
+    /* Calculation: 0.75rem (padding) + 22px/2 (half jack width) - 2px (visual offset) = 0.75rem + 9px */
     bottom: calc(0.75rem + var(--cable-jack-width) / 2 - 2px);
     right: calc(100% - (0.75rem + var(--cable-jack-width) / 2));
     width: 120vw;
@@ -2991,12 +3018,14 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   /* Speech status overlay on mobile - doesn't reserve space to save room */
+  /* Uses popover z-index - appears above base content but below modals */
+  /* Note: Speech status should be hidden when modals are open (handled by component logic) */
   .speech-status--container {
     position: fixed;
     bottom: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000;
+    z-index: var(--z-popover);
     min-height: 0;
     width: calc(100% - 2rem);
     max-width: 600px;
@@ -3041,7 +3070,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   position: fixed;
   inset: 0;
   background: transparent;
-  z-index: 10000;
+  /* Highest z-index - must appear above everything including modals */
+  z-index: var(--z-overlay);
   pointer-events: none; /* Allow interaction with knob underneath */
   animation: fadeIn 0.4s ease-in;
   overflow: visible;

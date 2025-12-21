@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useSpeechRecognition } from './useSpeechRecognition'
+import { useSpeechRecognition } from './index'
 
 // Mock MoonshineJS
 vi.mock('@moonshine-ai/moonshine-js', () => {

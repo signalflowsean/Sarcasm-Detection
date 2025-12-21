@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useDetection } from '../meter/useDetection'
+import { useDetection } from '../meter/hooks/useDetection'
 import { sendLexicalText, sendProsodicAudio } from './apiService'
 import RecorderContent from './components/RecorderContent'
 import SpeechStatus from './components/SpeechStatus'
+import { useSpeechRecognition } from './hooks/speech'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
-import { useSpeechRecognition } from './hooks/useSpeechRecognition'
 import { useWaveform } from './hooks/useWaveform'
 import { formatDuration } from './utils'
 

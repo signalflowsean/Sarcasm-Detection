@@ -1,10 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import MeterSection from './features/meter'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import InputContainer from './features/input/InputContainer'
 import CableOverlay from './features/input/components/CableOverlay'
+import MeterSection from './features/meter'
 import { RouteSync } from './features/meter/RouteSync'
-import { DetectionProvider } from './features/meter/DetectionProvider'
 import FirstTimeOverlay from './features/meter/components/FirstTimeOverlay'
+import { DetectionProvider } from './features/meter/context/DetectionProvider'
 
 const App = () => {
   return (

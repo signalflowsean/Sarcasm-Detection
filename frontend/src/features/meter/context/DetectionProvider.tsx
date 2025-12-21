@@ -1,12 +1,12 @@
 import { sendLexicalText, sendProsodicAudio } from '@/features/input/apiService'
 import React, { createContext, useEffect, useRef, useState } from 'react'
-import type { DetectionStateType } from './meterConstants'
+import { useWhichInput } from '../hooks/useWhichInput'
+import type { DetectionStateType } from '../utils/meterConstants'
 import {
   DetectionState,
   NEEDLE_RETURN_DURATION_MS,
   RESULT_HOLD_DURATION_MS,
-} from './meterConstants'
-import { useWhichInput } from './useWhichInput'
+} from '../utils/meterConstants'
 
 export type DetectionValues = {
   lexical: number

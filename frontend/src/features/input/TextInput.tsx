@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import SharedTextArea from './components/SharedTextArea'
+import { useDetection } from '../meter/hooks/useDetection'
 import { sendLexicalText } from './apiService'
+import SharedTextArea from './components/SharedTextArea'
 import { isMacPlatform } from './utils'
-import { useDetection } from '../meter/useDetection'
 
 type TextInputProps = {
   onClose?: () => void

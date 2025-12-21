@@ -1,6 +1,6 @@
 import { MEDIA_QUERIES } from '../../../breakpoints'
 import { useMediaQuery } from '../hooks'
-import type { SpeechStatus as SpeechStatusType } from '../hooks/useSpeechRecognition'
+import type { SpeechStatus as SpeechStatusType } from '../hooks/speech'
 
 type Props = {
   status: SpeechStatusType

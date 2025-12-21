@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MEDIA_QUERIES } from '../../breakpoints'
 import { useMediaQuery } from '../input/hooks'
-import { PATH_TO_VALUE, VALUE_TO_PATH } from './constants'
-import { useWhichInput } from './useWhichInput'
+import { useWhichInput } from './hooks/useWhichInput'
+import { PATH_TO_VALUE, VALUE_TO_PATH } from './utils/constants'
 
 /**
  * Component that syncs the rotary switch position with the URL route
@@ -17,34 +17,37 @@ export function RouteSync() {
   const { value, setValue } = useWhichInput()
   const isInitialMount = useRef(true)
   const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
-  const hasRedirectedToRoot = useRef(false)
   // Track the last values to detect actual changes
   const lastPathRef = useRef(location.pathname)
   const lastValueRef = useRef(value)
+  // Track if we're currently redirecting to prevent infinite loops
+  const isRedirectingRef = useRef(false)
 
   // On mobile/tablet, skip route sync - single page experience
   // Redirect any route (including /getting-started) back to root
   useEffect(() => {
     if (!isTabletOrMobile) {
-      hasRedirectedToRoot.current = false
+      isRedirectingRef.current = false
       return
     }
-    // On mobile/tablet, always redirect to root (routing is disabled)
+
+    // On mobile/tablet, always redirect non-root paths to root (routing is disabled)
     if (location.pathname !== '/') {
-      // Prevent redirecting the same pathname multiple times (e.g., if effect runs
-      // multiple times before navigation completes). Once we redirect, the next
-      // effect run will see '/' and won't redirect again, naturally breaking the loop.
-      if (hasRedirectedToRoot.current && lastPathRef.current === location.pathname) {
-        // Already redirected this exact pathname, skip to prevent duplicate redirects
+      // Prevent infinite redirect loops: if we're already redirecting, skip
+      // This handles the case where the effect runs multiple times before navigation completes.
+      // The flag is reset when we successfully reach '/' (see else block below).
+      if (isRedirectingRef.current) {
         return
       }
-      // Track that we're redirecting this pathname
-      hasRedirectedToRoot.current = true
-      lastPathRef.current = location.pathname
+
+      // Mark that we're redirecting and perform the redirect
+      // Using replace: true ensures we don't create history entries
+      isRedirectingRef.current = true
       navigate('/', { replace: true })
     } else {
-      // We're on root, reset the flag so future non-root navigations can be redirected
-      hasRedirectedToRoot.current = false
+      // We're on root - reset the redirecting flag
+      // This allows future redirects if user navigates back via browser history
+      isRedirectingRef.current = false
     }
   }, [isTabletOrMobile, location.pathname, navigate])
 

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
-import { useDetection } from '../../meter/useDetection'
+import { useDetection } from '../../meter/hooks/useDetection'
 import { sendLexicalText, sendProsodicAudio } from '../apiService'
+import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useWaveform } from '../hooks/useWaveform'
 import { formatDuration, isMacPlatform } from '../utils'
+import DiscardButton from './DiscardButton'
 import MicButton from './MicButton'
+import PlayButton from './PlayButton'
 import SharedTextArea from './SharedTextArea'
 import SpeechStatus from './SpeechStatus'
 import Waveform from './Waveform'
@@ -40,9 +42,27 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Create a stable ref for isRecording that speech recognition needs
   const isRecordingRef = useRef<boolean>(false)
 
-  // Refs for handlers that need to reference recorder (for circular dependency)
-  const updateTranscriptRef = useRef<(update: { interim: string; final: string }) => void>(() => {})
-  const setErrorRef = useRef<(error: string | null) => void>(() => {})
+  /**
+   * Refs for handlers that break circular dependency between hooks:
+   *
+   * CIRCULAR DEPENDENCY PROBLEM:
+   * - useSpeechRecognition needs updateTranscript/setError from useAudioRecorder
+   * - useAudioRecorder needs startSpeechRecognition/stopSpeechRecognition from useSpeechRecognition
+   *
+   * SOLUTION:
+   * - Speech recognition callbacks use refs that are populated after recorder is created
+   * - This allows both hooks to be initialized without direct circular references
+   *
+   * IMPORTANT: updateTranscript and setError from useAudioRecorder are wrapped in
+   * useCallback with empty deps, so they have stable identities. If this changes,
+   * the refs will be updated via the useEffect below.
+   */
+  const updateTranscriptRef = useRef<(update: { interim: string; final: string }) => void>(() => {
+    // No-op fallback - will be replaced immediately after recorder is created
+  })
+  const setErrorRef = useRef<(error: string | null) => void>(() => {
+    // No-op fallback - will be replaced immediately after recorder is created
+  })
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Speech recognition hook
@@ -119,6 +139,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   } = recorder
 
   // Wire up the refs for circular dependency resolution
+  // Initialize synchronously to avoid race condition window, then keep in sync via useEffect
+  updateTranscriptRef.current = updateTranscript
+  setErrorRef.current = setError
+
+  // Keep refs in sync if functions change identity (shouldn't happen due to useCallback, but defensive)
   useEffect(() => {
     updateTranscriptRef.current = updateTranscript
     setErrorRef.current = setError
@@ -453,65 +478,27 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         </div>
 
         {/* Play button */}
-        <button
-          type="button"
-          className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
+        <PlayButton
           onClick={togglePlay}
           disabled={!canPlay}
+          isPlaying={playback.isPlaying}
+          canPlay={canPlay}
+          className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
+          shortcutClassName="mobile-input-controls__btn-shortcut"
+          testId="mobile-play-button"
           aria-label={playback.isPlaying ? 'Pause' : 'Play'}
-          data-testid="mobile-play-button"
-        >
-          {playback.isPlaying ? (
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          )}
-          {canPlay && (
-            <kbd
-              className="mobile-input-controls__btn-shortcut"
-              aria-label="Keyboard shortcut: Space"
-            >
-              Space
-            </kbd>
-          )}
-        </button>
+          showLabel={false}
+        />
 
         {/* Trash button */}
-        <button
-          type="button"
-          className={`mobile-input-controls__trash ${canDiscard ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
+        <DiscardButton
           onClick={discardRecording}
           disabled={!canDiscard}
-          aria-label="Discard recording"
-          data-testid="mobile-trash-button"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            width="20"
-            height="20"
-            aria-hidden="true"
-          >
-            <path d="M3 6h18" />
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-          </svg>
-          {canDiscard && (
-            <kbd
-              className="mobile-input-controls__btn-shortcut"
-              aria-label="Keyboard shortcut: Delete"
-            >
-              Del
-            </kbd>
-          )}
-        </button>
+          canDiscard={canDiscard}
+          className={`mobile-input-controls__trash ${canDiscard ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
+          shortcutClassName="mobile-input-controls__btn-shortcut"
+          testId="mobile-trash-button"
+        />
       </div>
 
       {/* Send button */}

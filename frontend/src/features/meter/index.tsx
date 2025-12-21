@@ -7,6 +7,9 @@ import { useMediaQuery } from '../input/hooks'
 import DetectionModeSwitch, { type DetectionMode } from './components/DetectionModeSwitch'
 import LevelIndicators from './components/LevelIndicators'
 import RotarySwitch from './components/RotarySwitch'
+import { useDetection } from './hooks/useDetection'
+import { useWhichInput } from './hooks/useWhichInput'
+import type { Tick } from './types'
 import {
   DetectionState,
   LEVEL_INDICATOR_ANIM_DURATION_MS,
@@ -16,11 +19,8 @@ import {
   NEEDLE_RANGE_DEG,
   NEEDLE_RETURN_DURATION_MS,
   POWER_ON_STUTTER_DURATION_MS,
-} from './meterConstants'
-import type { Tick } from './types'
-import { useDetection } from './useDetection'
-import { useWhichInput } from './useWhichInput'
-import { TICKS } from './utils'
+} from './utils/meterConstants'
+import { TICKS } from './utils/utils'
 
 type PowerState = 'off' | 'on'
 type InputMode = 'text' | 'audio' | 'off'

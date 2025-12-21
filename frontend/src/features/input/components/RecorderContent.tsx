@@ -1,4 +1,4 @@
-import type { SpeechStatus } from '../hooks/useSpeechRecognition'
+import type { SpeechStatus } from '../hooks/speech'
 import Controls from './Controls'
 import MicButton from './MicButton'
 import SharedTextArea from './SharedTextArea'

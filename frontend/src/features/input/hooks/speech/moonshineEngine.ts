@@ -35,6 +35,7 @@ function logError(...args: unknown[]) {
 export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
   let transcriber: Moonshine.MicrophoneTranscriber | null = null
   let listening = false
+  let wasStopped = false // Track if stop() was called during start()
 
   const getModelPath = (): string => {
     // In dev mode, check for model override
@@ -60,6 +61,9 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
         log('Already running, ignoring start()')
         return
       }
+
+      // Reset stop flag at start of each attempt
+      wasStopped = false
 
       const modelPath = getModelPath()
       log('Starting with model:', modelPath)
@@ -100,6 +104,15 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       )
 
       await transcriber.start()
+
+      // Check if stop() was called while awaiting transcriber.start()
+      // If so, don't access transcriber properties and throw a specific error
+      // to prevent fallback to Web Speech API
+      if (wasStopped || !transcriber) {
+        log('Start was interrupted by stop() call')
+        throw new Error('Speech recognition was stopped during initialization')
+      }
+
       log('Started, isListening:', transcriber.isListening())
 
       if (transcriber.isListening()) {
@@ -109,6 +122,9 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
     stop(): void {
       log('Stopping...')
+      // Mark that stop was called - this prevents accessing transcriber
+      // if stop() is called while start() is awaiting transcriber.start()
+      wasStopped = true
       if (transcriber) {
         try {
           transcriber.stop()
