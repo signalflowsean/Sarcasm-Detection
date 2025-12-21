@@ -240,10 +240,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     resetWaveform()
   }, [stopRecording, audioUrl, resetWaveform])
 
-  // Clear audio state when switching detection modes
+  // Clear audio state when switching to lexical mode
   useEffect(() => {
-    // If switching away from prosodic mode, clear all audio-related state
-    if (isLexical && (audioBlob || audioUrl || isRecording)) {
+    // If switching to lexical mode, always clear all audio-related state
+    // This prevents audio from being stuck in an inaccessible state
+    if (isLexical) {
       // Stop any active recording
       if (isRecording) {
         stopRecording()
@@ -256,7 +257,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         el.currentTime = 0
       }
 
-      // Clean up audio URL
+      // Clean up audio URL if it exists
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl)
       }
@@ -272,7 +273,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       setIsPlaying(false)
       resetWaveform()
     }
-  }, [detectionMode, isLexical, audioBlob, audioUrl, isRecording, stopRecording, resetWaveform])
+  }, [detectionMode, isLexical, isRecording, audioUrl, stopRecording, resetWaveform])
 
   // Playback functions
   const togglePlay = useCallback(() => {

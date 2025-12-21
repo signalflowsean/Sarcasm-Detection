@@ -9,8 +9,8 @@ import { useMediaQuery } from './hooks'
 
 const InputContainer = () => {
   const { value } = useWhichInput()
-  // isTablet matches tablet and mobile (< 1440px)
-  const isTablet = useMediaQuery(MEDIA_QUERIES.isTablet)
+  // isMobileOrTablet matches tablet and mobile (< 1440px)
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
   const [displayValue, setDisplayValue] = useState(value)
   const isInitialMount = useRef(true)
 
@@ -23,7 +23,7 @@ const InputContainer = () => {
     }
 
     // Use View Transitions API if available (desktop only)
-    if (isTablet) {
+    if (isMobileOrTablet) {
       // Mobile/tablet: simple state update without transition
       setDisplayValue(value)
     } else {
@@ -41,7 +41,7 @@ const InputContainer = () => {
         setDisplayValue(value)
       }
     }
-  }, [value, isTablet])
+  }, [value, isMobileOrTablet])
 
   const content = (() => {
     if (displayValue === 'off') return <GettingStarted />
@@ -51,7 +51,7 @@ const InputContainer = () => {
 
   // On mobile/tablet, input controls are now in the meter (MobileInputControls)
   // Only render ModelSelector for dev override functionality
-  if (isTablet) {
+  if (isMobileOrTablet) {
     return (
       <section
         className="input-container input-container--mobile-hidden"

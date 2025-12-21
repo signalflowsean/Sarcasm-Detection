@@ -2479,7 +2479,7 @@ body:has(.audio-recorder__modal) .detector-jack {
    FILES THAT USE BREAKPOINTS:
      - frontend/src/breakpoints.ts                      - Constants & media query strings
      - frontend/src/index.css                           - CSS media queries (this file)
-     - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isTablet
+     - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isMobileOrTablet
 
    ============================================================================ */
 

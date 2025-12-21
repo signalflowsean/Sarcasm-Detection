@@ -16,8 +16,11 @@ export function RouteSync() {
   const navigate = useNavigate()
   const { value, setValue } = useWhichInput()
   const isInitialMount = useRef(true)
-  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isTablet)
+  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
   const hasRedirectedToRoot = useRef(false)
+  // Track the last values to detect actual changes
+  const lastPathRef = useRef(location.pathname)
+  const lastValueRef = useRef(value)
 
   // On mobile/tablet, skip route sync - single page experience
   // Redirect any route (including /getting-started) back to root
@@ -41,10 +44,6 @@ export function RouteSync() {
       hasRedirectedToRoot.current = false
     }
   }, [isTabletOrMobile, location.pathname, navigate])
-
-  // Track the last values to detect actual changes
-  const lastPathRef = useRef(location.pathname)
-  const lastValueRef = useRef(value)
 
   // Sync route -> rotary switch (when user navigates via URL/back button)
   // Skip on mobile/tablet

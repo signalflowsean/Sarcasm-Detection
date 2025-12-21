@@ -8,7 +8,7 @@
  * ⚠️  IMPORTANT: If you change values here, you MUST also update:
  *     1. frontend/src/index.css - Media queries at:
  *        - Line ~2490: @media (min-width: ${TABLET_BREAKPOINT}px)  [Desktop styles]
- *        - Line ~2566: @media (max-width: ${TABLET_BREAKPOINT - 1}px)  [Tablet/Mobile styles]
+ *        - Line ~2566: @media (max-width: ${TABLET_BREAKPOINT - 1}px)  [Mobile/Tablet styles]
  *        - Line ~3049: @media (max-width: ${MOBILE_BREAKPOINT - 1}px)  [Mobile-only styles]
  *
  * Why can't CSS use these values directly?
@@ -25,9 +25,9 @@
  *   - Used in: index.css (CSS media query)
  *
  * TABLET_BREAKPOINT (1440px):
- *   - Separates tablet from desktop
+ *   - Separates mobile/tablet from desktop
  *   - Desktop: min-width: 1440px (side-by-side layout)
- *   - Tablet:  max-width: 1439px (meter-focused layout)
+ *   - Mobile/Tablet: max-width: 1439px (meter-focused layout)
  *   - Used in: InputContainer.tsx (JS), index.css (CSS media queries)
  *
  * ============================================================================
@@ -45,7 +45,7 @@ export const MEDIA_QUERIES = {
   isMobile: `(max-width: ${MOBILE_BREAKPOINT - 1}px)`,
 
   /** Matches non-desktop layout (tablet + mobile, 0px to 1439px) */
-  isTablet: `(max-width: ${TABLET_BREAKPOINT - 1}px)`,
+  isMobileOrTablet: `(max-width: ${TABLET_BREAKPOINT - 1}px)`,
 
   /** Matches desktop layout (at or above 1440px) */
   isDesktop: `(min-width: ${TABLET_BREAKPOINT}px)`,

@@ -102,6 +102,12 @@ export function useSpeechRecognition({
         return
       } catch (err) {
         log('MoonshineJS failed:', err)
+        // Clean up any partially initialized resources
+        try {
+          moonshine.stop()
+        } catch (stopErr) {
+          log('Error cleaning up MoonshineJS:', stopErr)
+        }
         engineRef.current = null
         setActiveEngine(null)
         // Fall through to try Web Speech API

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MEDIA_QUERIES } from '../../../breakpoints'
 import { useMediaQuery } from '../../input/hooks'
 
@@ -8,7 +8,7 @@ const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [textPosition, setTextPosition] = useState({ left: '50%', top: '45%' })
   const overlayRef = useRef<HTMLDivElement>(null)
-  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isTablet)
+  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
 
   useEffect(() => {
     const hasVisited = localStorage.getItem(STORAGE_KEY)
@@ -22,11 +22,9 @@ const FirstTimeOverlay = () => {
       setShowOverlay(true)
 
       const tryPositionOverlay = () => {
-        // On mobile/tablet, position relative to the detection switch or textarea
+        // On mobile/tablet, position relative to the detection switch
         // On desktop, position relative to the rotary knob
-        const targetSelector = isTabletOrMobile
-          ? '.mobile-input-controls__textarea'
-          : '.rotary__knob'
+        const targetSelector = isTabletOrMobile ? '.detection-switch' : '.rotary__knob'
         const target = document.querySelector(targetSelector) as HTMLElement
         const elapsedTime = Date.now() - startTime
 

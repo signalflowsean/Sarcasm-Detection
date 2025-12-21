@@ -38,7 +38,7 @@ const MeterSection = () => {
   } = useDetection()
 
   // Check if we're on mobile/tablet
-  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isTablet)
+  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
 
   // Detection mode for mobile/tablet (lexical = text, prosodic = audio)
   const [detectionMode, setDetectionMode] = useState<DetectionMode>('lexical')
