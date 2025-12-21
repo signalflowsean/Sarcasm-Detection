@@ -372,6 +372,10 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       // R - toggle recording (only in prosodic mode)
       if (e.code === 'KeyR' && isProsodic && !playback.isPlaying && !isSending) {
+        // Ignore if any modifier keys are pressed (e.g., Cmd+R or Ctrl+R for refresh)
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
+          return
+        }
         e.preventDefault()
         onMicClick()
       }
