@@ -178,6 +178,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
     if (wasProsodic && isNowLexical) {
       // Stop any active recording
+      // Read state.isRecording directly to avoid stale closure issues
+      // stopRecording() also checks state.isRecording internally, but we check here
+      // to avoid unnecessary calls and ensure we have the latest state
       if (state.isRecording) {
         stopRecording()
       }
@@ -190,6 +193,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       }
 
       // Discard recording if there is one
+      // Read state values directly to avoid stale closure issues
       if (state.audioBlob || state.audioUrl) {
         discardRecording()
       }
@@ -197,13 +201,23 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
     // Update ref for next comparison
     prevIsLexicalRef.current = isLexical
-    // Only depend on isLexical. We intentionally exclude other dependencies:
-    // - stopRecording, discardRecording: Stable function references from useAudioRecorder
-    // - state: We read its current values at transition time, but don't need re-execution when they change
-    // - audioRef: Stable ref reference that doesn't change
-    // This effect should only run when isLexical changes (mode transitions), not when state/refs change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLexical])
+    // Include stopRecording and discardRecording in dependencies to ensure we use
+    // the latest function references. These functions depend on state.isRecording
+    // and state.audioUrl, so they may be recreated when state changes. Without
+    // including them, the effect could capture stale closures that have outdated
+    // state values, causing stopRecording() to early-return silently.
+    // We also include state.isRecording, state.audioBlob, and state.audioUrl to
+    // ensure we read the latest values when the effect runs.
+    // audioRef is included to satisfy the linter, but it's a stable ref that won't change.
+  }, [
+    isLexical,
+    stopRecording,
+    discardRecording,
+    state.isRecording,
+    state.audioBlob,
+    state.audioUrl,
+    audioRef,
+  ])
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Derived state (mode-aware)
