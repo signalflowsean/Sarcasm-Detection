@@ -56,6 +56,8 @@ npm run install:frontend # Frontend npm packages
 npm run install:e2e      # E2E test dependencies
 ```
 
+> **Note:** Git hooks are automatically configured during installation via the `prepare` script. This sets up Husky to run `lint-staged` on pre-commit, which will automatically lint and format your staged files before committing. No manual setup required!
+
 ### Development (Recommended)
 
 Start both servers with hot reload:
@@ -327,6 +329,23 @@ pip install -r requirements-dev.txt
 ruff check .              # Lint
 ruff check . --fix        # Auto-fix
 ruff format .             # Format
+```
+
+### Git Hooks (Pre-commit)
+
+The project uses [Husky](https://typicode.github.io/husky/) to automatically run linting and formatting on staged files before each commit. This is configured automatically when you run `npm install` (via the `prepare` script).
+
+**What happens on commit:**
+- Staged `.ts` and `.tsx` files are automatically linted with ESLint (auto-fix) and formatted with Prettier
+- Staged `.css` and `.json` files are automatically formatted with Prettier
+- If linting/formatting fails, the commit is blocked until issues are resolved
+
+**No manual setup required** — Git hooks are configured automatically during installation. If you need to manually reinstall hooks (e.g., after cloning), run:
+
+```bash
+npm install  # From project root (runs prepare script automatically)
+# or
+cd frontend && npm install  # From frontend directory
 ```
 
 ### Mobile Testing

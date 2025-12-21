@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Run lint-staged from the frontend directory where it's configured
+# lint-staged will automatically find staged files via git, regardless of cwd
+cd frontend && npx lint-staged
