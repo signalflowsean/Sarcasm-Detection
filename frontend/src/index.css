@@ -2823,6 +2823,7 @@ body:has(.audio-recorder__modal) .detector-jack {
 
   .mobile-input-controls__play,
   .mobile-input-controls__trash {
+    position: relative; /* For shortcut indicator positioning */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2856,6 +2857,26 @@ body:has(.audio-recorder__modal) .detector-jack {
 
   .mobile-input-controls__trash:hover:not(:disabled) {
     border-color: rgba(220, 53, 69, 0.5);
+  }
+
+  /* Shortcut indicator for play/trash buttons */
+  .mobile-input-controls__btn-shortcut {
+    position: absolute;
+    bottom: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 0.55rem;
+    font-weight: 500;
+    padding: 0.1rem 0.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 0.2rem;
+    color: rgba(212, 175, 55, 0.8);
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   /* Send button - spans full width */
@@ -2925,6 +2946,11 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-input-controls[data-mode='lexical'] .mobile-input-controls__trash {
     opacity: 0.3;
     filter: grayscale(60%);
+  }
+
+  /* Flash animation for mic button in prosodic mode (needs higher specificity for mobile) */
+  .mobile-input-controls__record .audio-recorder__mic.should-flash {
+    animation: mic-pulse 1.6s ease-in-out infinite;
   }
 }
 

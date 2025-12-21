@@ -326,7 +326,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     }
   }, [onMicClick])
 
-  // Keyboard shortcut for send
+  // Keyboard shortcut for send (on the container)
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault()
@@ -338,13 +338,51 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
 
+  // Can play/discard logic (for shortcut indicators)
+  const canPlay = isProsodic && !!audioUrl && !isSending
+  const canDiscard = isProsodic && !!audioBlob && !isRecording && !isSending
+
+  // Global keyboard shortcuts for audio controls
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return
+      }
+
+      // Space - toggle play/pause
+      if (e.code === 'Space' && canPlay) {
+        e.preventDefault()
+        togglePlay()
+      }
+
+      // Delete/Backspace - discard recording
+      if ((e.code === 'Delete' || e.code === 'Backspace') && canDiscard) {
+        e.preventDefault()
+        discardRecording()
+      }
+
+      // R - toggle recording (only in prosodic mode)
+      if (e.code === 'KeyR' && isProsodic && !isPlaying && !isSending) {
+        e.preventDefault()
+        onMicClick()
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [canPlay, canDiscard, isProsodic, isPlaying, isSending, togglePlay, discardRecording, onMicClick])
+
   // Determine what to show in textarea
+  // In prosodic mode: show transcription (readonly)
+  // In lexical mode: editable text input
   const textareaValue = isProsodic
-    ? (transcript + ' ' + interimTranscript).trim() || text
+    ? (transcript + ' ' + interimTranscript).trim()
     : text
 
   const textareaPlaceholder = isProsodic
-    ? (speechStatus === 'loading' ? 'Loading speech model...' : 'Record audio or type text...')
+    ? (speechStatus === 'loading' ? 'Loading speech model...' : 'Transcription will appear here...')
     : 'Type something here and send it to the detector...'
 
   // Can send logic
@@ -360,6 +398,8 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       onKeyDown={onKeyDown}
     >
       {/* Textarea - full width */}
+      {/* In prosodic mode: readonly, shows transcription */}
+      {/* In lexical mode: editable text input */}
       <div className="mobile-input-controls__textarea">
         <SharedTextArea
           value={textareaValue}
@@ -370,9 +410,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             }
           }}
           placeholder={textareaPlaceholder}
-          disabled={isSending || (isProsodic && isRecording)}
+          disabled={isSending || isProsodic}
           rows={2}
-          aria-label={isProsodic ? 'Speech transcript or text input' : 'Text input'}
+          aria-label={isProsodic ? 'Speech transcription (read-only)' : 'Text input'}
           shouldFlash={isLexical && !hasEverTyped}
         />
       </div>
@@ -398,9 +438,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       <div className="mobile-input-controls__audio-controls">
         <button
           type="button"
-          className="mobile-input-controls__play"
+          className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
           onClick={togglePlay}
-          disabled={isLexical || !audioUrl || isSending}
+          disabled={!canPlay}
           aria-label={isPlaying ? 'Pause' : 'Play'}
           data-testid="mobile-play-button"
         >
@@ -414,12 +454,17 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
               <polygon points="5,3 19,12 5,21" />
             </svg>
           )}
+          {canPlay && (
+            <kbd className="mobile-input-controls__btn-shortcut" aria-label="Keyboard shortcut: Space">
+              Space
+            </kbd>
+          )}
         </button>
         <button
           type="button"
-          className="mobile-input-controls__trash"
+          className={`mobile-input-controls__trash ${canDiscard ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
           onClick={discardRecording}
-          disabled={isLexical || !audioBlob || isRecording || isSending}
+          disabled={!canDiscard}
           aria-label="Discard recording"
           data-testid="mobile-trash-button"
         >
@@ -428,6 +473,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
           </svg>
+          {canDiscard && (
+            <kbd className="mobile-input-controls__btn-shortcut" aria-label="Keyboard shortcut: Delete">
+              Del
+            </kbd>
+          )}
         </button>
       </div>
 
