@@ -336,6 +336,7 @@ ruff format .             # Format
 The project uses [Husky](https://typicode.github.io/husky/) to automatically run linting and formatting on staged files before each commit. This is configured automatically when you run `npm install` (via the `prepare` script).
 
 **What happens on commit:**
+
 - Staged `.ts` and `.tsx` files are automatically linted with ESLint (auto-fix) and formatted with Prettier
 - Staged `.css` and `.json` files are automatically formatted with Prettier
 - If linting/formatting fails, the commit is blocked until issues are resolved
