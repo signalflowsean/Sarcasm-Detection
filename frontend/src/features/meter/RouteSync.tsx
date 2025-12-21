@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MEDIA_QUERIES } from '../../breakpoints'
 import { useMediaQuery } from '../input/hooks'
+import { PATH_TO_VALUE, VALUE_TO_PATH } from './constants'
 import { useWhichInput } from './useWhichInput'
-import { VALUE_TO_PATH, PATH_TO_VALUE } from './constants'
 
 /**
  * Component that syncs the rotary switch position with the URL route
