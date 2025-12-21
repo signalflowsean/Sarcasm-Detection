@@ -248,9 +248,10 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         setText('')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
+        // Reset loading state on error
+        setLoading(false)
       } finally {
         setIsSending(false)
-        setLoading(false)
       }
     } else {
       // Prosodic mode
@@ -275,9 +276,10 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         setText('')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
+        // Reset loading state on error
+        setLoading(false)
       } finally {
         setIsSending(false)
-        setLoading(false)
       }
     }
   }, [

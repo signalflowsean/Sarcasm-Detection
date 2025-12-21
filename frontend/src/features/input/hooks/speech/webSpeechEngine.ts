@@ -142,6 +142,8 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             callbacks.onStatusChange('error')
             shouldRestart = false
             // Reset state - this is a fatal error
+            // Reset listening flag immediately since onend may not fire reliably
+            listening = false
             if (recognition) {
               recognition = null
               state = 'idle'
@@ -155,6 +157,8 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
           case 'network':
             callbacks.onError('Network error. Web Speech API requires internet.')
             callbacks.onStatusChange('error')
+            // Reset listening flag immediately since onend may not fire reliably for fatal errors
+            listening = false
             // Internal state machine state will be handled by onend handler (may auto-restart)
             break
           case 'aborted':
@@ -164,6 +168,8 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
           case 'audio-capture':
             callbacks.onError('Audio capture failed. Your device may not support audio input.')
             callbacks.onStatusChange('error')
+            // Reset listening flag immediately since onend may not fire reliably for fatal errors
+            listening = false
             // Internal state machine state will be handled by onend handler
             break
           default:
