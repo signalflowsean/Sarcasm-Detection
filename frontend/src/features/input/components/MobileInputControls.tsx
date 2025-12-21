@@ -177,47 +177,24 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     const isNowLexical = isLexical
 
     if (wasProsodic && isNowLexical) {
-      // Stop any active recording
-      // Read state.isRecording directly to avoid stale closure issues
-      // stopRecording() also checks state.isRecording internally, but we check here
-      // to avoid unnecessary calls and ensure we have the latest state
-      if (state.isRecording) {
-        stopRecording()
-      }
-
-      // Stop playback if playing
-      const el = audioRef.current
-      if (el) {
-        el.pause()
-        el.currentTime = 0
-      }
-
-      // Discard recording if there is one
-      // Read state values directly to avoid stale closure issues
-      if (state.audioBlob || state.audioUrl) {
-        discardRecording()
-      }
+      // discardRecording() handles stopping recording if active, stopping playback,
+      // and cleaning up blob/URL. Call it unconditionally to ensure cleanup happens
+      // even if blob/URL are created asynchronously after stopRecording() triggers
+      // MediaRecorder.stop().
+      discardRecording()
     }
 
     // Update ref for next comparison
     prevIsLexicalRef.current = isLexical
-    // Include stopRecording and discardRecording in dependencies to ensure we use
-    // the latest function references. These functions depend on state.isRecording
-    // and state.audioUrl, so they may be recreated when state changes. Without
-    // including them, the effect could capture stale closures that have outdated
-    // state values, causing stopRecording() to early-return silently.
-    // We also include state.isRecording, state.audioBlob, and state.audioUrl to
-    // ensure we read the latest values when the effect runs.
-    // audioRef is included to satisfy the linter, but it's a stable ref that won't change.
-  }, [
-    isLexical,
-    stopRecording,
-    discardRecording,
-    state.isRecording,
-    state.audioBlob,
-    state.audioUrl,
-    audioRef,
-  ])
+  }, [isLexical, discardRecording])
+
+  // Clean up blob/URL if they appear while in lexical mode (handles race condition
+  // where MediaRecorder.onstop fires asynchronously after mode switch)
+  useEffect(() => {
+    if (isLexical && (state.audioBlob || state.audioUrl)) {
+      discardRecording()
+    }
+  }, [isLexical, state.audioBlob, state.audioUrl, discardRecording])
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Derived state (mode-aware)

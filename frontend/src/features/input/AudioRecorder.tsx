@@ -105,6 +105,11 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   } = recorder
 
   // Wire up the refs for circular dependency resolution
+  // Initialize synchronously to avoid race condition window, then keep in sync via useEffect
+  updateTranscriptRef.current = updateTranscript
+  setErrorRef.current = setError
+
+  // Keep refs in sync if functions change identity (shouldn't happen due to useCallback, but defensive)
   useEffect(() => {
     updateTranscriptRef.current = updateTranscript
     setErrorRef.current = setError
