@@ -4,7 +4,7 @@ import GettingStarted from '../input/GettingStarted'
 import MobileInputControls from '../input/components/MobileInputControls'
 import MobileModal from '../input/components/MobileModal'
 import { useMediaQuery } from '../input/hooks'
-import DetectionModeSwitch from './components/DetectionModeSwitch'
+import DetectionModeSwitch, { type DetectionMode } from './components/DetectionModeSwitch'
 import LevelIndicators from './components/LevelIndicators'
 import RotarySwitch from './components/RotarySwitch'
 import {
@@ -24,7 +24,6 @@ import { TICKS } from './utils'
 
 type PowerState = 'off' | 'on'
 type InputMode = 'text' | 'audio' | 'off'
-type DetectionMode = 'lexical' | 'prosodic'
 
 const MeterSection = () => {
   const { value } = useWhichInput()

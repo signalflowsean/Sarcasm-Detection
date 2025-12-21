@@ -4,10 +4,13 @@ import { useDetection } from '../../meter/useDetection'
 import { sendLexicalText, sendProsodicAudio } from '../apiService'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useWaveform } from '../hooks/useWaveform'
-import { formatDuration, isMacPlatform } from '../utils'
+import { clamp01, formatDuration, isMacPlatform } from '../utils'
 import MicButton from './MicButton'
 import SharedTextArea from './SharedTextArea'
 import SpeechStatus from './SpeechStatus'
+import Waveform from './Waveform'
+
+const STORAGE_KEY = 'sarcasm-detector-visited'
 
 type MobileInputControlsProps = {
   detectionMode: DetectionMode
@@ -41,6 +44,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
+  const [audioDurationMs, setAudioDurationMs] = useState(0)
 
   // Detection context
   const { setLoading, setDetectionResult } = useDetection()
@@ -60,9 +64,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     isRecordingRef.current = isRecording
   }, [isRecording])
 
-  // Waveform hook (canvasRef not used in mobile - no waveform display)
-  const { setupWaveform, cleanupWaveform, invalidatePeaks, computePeaksFromBlob, resetWaveform } =
-    useWaveform({ isRecording })
+  // Waveform hook
+  const {
+    canvasRef,
+    setupWaveform,
+    cleanupWaveform,
+    invalidatePeaks,
+    computePeaksFromBlob,
+    resetWaveform,
+  } = useWaveform({ isRecording })
 
   // Speech recognition
   const handleTranscriptUpdate = useCallback(
@@ -135,6 +145,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     setInterimTranscript('')
     setError(null)
     setPlaybackMs(0)
+    setAudioDurationMs(0)
     resetWaveform()
 
     try {
@@ -178,6 +189,8 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       startTimer()
       startSpeechRecognition()
       setIsRecording(true)
+      // Dismiss first-time overlay on mobile/tablet when recording starts
+      localStorage.setItem(STORAGE_KEY, 'true')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Microphone permission denied'
       setError(message)
@@ -223,8 +236,43 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     setTranscript('')
     setInterimTranscript('')
     setPlaybackMs(0)
+    setAudioDurationMs(0)
     resetWaveform()
   }, [stopRecording, audioUrl, resetWaveform])
+
+  // Clear audio state when switching detection modes
+  useEffect(() => {
+    // If switching away from prosodic mode, clear all audio-related state
+    if (isLexical && (audioBlob || audioUrl || isRecording)) {
+      // Stop any active recording
+      if (isRecording) {
+        stopRecording()
+      }
+
+      // Stop playback if playing
+      const el = audioRef.current
+      if (el) {
+        el.pause()
+        el.currentTime = 0
+      }
+
+      // Clean up audio URL
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      // Clear all audio state
+      setAudioBlob(null)
+      setAudioUrl(null)
+      setDurationMs(0)
+      setTranscript('')
+      setInterimTranscript('')
+      setPlaybackMs(0)
+      setAudioDurationMs(0)
+      setIsPlaying(false)
+      resetWaveform()
+    }
+  }, [detectionMode, isLexical, audioBlob, audioUrl, isRecording, stopRecording, resetWaveform])
 
   // Playback functions
   const togglePlay = useCallback(() => {
@@ -251,6 +299,13 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     const onTimeUpdate = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
     const onLoadedMetadata = () => {
       setPlaybackMs(0)
+      setAudioDurationMs(Number.isFinite(el.duration) ? el.duration * 1000 : 0)
+    }
+    const onSeeked = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
+
+    // Check if metadata is already loaded
+    if (el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0) {
+      setAudioDurationMs(el.duration * 1000)
     }
 
     el.addEventListener('ended', onEnded)
@@ -258,14 +313,29 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     el.addEventListener('pause', onPause)
     el.addEventListener('timeupdate', onTimeUpdate)
     el.addEventListener('loadedmetadata', onLoadedMetadata)
+    el.addEventListener('seeked', onSeeked)
     return () => {
       el.removeEventListener('ended', onEnded)
       el.removeEventListener('play', onPlay)
       el.removeEventListener('pause', onPause)
       el.removeEventListener('timeupdate', onTimeUpdate)
       el.removeEventListener('loadedmetadata', onLoadedMetadata)
+      el.removeEventListener('seeked', onSeeked)
     }
   }, [audioUrl])
+
+  // Seek handler for waveform scrubbing (matches AudioRecorder pattern)
+  const handleSeek = useCallback(
+    (percent: number) => {
+      const el = audioRef.current
+      if (!el) return
+      if (!(audioDurationMs > 0)) return
+      const newTime = clamp01(percent) * (audioDurationMs / 1000)
+      el.currentTime = newTime
+      setPlaybackMs(newTime * 1000)
+    },
+    [audioDurationMs]
+  )
 
   // Send functions
   const handleSend = useCallback(async () => {
@@ -315,7 +385,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         })
         discardRecording()
         setText('')
-        setLoading(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
       } finally {
@@ -369,6 +438,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   const canPlay = isProsodic && !!audioUrl && !isSending
   const canDiscard = isProsodic && !!audioBlob && !isRecording && !isSending
 
+  // Waveform playhead calculations (matches AudioRecorder pattern)
+  const playheadPercent =
+    audioDurationMs > 0 ? Math.min(1, Math.max(0, playbackMs / audioDurationMs)) : 0
+  const isSeekEnabled = canPlay && !isRecording
+
   // Global keyboard shortcuts for audio controls
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -418,6 +492,26 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     onMicClick,
   ])
 
+  // Cleanup timer and media resources on unmount
+  useEffect(() => {
+    return () => {
+      // Stop timer if running
+      stopTimer()
+      // Stop media recorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
+      // Stop all media tracks
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+      // Stop speech recognition
+      stopSpeechRecognition()
+      // Cleanup waveform
+      cleanupWaveform()
+    }
+  }, [stopTimer, stopSpeechRecognition, cleanupWaveform])
+
   // Determine what to show in textarea
   // In prosodic mode: show transcription (readonly)
   // In lexical mode: editable text input
@@ -454,6 +548,8 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
                   setText(newText)
                   if (newText.length > 0 && !hasEverTyped) {
                     setHasEverTyped(true)
+                    // Dismiss first-time overlay on mobile/tablet
+                    localStorage.setItem(STORAGE_KEY, 'true')
                   }
                 }
           }
@@ -465,8 +561,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         />
       </div>
 
-      {/* Record button */}
-      <div className="mobile-input-controls__record">
+      {/* Audio row: mic, waveform, play, trash */}
+      <div className="mobile-input-controls__audio-row">
+        {/* Record button */}
         <MicButton
           ref={micBtnRef}
           isRecording={isRecording}
@@ -475,15 +572,26 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           onClick={onMicClick}
           onKeyDown={onMicKeyDown}
         />
-        {isProsodic && (isRecording || audioBlob) && (
-          <span className="mobile-input-controls__duration">
-            {isRecording ? formatDuration(durationMs) : formatDuration(playbackMs)}
-          </span>
-        )}
-      </div>
 
-      {/* Audio controls (play/trash) */}
-      <div className="mobile-input-controls__audio-controls">
+        {/* Waveform - takes available space */}
+        <div className="mobile-input-controls__waveform-wrapper">
+          <Waveform
+            ref={canvasRef}
+            showPlayhead={!!audioUrl && !isRecording}
+            playheadPercent={playheadPercent}
+            isSeekEnabled={isSeekEnabled}
+            onSeekPercent={handleSeek}
+            showEmpty={isProsodic && !isRecording && !audioUrl}
+            emptyMessage=""
+          />
+          {isProsodic && (isRecording || audioBlob) && (
+            <span className="mobile-input-controls__duration">
+              {isRecording || !isPlaying ? formatDuration(durationMs) : formatDuration(playbackMs)}
+            </span>
+          )}
+        </div>
+
+        {/* Play button */}
         <button
           type="button"
           className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
@@ -511,6 +619,8 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             </kbd>
           )}
         </button>
+
+        {/* Trash button */}
         <button
           type="button"
           className={`mobile-input-controls__trash ${canDiscard ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
@@ -543,7 +653,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         </button>
       </div>
 
-      {/* Send button - full width on bottom row */}
+      {/* Send button - positioned adjacent to cable jack */}
       <div className="mobile-input-controls__send">
         <button
           type="button"

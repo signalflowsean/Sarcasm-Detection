@@ -137,7 +137,8 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
       data-testid="speech-status"
       style={{
         // Reserve space even when hidden to prevent layout shifts
-        minHeight: shouldShow ? undefined : '1.5rem',
+        // minHeight: shouldShow ? undefined : '1.5rem',
+        padding: shouldShow ? undefined : '0',
       }}
     >
       {shouldShow && config && (

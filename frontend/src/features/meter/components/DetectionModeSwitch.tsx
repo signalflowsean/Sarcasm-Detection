@@ -3,6 +3,8 @@ import { KeyboardIcon, MicIcon } from './icons'
 
 export type DetectionMode = 'lexical' | 'prosodic'
 
+const STORAGE_KEY = 'sarcasm-detector-visited'
+
 interface DetectionModeSwitchProps {
   /** Current detection mode */
   value: DetectionMode
@@ -29,6 +31,8 @@ const DetectionModeSwitch: React.FC<DetectionModeSwitchProps> = ({
   const handleToggle = useCallback(() => {
     if (disabled) return
     onChange(isLexical ? 'prosodic' : 'lexical')
+    // Dismiss first-time overlay on mobile/tablet when mode is toggled
+    localStorage.setItem(STORAGE_KEY, 'true')
   }, [disabled, isLexical, onChange])
 
   const handleKeyDown = useCallback(
