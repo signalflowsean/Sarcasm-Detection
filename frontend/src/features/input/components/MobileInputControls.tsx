@@ -496,7 +496,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           />
           {isProsodic && (state.isRecording || state.audioBlob) && (
             <span className="mobile-input-controls__duration">
-              {state.isRecording || !playback.isPlaying
+              {state.isRecording
                 ? formatDuration(state.durationMs)
                 : formatDuration(playback.playbackMs)}
             </span>
