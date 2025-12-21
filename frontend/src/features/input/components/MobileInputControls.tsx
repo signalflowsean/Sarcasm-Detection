@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/useDetection'
 import { sendLexicalText, sendProsodicAudio } from '../apiService'
+import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useWaveform } from '../hooks/useWaveform'
-import { clamp01, formatDuration, isMacPlatform } from '../utils'
+import { formatDuration, isMacPlatform } from '../utils'
 import MicButton from './MicButton'
 import SharedTextArea from './SharedTextArea'
 import SpeechStatus from './SpeechStatus'
@@ -16,8 +17,6 @@ type MobileInputControlsProps = {
   detectionMode: DetectionMode
 }
 
-type Nullable<T> = T | null
-
 /**
  * Consolidated input controls for mobile/tablet.
  * Shows all controls in a grid layout - no modals needed.
@@ -27,65 +26,37 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   const isLexical = detectionMode === 'lexical'
   const isProsodic = detectionMode === 'prosodic'
 
-  // Text state (shared between modes)
+  // Text state (lexical mode only)
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [error, setError] = useState<Nullable<string>>(null)
   const [hasEverTyped, setHasEverTyped] = useState(false)
-
-  // Audio state (prosodic mode only)
-  const [isRecording, setIsRecording] = useState(false)
-  const [audioBlob, setAudioBlob] = useState<Nullable<Blob>>(null)
-  const [audioUrl, setAudioUrl] = useState<Nullable<string>>(null)
-  const [durationMs, setDurationMs] = useState(0)
-  const [transcript, setTranscript] = useState('')
-  const [interimTranscript, setInterimTranscript] = useState('')
-
-  // Playback state
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [playbackMs, setPlaybackMs] = useState(0)
-  const [audioDurationMs, setAudioDurationMs] = useState(0)
 
   // Detection context
   const { setLoading, setDetectionResult } = useDetection()
 
   // Refs
-  const mediaRecorderRef = useRef<Nullable<MediaRecorder>>(null)
-  const mediaStreamRef = useRef<Nullable<MediaStream>>(null)
-  const audioChunksRef = useRef<BlobPart[]>([])
-  const startTimeRef = useRef<number>(0)
-  const timerIntervalRef = useRef<number | null>(null)
-  const isRecordingRef = useRef<boolean>(false)
-  const isStartingRecordingRef = useRef<boolean>(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
   const micBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Keep ref in sync
-  useEffect(() => {
-    isRecordingRef.current = isRecording
-  }, [isRecording])
+  // Create a stable ref for isRecording that speech recognition needs
+  const isRecordingRef = useRef<boolean>(false)
 
-  // Waveform hook
-  const {
-    canvasRef,
-    setupWaveform,
-    cleanupWaveform,
-    invalidatePeaks,
-    computePeaksFromBlob,
-    resetWaveform,
-  } = useWaveform({ isRecording })
+  // Refs for handlers that need to reference recorder (for circular dependency)
+  const updateTranscriptRef = useRef<(update: { interim: string; final: string }) => void>(() => {})
+  const setErrorRef = useRef<(error: string | null) => void>(() => {})
 
-  // Speech recognition
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Speech recognition hook
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const handleTranscriptUpdate = useCallback(
     ({ interim, final }: { interim: string; final: string }) => {
-      setInterimTranscript(interim)
-      setTranscript(prev => prev + final)
+      updateTranscriptRef.current({ interim, final })
     },
     []
   )
 
   const handleSpeechError = useCallback((message: string) => {
-    setError(message)
+    setErrorRef.current(message)
   }, [])
 
   const { startSpeechRecognition, stopSpeechRecognition, speechStatus, resetSpeechStatus } =
@@ -95,177 +66,87 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       onError: handleSpeechError,
     })
 
-  // Cleanup blob URL on unmount
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Waveform hook
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const [isRecording, setIsRecording] = useState(false)
+
+  const {
+    canvasRef,
+    setupWaveform,
+    cleanupWaveform,
+    invalidatePeaks,
+    computePeaksFromBlob,
+    resetWaveform,
+  } = useWaveform({ isRecording })
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Audio Recorder hook
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const recorder = useAudioRecorder({
+    waveformControls: {
+      setupWaveform,
+      cleanupWaveform,
+      invalidatePeaks,
+      computePeaksFromBlob,
+      resetWaveform,
+    },
+    speechControls: {
+      startSpeechRecognition,
+      stopSpeechRecognition,
+    },
+    onRecordingStart: () => {
+      // Dismiss first-time overlay on mobile/tablet when recording starts
+      localStorage.setItem(STORAGE_KEY, 'true')
+    },
+  })
+
+  const {
+    state,
+    playback,
+    audioRef,
+    startRecording: startRecordingBase,
+    stopRecording,
+    discardRecording,
+    togglePlay,
+    handleSeek,
+    updateTranscript,
+    setError,
+    canPlay: canPlayBase,
+    canDiscard: canDiscardBase,
+  } = recorder
+
+  // Wire up the refs for circular dependency resolution
   useEffect(() => {
-    return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl)
-    }
-  }, [audioUrl])
+    updateTranscriptRef.current = updateTranscript
+    setErrorRef.current = setError
+  }, [updateTranscript, setError])
 
-  // Timer functions
-  const startTimer = useCallback(() => {
-    startTimeRef.current = performance.now()
-    const tick = () => {
-      setDurationMs(Math.max(0, performance.now() - startTimeRef.current))
-    }
-    tick()
-    timerIntervalRef.current = window.setInterval(tick, 100)
-  }, [])
+  // Keep the shared isRecordingRef in sync with recorder state
+  useEffect(() => {
+    isRecordingRef.current = state.isRecording
+    setIsRecording(state.isRecording)
+  }, [state.isRecording])
 
-  const stopTimer = useCallback(() => {
-    if (timerIntervalRef.current != null) {
-      clearInterval(timerIntervalRef.current)
-      timerIntervalRef.current = null
-    }
-  }, [])
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Mode-aware recording (disabled in lexical mode)
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  // Recording functions
   const startRecording = useCallback(async () => {
     if (isLexical) {
       // Recording is disabled in lexical mode
       return
     }
-
-    // Use ref to prevent race conditions from rapid calls
-    // Check both state and ref to handle concurrent calls before state updates
-    if (isRecording || isStartingRecordingRef.current) {
-      // Already recording or starting, ignore duplicate call
-      return
-    }
-
-    // Set flag synchronously to prevent concurrent getUserMedia calls
-    isStartingRecordingRef.current = true
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      isStartingRecordingRef.current = false
-      setError('Audio recording not supported in this browser.')
-      return
-    }
-
-    // Clear previous recording
-    if (audioUrl) URL.revokeObjectURL(audioUrl)
-    invalidatePeaks()
-
-    setAudioBlob(null)
-    setAudioUrl(null)
-    setTranscript('')
-    setInterimTranscript('')
-    setError(null)
-    setPlaybackMs(0)
-    setAudioDurationMs(0)
-    resetWaveform()
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-      // Check again after async operation - another call may have started
-      if (isRecordingRef.current || mediaStreamRef.current) {
-        // Another recording started, stop this stream and return
-        stream.getTracks().forEach(track => track.stop())
-        isStartingRecordingRef.current = false
-        return
-      }
-
-      mediaStreamRef.current = stream
-
-      const preferredTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/ogg;codecs=opus',
-        'audio/mp4',
-      ]
-      const chosenType =
-        preferredTypes.find(t => {
-          try {
-            return MediaRecorder.isTypeSupported(t)
-          } catch {
-            return false
-          }
-        }) || null
-
-      const mr = new MediaRecorder(stream, chosenType ? { mimeType: chosenType } : undefined)
-      audioChunksRef.current = []
-
-      mr.ondataavailable = e => {
-        if (e.data?.size > 0) audioChunksRef.current.push(e.data)
-      }
-
-      mr.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || chosenType || '' })
-        const url = URL.createObjectURL(blob)
-        setAudioBlob(blob)
-        setAudioUrl(url)
-        setPlaybackMs(0)
-        computePeaksFromBlob(blob)
-      }
-
-      mediaRecorderRef.current = mr
-      await setupWaveform(stream)
-      mr.start()
-      startTimer()
-      startSpeechRecognition()
-      setIsRecording(true)
-      isStartingRecordingRef.current = false
-      // Dismiss first-time overlay on mobile/tablet when recording starts
-      localStorage.setItem(STORAGE_KEY, 'true')
-    } catch (err) {
-      isStartingRecordingRef.current = false
-      const message = err instanceof Error ? err.message : 'Microphone permission denied'
-      setError(message)
-    }
-  }, [
-    isRecording,
-    isLexical,
-    audioUrl,
-    invalidatePeaks,
-    resetWaveform,
-    setupWaveform,
-    startTimer,
-    startSpeechRecognition,
-    computePeaksFromBlob,
-  ])
-
-  const stopRecording = useCallback(() => {
-    if (!isRecording) return
-    const mr = mediaRecorderRef.current
-    if (mr && mr.state !== 'inactive') mr.stop()
-    mediaRecorderRef.current = null
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(t => t.stop())
-      mediaStreamRef.current = null
-    }
-    cleanupWaveform()
-    stopTimer()
-    stopSpeechRecognition()
-    setIsRecording(false)
-    isStartingRecordingRef.current = false
-  }, [isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition])
-
-  const discardRecording = useCallback(() => {
-    const el = audioRef.current
-    if (el) {
-      el.pause()
-      el.currentTime = 0
-    }
-    stopRecording()
-    if (audioUrl) URL.revokeObjectURL(audioUrl)
-    setAudioBlob(null)
-    setAudioUrl(null)
-    setDurationMs(0)
-    setTranscript('')
-    setInterimTranscript('')
-    setPlaybackMs(0)
-    setAudioDurationMs(0)
-    resetWaveform()
-  }, [stopRecording, audioUrl, resetWaveform])
+    await startRecordingBase()
+  }, [isLexical, startRecordingBase])
 
   // Clear audio state when switching to lexical mode
   useEffect(() => {
-    // If switching to lexical mode, always clear all audio-related state
-    // This prevents audio from being stuck in an inaccessible state
     if (isLexical) {
       // Stop any active recording
-      if (isRecording) {
+      if (state.isRecording) {
         stopRecording()
       }
 
@@ -276,91 +157,54 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         el.currentTime = 0
       }
 
-      // Clean up audio URL if it exists
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl)
+      // Discard recording if there is one
+      if (state.audioBlob || state.audioUrl) {
+        discardRecording()
       }
-
-      // Clear all audio state
-      setAudioBlob(null)
-      setAudioUrl(null)
-      setDurationMs(0)
-      setTranscript('')
-      setInterimTranscript('')
-      setPlaybackMs(0)
-      setAudioDurationMs(0)
-      setIsPlaying(false)
-      resetWaveform()
     }
-  }, [detectionMode, isLexical, isRecording, audioUrl, stopRecording, resetWaveform])
+  }, [
+    isLexical,
+    state.isRecording,
+    state.audioBlob,
+    state.audioUrl,
+    stopRecording,
+    discardRecording,
+    audioRef,
+  ])
 
-  // Playback functions
-  const togglePlay = useCallback(() => {
-    const el = audioRef.current
-    if (!el || !audioUrl) return
-    if (el.paused) {
-      if (!Number.isNaN(el.duration) && Math.abs(el.currentTime - el.duration) < 0.05) {
-        el.currentTime = 0
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Derived state (mode-aware)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const canPlay = isProsodic && canPlayBase && !isSending
+  const canDiscard = isProsodic && canDiscardBase && !isSending
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Mic button handlers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const onMicClick = useCallback(() => {
+    if (state.isRecording) stopRecording()
+    else startRecording()
+  }, [state.isRecording, stopRecording, startRecording])
+
+  const onMicKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.code === 'Enter') {
+        onMicClick()
+        e.preventDefault()
       }
-      el.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {})
-    } else {
-      el.pause()
-    }
-  }, [audioUrl])
-
-  useEffect(() => {
-    const el = audioRef.current
-    if (!el) return
-    const onEnded = () => setIsPlaying(false)
-    const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
-    const onTimeUpdate = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
-    const onLoadedMetadata = () => {
-      setPlaybackMs(0)
-      setAudioDurationMs(Number.isFinite(el.duration) ? el.duration * 1000 : 0)
-    }
-    const onSeeked = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
-
-    // Check if metadata is already loaded
-    if (el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0) {
-      setAudioDurationMs(el.duration * 1000)
-    }
-
-    el.addEventListener('ended', onEnded)
-    el.addEventListener('play', onPlay)
-    el.addEventListener('pause', onPause)
-    el.addEventListener('timeupdate', onTimeUpdate)
-    el.addEventListener('loadedmetadata', onLoadedMetadata)
-    el.addEventListener('seeked', onSeeked)
-    return () => {
-      el.removeEventListener('ended', onEnded)
-      el.removeEventListener('play', onPlay)
-      el.removeEventListener('pause', onPause)
-      el.removeEventListener('timeupdate', onTimeUpdate)
-      el.removeEventListener('loadedmetadata', onLoadedMetadata)
-      el.removeEventListener('seeked', onSeeked)
-    }
-  }, [audioUrl])
-
-  // Seek handler for waveform scrubbing (matches AudioRecorder pattern)
-  const handleSeek = useCallback(
-    (percent: number) => {
-      const el = audioRef.current
-      if (!el) return
-      if (!(audioDurationMs > 0)) return
-      const newTime = clamp01(percent) * (audioDurationMs / 1000)
-      el.currentTime = newTime
-      setPlaybackMs(newTime * 1000)
     },
-    [audioDurationMs]
+    [onMicClick]
   )
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // Send functions
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const handleSend = useCallback(async () => {
     const trimmedText = text.trim()
-    const fullTranscript = (transcript + ' ' + interimTranscript).trim()
+    const fullTranscript = (state.transcript + ' ' + state.interimTranscript).trim()
 
     // In lexical mode: send text
     // In prosodic mode: send audio (and optionally text/transcript)
@@ -386,13 +230,13 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       }
     } else {
       // Prosodic mode
-      if (!audioBlob) return
+      if (!state.audioBlob) return
       setIsSending(true)
       setError(null)
       setLoading(true)
       try {
         const [prosodicResponse, lexicalResponse] = await Promise.all([
-          sendProsodicAudio(audioBlob),
+          sendProsodicAudio(state.audioBlob),
           fullTranscript
             ? sendLexicalText(fullTranscript)
             : Promise.resolve({ id: 'no-text', value: 0, reliable: true }),
@@ -415,29 +259,14 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   }, [
     isLexical,
     text,
-    transcript,
-    interimTranscript,
-    audioBlob,
+    state.transcript,
+    state.interimTranscript,
+    state.audioBlob,
     setLoading,
     setDetectionResult,
     discardRecording,
+    setError,
   ])
-
-  // Mic button handlers
-  const onMicClick = useCallback(() => {
-    if (isRecording) stopRecording()
-    else startRecording()
-  }, [isRecording, stopRecording, startRecording])
-
-  const onMicKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.code === 'Enter') {
-        onMicClick()
-        e.preventDefault()
-      }
-    },
-    [onMicClick]
-  )
 
   // Keyboard shortcut for send (on the container)
   const onKeyDown = useCallback(
@@ -450,26 +279,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     [handleSend]
   )
 
-  // Platform detection for shortcut display
-  const isMac = isMacPlatform()
-  const modifierKey = isMac ? '⌘' : 'Ctrl'
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Global keyboard shortcuts
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  // Can play/discard logic (for shortcut indicators)
-  const canPlay = isProsodic && !!audioUrl && !isSending
-  const canDiscard = isProsodic && !!audioBlob && !isRecording && !isSending
-
-  // Waveform playhead calculations (matches AudioRecorder pattern)
-  const playheadPercent =
-    audioDurationMs > 0 ? Math.min(1, Math.max(0, playbackMs / audioDurationMs)) : 0
-  const isSeekEnabled = canPlay && !isRecording
-
-  // Global keyboard shortcuts for audio controls
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input/textarea or contenteditable element
       const target = e.target as HTMLElement | null
       if (target) {
-        // Check if target itself is an input/textarea or contenteditable
         if (
           target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
@@ -479,8 +297,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           return
         }
         // Check if target is inside an editable ancestor
-        // Note: [contenteditable] matches any contenteditable attribute, but we need to filter
-        // out contenteditable="false". Using manual traversal for better accuracy.
         let ancestor: HTMLElement | null = target.parentElement
         while (ancestor) {
           if (
@@ -495,17 +311,14 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         }
 
         // Ignore if the focused element is a button that performs the same action
-        // This prevents double-firing when keyboard users press Space/Delete on focused buttons
         const buttonAncestor = target.closest('button')
         if (buttonAncestor) {
-          // Space on play button - let button handle it natively
           if (
             e.code === 'Space' &&
             buttonAncestor.getAttribute('data-testid') === 'mobile-play-button'
           ) {
             return
           }
-          // Delete/Backspace on trash button - let button handle it natively
           if (
             (e.code === 'Delete' || e.code === 'Backspace') &&
             buttonAncestor.getAttribute('data-testid') === 'mobile-trash-button'
@@ -528,7 +341,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       }
 
       // R - toggle recording (only in prosodic mode)
-      if (e.code === 'KeyR' && isProsodic && !isPlaying && !isSending) {
+      if (e.code === 'KeyR' && isProsodic && !playback.isPlaying && !isSending) {
         e.preventDefault()
         onMicClick()
       }
@@ -540,52 +353,31 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     canPlay,
     canDiscard,
     isProsodic,
-    isPlaying,
+    playback.isPlaying,
     isSending,
     togglePlay,
     discardRecording,
     onMicClick,
   ])
 
-  // Cleanup timer and media resources on unmount
-  useEffect(() => {
-    return () => {
-      // Stop timer if running (access ref directly to avoid stale closure)
-      if (timerIntervalRef.current != null) {
-        clearInterval(timerIntervalRef.current)
-        timerIntervalRef.current = null
-      }
-      // Stop media recorder if active
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop()
-        mediaRecorderRef.current = null
-      }
-      // Stop all media tracks
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop())
-        mediaStreamRef.current = null
-      }
-      // Stop speech recognition
-      stopSpeechRecognition()
-      // Cleanup waveform
-      cleanupWaveform()
-      // Reset starting flag
-      isStartingRecordingRef.current = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  // Empty dependencies - only run cleanup on unmount.
-  // Note: stopSpeechRecognition() and cleanupWaveform() are called here even though their
-  // identities may change. This is safe because:
-  // 1. cleanupWaveform is stable (verified: useCallback with empty deps in useWaveform.ts)
-  // 2. stopSpeechRecognition accesses engineRef.current internally (a ref), so it works
-  //    correctly even if called with a stale closure
-  // 3. This cleanup only runs on unmount, so function identity changes don't matter
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Derived values for rendering
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const isMac = isMacPlatform()
+  const modifierKey = isMac ? '⌘' : 'Ctrl'
+
+  // Waveform playhead calculations
+  const playheadPercent =
+    playback.audioDurationMs > 0
+      ? Math.min(1, Math.max(0, playback.playbackMs / playback.audioDurationMs))
+      : 0
+  const isSeekEnabled = canPlay && !state.isRecording
 
   // Determine what to show in textarea
-  // In prosodic mode: show transcription (readonly)
-  // In lexical mode: editable text input
-  const textareaValue = isProsodic ? (transcript + ' ' + interimTranscript).trim() : text
+  const textareaValue = isProsodic
+    ? (state.transcript + ' ' + state.interimTranscript).trim()
+    : text
 
   const textareaPlaceholder = isProsodic
     ? speechStatus === 'loading'
@@ -595,7 +387,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
   // Can send logic
   const canSendLexical = !!text.trim() && !isSending
-  const canSendProsodic = !!audioBlob && !isSending
+  const canSendProsodic = !!state.audioBlob && !isSending
   const canSend = isLexical ? canSendLexical : canSendProsodic
 
   return (
@@ -606,8 +398,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       onKeyDown={onKeyDown}
     >
       {/* Textarea - full width */}
-      {/* In prosodic mode: readonly, shows transcription */}
-      {/* In lexical mode: editable text input */}
       <div className="mobile-input-controls__textarea">
         <SharedTextArea
           value={textareaValue}
@@ -618,7 +408,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
                   setText(newText)
                   if (newText.length > 0 && !hasEverTyped) {
                     setHasEverTyped(true)
-                    // Dismiss first-time overlay on mobile/tablet
                     localStorage.setItem(STORAGE_KEY, 'true')
                   }
                 }
@@ -636,9 +425,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         {/* Record button */}
         <MicButton
           ref={micBtnRef}
-          isRecording={isRecording}
-          shouldFlash={isProsodic && !audioBlob && !isRecording}
-          disabled={isLexical || isPlaying || isSending}
+          isRecording={state.isRecording}
+          shouldFlash={isProsodic && !state.audioBlob && !state.isRecording}
+          disabled={isLexical || playback.isPlaying || isSending}
           onClick={onMicClick}
           onKeyDown={onMicKeyDown}
         />
@@ -647,16 +436,18 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         <div className="mobile-input-controls__waveform-wrapper">
           <Waveform
             ref={canvasRef}
-            showPlayhead={!!audioUrl && !isRecording}
+            showPlayhead={!!state.audioUrl && !state.isRecording}
             playheadPercent={playheadPercent}
             isSeekEnabled={isSeekEnabled}
             onSeekPercent={handleSeek}
-            showEmpty={isProsodic && !isRecording && !audioUrl}
+            showEmpty={isProsodic && !state.isRecording && !state.audioUrl}
             emptyMessage=""
           />
-          {isProsodic && (isRecording || audioBlob) && (
+          {isProsodic && (state.isRecording || state.audioBlob) && (
             <span className="mobile-input-controls__duration">
-              {isRecording || !isPlaying ? formatDuration(durationMs) : formatDuration(playbackMs)}
+              {state.isRecording || !playback.isPlaying
+                ? formatDuration(state.durationMs)
+                : formatDuration(playback.playbackMs)}
             </span>
           )}
         </div>
@@ -667,10 +458,10 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
           onClick={togglePlay}
           disabled={!canPlay}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
+          aria-label={playback.isPlaying ? 'Pause' : 'Play'}
           data-testid="mobile-play-button"
         >
-          {isPlaying ? (
+          {playback.isPlaying ? (
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
               <rect x="6" y="4" width="4" height="16" />
               <rect x="14" y="4" width="4" height="16" />
@@ -723,7 +514,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         </button>
       </div>
 
-      {/* Send button - positioned adjacent to cable jack */}
+      {/* Send button */}
       <div className="mobile-input-controls__send">
         <button
           type="button"
@@ -738,15 +529,19 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       </div>
 
       {/* Hidden audio element for playback */}
-      <audio ref={audioRef} src={audioUrl ?? undefined} preload="metadata" />
+      <audio ref={audioRef} src={state.audioUrl ?? undefined} preload="metadata" />
 
       {/* Speech status (loading/error for speech-to-text model) */}
-      <SpeechStatus status={speechStatus} isRecording={isRecording} onDismiss={resetSpeechStatus} />
+      <SpeechStatus
+        status={speechStatus}
+        isRecording={state.isRecording}
+        onDismiss={resetSpeechStatus}
+      />
 
       {/* Error display */}
-      {error && (
+      {state.error && (
         <div className="mobile-input-controls__error" role="alert">
-          {error}
+          {state.error}
         </div>
       )}
     </div>
