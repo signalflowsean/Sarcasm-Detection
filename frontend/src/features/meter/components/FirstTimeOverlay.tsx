@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { MEDIA_QUERIES } from '../../../breakpoints'
+import { useMediaQuery } from '../../input/hooks'
 
 const STORAGE_KEY = 'sarcasm-detector-visited'
 
@@ -6,6 +8,7 @@ const FirstTimeOverlay = () => {
   const [showOverlay, setShowOverlay] = useState(false)
   const [textPosition, setTextPosition] = useState({ left: '50%', top: '45%' })
   const overlayRef = useRef<HTMLDivElement>(null)
+  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isTablet)
 
   useEffect(() => {
     const hasVisited = localStorage.getItem(STORAGE_KEY)
@@ -19,18 +22,30 @@ const FirstTimeOverlay = () => {
       setShowOverlay(true)
 
       const tryPositionOverlay = () => {
-        const knob = document.querySelector('.rotary__knob') as HTMLElement
+        // On mobile/tablet, position relative to the detection switch or textarea
+        // On desktop, position relative to the rotary knob
+        const targetSelector = isTabletOrMobile 
+          ? '.mobile-input-controls__textarea' 
+          : '.rotary__knob'
+        const target = document.querySelector(targetSelector) as HTMLElement
         const elapsedTime = Date.now() - startTime
 
-        if (knob) {
-          const rect = knob.getBoundingClientRect()
-          const knobCenterX = rect.left + rect.width / 2
+        if (target) {
+          const rect = target.getBoundingClientRect()
+          const centerX = rect.left + rect.width / 2
 
-          // Position text below the knob
-          setTextPosition({
-            left: `${knobCenterX}px`,
-            top: `${rect.bottom + 30}px`,
-          })
+          // Position text above the target on mobile, below on desktop
+          if (isTabletOrMobile) {
+            setTextPosition({
+              left: `${centerX}px`,
+              top: `${rect.top - 10}px`,
+            })
+          } else {
+            setTextPosition({
+              left: `${centerX}px`,
+              top: `${rect.bottom + 30}px`,
+            })
+          }
         } else if (retryCount < MAX_RETRIES && elapsedTime < MAX_TIME_MS) {
           retryCount++
           animationFrameId = requestAnimationFrame(tryPositionOverlay)
@@ -44,7 +59,7 @@ const FirstTimeOverlay = () => {
         cancelAnimationFrame(animationFrameId)
       }
     }
-  }, [])
+  }, [isTabletOrMobile])
 
   // Listen for localStorage changes (when RotarySwitch dismisses first-time state)
   useEffect(() => {
@@ -74,13 +89,22 @@ const FirstTimeOverlay = () => {
 
   if (!showOverlay) return null
 
+  // Different messages for mobile/tablet vs desktop
+  const message = isTabletOrMobile
+    ? 'Type Something to Detect Sarcasm'
+    : 'Turn the Knob to Start Detecting Sarcasm'
+
+  const ariaLabel = isTabletOrMobile
+    ? 'Welcome hint - Type something to detect sarcasm'
+    : 'Welcome hint - Turn the knob to start detecting sarcasm'
+
   return (
     <div
       ref={overlayRef}
       className="first-time-overlay"
       role="status"
       aria-live="polite"
-      aria-label="Welcome hint - Turn the knob to start detecting sarcasm"
+      aria-label={ariaLabel}
     >
       {/* Instructional text - non-blocking */}
       <div
@@ -91,7 +115,7 @@ const FirstTimeOverlay = () => {
           transform: 'translateX(-50%)',
         }}
       >
-        <p className="first-time-overlay__text">Turn the Knob to Start Detecting Sarcasm</p>
+        <p className="first-time-overlay__text">{message}</p>
       </div>
     </div>
   )

@@ -7,8 +7,9 @@
  *
  * ⚠️  IMPORTANT: If you change values here, you MUST also update:
  *     1. frontend/src/index.css - Media queries at:
- *        - Line ~2047: @media (min-width: ${MOBILE_BREAKPOINT}px)  [Desktop styles]
- *        - Line ~2113: @media (max-width: ${MOBILE_BREAKPOINT - 1}px)  [Mobile styles]
+ *        - Line ~2345: @media (min-width: ${TABLET_BREAKPOINT}px)  [Desktop styles]
+ *        - Line ~2411: @media (max-width: ${TABLET_BREAKPOINT - 1}px)  [Tablet styles]
+ *        - Line ~2639: @media (max-width: ${MOBILE_BREAKPOINT}px)  [Mobile styles]
  *
  * Why can't CSS use these values directly?
  * CSS media queries don't support CSS custom properties (variables).
@@ -18,32 +19,34 @@
  * BREAKPOINT OVERVIEW
  * ============================================================================
  *
- * MOBILE_BREAKPOINT (1440px):
- *   - Desktop: min-width: 1440px (side-by-side layout)
- *   - Mobile:  max-width: 1439px (stacked/modal layout)
- *   - Used in: InputContainer.tsx (JS), index.css (CSS media queries)
+ * MOBILE_BREAKPOINT (768px):
+ *   - True mobile devices (phones)
+ *   - max-width: 767px triggers mobile-specific styles
+ *   - Used in: index.css (CSS media query)
  *
- * SMALL_MOBILE_BREAKPOINT (768px):
- *   - Only affects: FirstTimeOverlay styling (smaller text, stacked layout)
- *   - Used in: index.css only (CSS media query)
+ * TABLET_BREAKPOINT (1440px):
+ *   - Separates tablet from desktop
+ *   - Desktop: min-width: 1440px (side-by-side layout)
+ *   - Tablet:  max-width: 1439px (meter-focused layout)
+ *   - Used in: InputContainer.tsx (JS), index.css (CSS media queries)
  *
  * ============================================================================
  */
 
-// Main mobile/desktop breakpoint - controls layout mode
-export const MOBILE_BREAKPOINT = 1440
+// Mobile breakpoint - true mobile devices (phones)
+export const MOBILE_BREAKPOINT = 768
 
-// Smaller mobile adjustments (first-time overlay only)
-export const SMALL_MOBILE_BREAKPOINT = 768
+// Tablet/desktop breakpoint - controls layout mode
+export const TABLET_BREAKPOINT = 1440
 
 // Pre-built media query strings for useMediaQuery hook
 export const MEDIA_QUERIES = {
-  /** Matches mobile layout (below breakpoint) */
+  /** Matches mobile layout (phones, below 768px) */
   isMobile: `(max-width: ${MOBILE_BREAKPOINT - 1}px)`,
 
-  /** Matches desktop layout (at or above breakpoint) */
-  isDesktop: `(min-width: ${MOBILE_BREAKPOINT}px)`,
+  /** Matches tablet layout (768px to 1439px) */
+  isTablet: `(max-width: ${TABLET_BREAKPOINT - 1}px)`,
 
-  /** Matches small mobile screens */
-  isSmallMobile: `(max-width: ${SMALL_MOBILE_BREAKPOINT}px)`,
+  /** Matches desktop layout (at or above 1440px) */
+  isDesktop: `(min-width: ${TABLET_BREAKPOINT}px)`,
 } as const
