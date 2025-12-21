@@ -17,4 +17,3 @@ export async function expectRedirectToRoot(
   await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
   await expect(page).toHaveURL('/');
 }
-
