@@ -172,7 +172,7 @@ export function useSpeechRecognition({
 
           if (import.meta.env.DEV) {
             // In development, include technical details for debugging
-            const errorParts = ['Speech recognition unavailable.']
+            const errorParts = ['Speech recognition failed.']
             if (moonshineError) {
               errorParts.push(`MoonshineJS: ${moonshineError}`)
             }
@@ -180,7 +180,7 @@ export function useSpeechRecognition({
             onError(errorParts.join(' '))
           } else {
             // In production, show user-friendly message only
-            onError('Speech recognition is unavailable. Please try again or use text input.')
+            onError('Speech recognition failed. Please try again or use text input.')
           }
           setSpeechStatus('error')
         }

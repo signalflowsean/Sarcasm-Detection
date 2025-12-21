@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { REDIRECT_TIMEOUT } from './utils/constants';
+import { expectRedirectToRoot } from './utils/navigation';
 
 // Use a desktop viewport to test routing (routing is disabled on mobile/tablet)
 // The app's tablet breakpoint is 1440px (TABLET_BREAKPOINT)
@@ -59,21 +60,10 @@ test.describe('Navigation (Mobile/Tablet - Routing Disabled)', () => {
   test('should redirect all routes to root on mobile/tablet', async ({
     page,
   }) => {
-    // Try navigating to different routes
-    await page.goto('/text-input');
-    // Should redirect to root (redirect should be instant, use shorter timeout)
-    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
-    await expect(page).toHaveURL('/');
-
-    await page.goto('/audio-input');
-    // Should redirect to root
-    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
-    await expect(page).toHaveURL('/');
-
-    await page.goto('/getting-started');
-    // Should redirect to root
-    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
-    await expect(page).toHaveURL('/');
+    // Try navigating to different routes - all should redirect to root
+    await expectRedirectToRoot(page, '/text-input');
+    await expectRedirectToRoot(page, '/audio-input');
+    await expectRedirectToRoot(page, '/getting-started');
   });
 
   test('should show mobile controls on root page', async ({ page }) => {

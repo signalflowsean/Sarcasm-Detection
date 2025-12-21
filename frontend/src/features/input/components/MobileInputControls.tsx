@@ -197,8 +197,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
     // Update ref for next comparison
     prevIsLexicalRef.current = isLexical
-    // Only depend on isLexical. Function references and state values don't need to trigger
-    // re-execution - we only want to run cleanup when isLexical changes.
+    // Only depend on isLexical. We intentionally exclude other dependencies:
+    // - stopRecording, discardRecording: Stable function references from useAudioRecorder
+    // - state: We read its current values at transition time, but don't need re-execution when they change
+    // - audioRef: Stable ref reference that doesn't change
+    // This effect should only run when isLexical changes (mode transitions), not when state/refs change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLexical])
 

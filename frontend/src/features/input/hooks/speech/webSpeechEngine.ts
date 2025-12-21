@@ -149,27 +149,27 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             break
           case 'no-speech':
             // This is normal - just means no speech detected, don't show error
-            // State will be handled by onend handler
+            // Internal state machine state will be handled by onend handler
             log('No speech detected')
             break
           case 'network':
             callbacks.onError('Network error. Web Speech API requires internet.')
             callbacks.onStatusChange('error')
-            // State will be handled by onend handler (may auto-restart)
+            // Internal state machine state will be handled by onend handler (may auto-restart)
             break
           case 'aborted':
             // User or code stopped it, not an error
-            // State will be handled by onend handler
+            // Internal state machine state will be handled by onend handler
             break
           case 'audio-capture':
             callbacks.onError('Audio capture failed. Your device may not support audio input.')
             callbacks.onStatusChange('error')
-            // State will be handled by onend handler
+            // Internal state machine state will be handled by onend handler
             break
           default:
             callbacks.onError(`Speech recognition error: ${event.error}`)
             callbacks.onStatusChange('error')
-          // State will be handled by onend handler
+          // Internal state machine state will be handled by onend handler
         }
       }
 
