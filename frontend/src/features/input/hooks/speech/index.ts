@@ -137,27 +137,40 @@ export function useSpeechRecognition({
         engineRef.current = null
         setActiveEngine(null)
 
-        // Both engines failed - include information about both failures
+        // Both engines failed - provide user-friendly message with technical details in dev
         const webSpeechError = err instanceof Error ? err.message : 'Unknown error'
-        const errorParts = ['Speech recognition unavailable.']
-        if (moonshineError) {
-          errorParts.push(`MoonshineJS: ${moonshineError}`)
+
+        if (import.meta.env.DEV) {
+          // In development, include technical details for debugging
+          const errorParts = ['Speech recognition unavailable.']
+          if (moonshineError) {
+            errorParts.push(`MoonshineJS: ${moonshineError}`)
+          }
+          errorParts.push(`Web Speech API: ${webSpeechError}`)
+          onError(errorParts.join(' '))
+        } else {
+          // In production, show user-friendly message only
+          onError('Speech recognition is unavailable. Please try again or use text input.')
         }
-        errorParts.push(`Web Speech API: ${webSpeechError}`)
-        onError(errorParts.join(' '))
         setSpeechStatus('error')
       }
     } else {
       log('Web Speech API not supported')
       engineRef.current = null
       setActiveEngine(null)
-      // Both engines unavailable - include information about both
-      const errorParts = ['Speech recognition is not available in this browser.']
-      if (moonshineError) {
-        errorParts.push(`MoonshineJS: ${moonshineError}`)
+      // Both engines unavailable - provide user-friendly message with technical details in dev
+      if (import.meta.env.DEV) {
+        // In development, include technical details for debugging
+        const errorParts = ['Speech recognition is not available in this browser.']
+        if (moonshineError) {
+          errorParts.push(`MoonshineJS: ${moonshineError}`)
+        }
+        errorParts.push('Web Speech API: not supported')
+        onError(errorParts.join(' '))
+      } else {
+        // In production, show user-friendly message only
+        onError('Speech recognition is not available in this browser. Please use text input.')
       }
-      errorParts.push('Web Speech API: not supported')
-      onError(errorParts.join(' '))
       setSpeechStatus('error')
     }
   }, [createCallbacks, onError])
@@ -183,10 +196,14 @@ export function useSpeechRecognition({
     stopSpeechRecognition,
     speechStatus,
     resetSpeechStatus,
-    /**
-     * The name of the currently active engine (MoonshineJS or Web Speech API).
-     * @internal For debugging purposes only.
-     */
-    activeEngine,
+    ...(import.meta.env.DEV
+      ? {
+          /**
+           * The name of the currently active engine (MoonshineJS or Web Speech API).
+           * @internal For debugging purposes only. Available only in development builds.
+           */
+          activeEngine,
+        }
+      : {}),
   }
 }

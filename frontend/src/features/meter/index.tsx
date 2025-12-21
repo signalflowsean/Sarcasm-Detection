@@ -38,7 +38,7 @@ const MeterSection = () => {
   } = useDetection()
 
   // Check if we're on mobile/tablet
-  const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
 
   // Detection mode for mobile/tablet (lexical = text, prosodic = audio)
   const [detectionMode, setDetectionMode] = useState<DetectionMode>('lexical')
@@ -47,10 +47,10 @@ const MeterSection = () => {
   // On mobile/tablet: power is always "on", mode comes from detection switch
   // On desktop: power and mode come from rotary switch
   const desktopPowerState: PowerState = value === 'off' ? 'off' : 'on'
-  const powerState: PowerState = isTabletOrMobile ? 'on' : desktopPowerState
+  const powerState: PowerState = isMobileOrTablet ? 'on' : desktopPowerState
 
   const mobileInputMode: InputMode = detectionMode === 'lexical' ? 'text' : 'audio'
-  const inputMode: InputMode = isTabletOrMobile ? mobileInputMode : (value as InputMode)
+  const inputMode: InputMode = isMobileOrTablet ? mobileInputMode : (value as InputMode)
 
   // Track previous power state to detect power-on transition
   const prevPowerStateRef = useRef<PowerState>(powerState)
@@ -116,7 +116,19 @@ const MeterSection = () => {
           onClick={() => setShowInfoModal(true)}
           aria-label="Open getting started guide"
         >
-          <span className="meter__info-button__icon">i</span>
+          <span className="meter__info-button__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              focusable="false"
+              width="20"
+              height="20"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <rect x="11" y="10" width="2" height="7" rx="1" />
+              <circle cx="12" cy="7" r="1.25" />
+            </svg>
+          </span>
         </button>
       </div>
 
@@ -189,7 +201,7 @@ const MeterSection = () => {
       </div>
 
       <div className="meter__controls">
-        {isTabletOrMobile ? (
+        {isMobileOrTablet ? (
           <>
             <DetectionModeSwitch value={detectionMode} onChange={setDetectionMode} />
             <MobileInputControls detectionMode={detectionMode} />

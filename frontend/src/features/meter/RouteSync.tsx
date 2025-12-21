@@ -31,16 +31,19 @@ export function RouteSync() {
     }
     // On mobile/tablet, always redirect to root (routing is disabled)
     if (location.pathname !== '/') {
-      // Reset the flag when pathname changes so we can redirect again
+      // Prevent redirecting the same pathname multiple times (e.g., if effect runs
+      // multiple times before navigation completes). Once we redirect, the next
+      // effect run will see '/' and won't redirect again, naturally breaking the loop.
       if (hasRedirectedToRoot.current && lastPathRef.current === location.pathname) {
-        // Already redirected this path, skip
+        // Already redirected this exact pathname, skip to prevent duplicate redirects
         return
       }
+      // Track that we're redirecting this pathname
       hasRedirectedToRoot.current = true
       lastPathRef.current = location.pathname
       navigate('/', { replace: true })
     } else {
-      // We're on root, reset the flag for next navigation
+      // We're on root, reset the flag so future non-root navigations can be redirected
       hasRedirectedToRoot.current = false
     }
   }, [isTabletOrMobile, location.pathname, navigate])

@@ -112,6 +112,9 @@
     --meter-padding: 1.5rem;
     --meter-aspect-ratio: calc(3 / 4);
 
+    /* Cable jack dimensions */
+    --cable-jack-width: 22px;
+
     color-scheme: light dark;
   }
 
@@ -1781,6 +1784,15 @@
      ======================================== */
 
   .detection-switch {
+    /* Reset default button styles */
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    margin-block-start: 0.5rem;
+    font: inherit;
+    color: inherit;
+    /* Layout */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1788,7 +1800,6 @@
     cursor: pointer;
     user-select: none;
     outline: none;
-    margin-block-start: 0.5rem;
   }
 
   .detection-switch:focus-visible {
@@ -2316,8 +2327,8 @@
   position: absolute;
   bottom: 0.75rem;
   left: 0.75rem;
-  width: 22px;
-  height: 22px;
+  width: var(--cable-jack-width);
+  height: var(--cable-jack-width);
   border-radius: 50%;
   /* Steel bezel base */
   background: radial-gradient(circle at 35% 35%, #7b7b7b, #3b3b3b 60%, #1a1a1a 100%);
@@ -2681,8 +2692,6 @@ body:has(.audio-recorder__modal) .detector-jack {
     max-width: 450px;
     height: auto;
     padding-top: 0;
-    /* Extra bottom padding for send button positioned next to cable jack */
-    padding-bottom: 3rem;
   }
 
   .meter__display {
@@ -2743,8 +2752,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-cable {
     display: block;
     position: absolute;
-    bottom: calc(0.75rem + 11px - 2px);
-    right: calc(100% - (0.75rem + 11px));
+    bottom: calc(0.75rem + var(--cable-jack-width) / 2 - 2px);
+    right: calc(100% - (0.75rem + var(--cable-jack-width) / 2));
     width: 120vw;
     height: 5px;
     background: linear-gradient(180deg, #2a2a2a, #444);
@@ -2792,7 +2801,9 @@ body:has(.audio-recorder__modal) .detector-jack {
     gap: 0.75rem;
     width: 100%;
     padding: 0.75rem;
-    padding-bottom: 0;
+    /* Extra bottom padding for absolutely positioned send button */
+    padding-bottom: 3rem;
+    position: relative; /* Establish positioning context for absolutely positioned send button */
     background: transparent;
   }
 
@@ -2924,8 +2935,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-input-controls__send {
     position: absolute;
     bottom: 0.5rem;
-    /* Position to the right of the cable jack (jack is at left: 0.75rem, width ~22px) */
-    left: calc(0.75rem + 22px + 0.75rem);
+    /* Position to the right of the cable jack (jack is at left: 0.75rem, width from --cable-jack-width) */
+    left: calc(0.75rem + var(--cable-jack-width) + 0.75rem);
     right: 0.75rem;
   }
 

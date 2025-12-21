@@ -68,6 +68,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
   let recognition: InstanceType<SpeechRecognitionType> | null = null
   let listening = false
   let shouldRestart = false
+  let isStarting = false // Flag to prevent concurrent start attempts
 
   return {
     name: 'Web Speech API',
@@ -82,11 +83,12 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
         throw new Error('Web Speech API not supported')
       }
 
-      if (recognition) {
-        log('Already running, ignoring start()')
+      if (recognition || isStarting) {
+        log('Already running or starting, ignoring start()')
         return
       }
 
+      isStarting = true
       log('Starting...')
       callbacks.onStatusChange('loading')
 
@@ -99,6 +101,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
       recognition.onstart = () => {
         log('Started listening')
         listening = true
+        isStarting = false
         callbacks.onStatusChange('listening')
       }
 
@@ -160,13 +163,22 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
       recognition.onend = () => {
         log('Ended, shouldRestart:', shouldRestart)
         listening = false
+        isStarting = false
+
+        // Capture the current recognition instance to avoid race conditions
+        // if start() is called while this handler is executing
+        const currentRecognition = recognition
 
         // Auto-restart if we didn't intentionally stop
         // Web Speech API tends to stop after silence
-        if (shouldRestart && recognition) {
+        if (shouldRestart && currentRecognition) {
           log('Auto-restarting...')
           try {
-            recognition.start()
+            // Only restart if this is still the current recognition instance
+            // (prevents race condition if start() was called during handler execution)
+            if (recognition === currentRecognition) {
+              currentRecognition.start()
+            }
           } catch (e) {
             logError('Failed to restart:', e)
             // Notify consumers that restart failed
@@ -178,7 +190,10 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             shouldRestart = false
             // Null recognition to allow recovery: start() will create a new instance when recognition is null.
             // This enables recovery from transient errors (consumer can call start() again).
-            recognition = null
+            // Only null if this is still the current instance (prevents race condition)
+            if (recognition === currentRecognition) {
+              recognition = null
+            }
           }
         }
       }
@@ -189,6 +204,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
     stop(): void {
       log('Stopping...')
       shouldRestart = false
+      isStarting = false
       if (recognition) {
         try {
           recognition.stop()

@@ -56,6 +56,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   const startTimeRef = useRef<number>(0)
   const timerIntervalRef = useRef<number | null>(null)
   const isRecordingRef = useRef<boolean>(false)
+  const isStartingRecordingRef = useRef<boolean>(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const micBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -125,12 +126,18 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       return
     }
 
-    if (isRecording) {
-      // Already recording, ignore duplicate call
+    // Use ref to prevent race conditions from rapid calls
+    // Check both state and ref to handle concurrent calls before state updates
+    if (isRecording || isStartingRecordingRef.current) {
+      // Already recording or starting, ignore duplicate call
       return
     }
 
+    // Set flag synchronously to prevent concurrent getUserMedia calls
+    isStartingRecordingRef.current = true
+
     if (!navigator.mediaDevices?.getUserMedia) {
+      isStartingRecordingRef.current = false
       setError('Audio recording not supported in this browser.')
       return
     }
@@ -150,6 +157,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      // Check again after async operation - another call may have started
+      if (isRecordingRef.current || mediaStreamRef.current) {
+        // Another recording started, stop this stream and return
+        stream.getTracks().forEach(track => track.stop())
+        isStartingRecordingRef.current = false
+        return
+      }
+
       mediaStreamRef.current = stream
 
       const preferredTypes = [
@@ -189,9 +205,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       startTimer()
       startSpeechRecognition()
       setIsRecording(true)
+      isStartingRecordingRef.current = false
       // Dismiss first-time overlay on mobile/tablet when recording starts
       localStorage.setItem(STORAGE_KEY, 'true')
     } catch (err) {
+      isStartingRecordingRef.current = false
       const message = err instanceof Error ? err.message : 'Microphone permission denied'
       setError(message)
     }
@@ -220,6 +238,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     stopTimer()
     stopSpeechRecognition()
     setIsRecording(false)
+    isStartingRecordingRef.current = false
   }, [isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition])
 
   const discardRecording = useCallback(() => {
@@ -450,13 +469,18 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       // Ignore if user is typing in an input/textarea or contenteditable element
       const target = e.target as HTMLElement | null
       if (target) {
-        // Check if target itself is contenteditable (handles all values: true, "", inherit)
-        if (target.isContentEditable) {
+        // Check if target itself is an input/textarea or contenteditable
+        if (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.getAttribute('role') === 'textbox'
+        ) {
           return
         }
         // Check if target is inside an editable ancestor
         // Note: [contenteditable] matches any contenteditable attribute, but we need to filter
-        // out contenteditable="false". Using closest with manual check for better accuracy.
+        // out contenteditable="false". Using manual traversal for better accuracy.
         let ancestor: HTMLElement | null = target.parentElement
         while (ancestor) {
           if (
@@ -545,13 +569,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       stopSpeechRecognition()
       // Cleanup waveform
       cleanupWaveform()
+      // Reset starting flag
+      isStartingRecordingRef.current = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // Empty dependencies - only run cleanup on unmount.
   // Note: stopSpeechRecognition() and cleanupWaveform() are called here even though their
   // identities may change. This is safe because:
-  // 1. cleanupWaveform is stable (useCallback with empty deps)
+  // 1. cleanupWaveform is stable (verified: useCallback with empty deps in useWaveform.ts)
   // 2. stopSpeechRecognition accesses engineRef.current internally (a ref), so it works
   //    correctly even if called with a stale closure
   // 3. This cleanup only runs on unmount, so function identity changes don't matter

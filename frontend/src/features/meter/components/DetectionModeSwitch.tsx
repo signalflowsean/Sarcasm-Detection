@@ -62,13 +62,14 @@ const DetectionModeSwitch: React.FC<DetectionModeSwitchProps> = ({
   const instructionsId = 'detection-mode-switch-instructions'
 
   return (
-    <div
+    <button
+      type="button"
       className={`detection-switch ${disabled ? 'detection-switch--disabled' : ''}`}
       role="switch"
       aria-checked={!isLexical}
       aria-label={`Detection mode: ${modeLabel}`}
       aria-describedby={instructionsId}
-      tabIndex={disabled ? -1 : 0}
+      disabled={disabled}
       onClick={handleToggle}
       onKeyDown={handleKeyDown}
       data-testid="detection-mode-switch"
@@ -106,7 +107,7 @@ const DetectionModeSwitch: React.FC<DetectionModeSwitchProps> = ({
         <span className={`detection-switch__label ${isLexical ? 'is-active' : ''}`}>Text</span>
         <span className={`detection-switch__label ${!isLexical ? 'is-active' : ''}`}>Audio</span>
       </div>
-    </div>
+    </button>
   )
 }
 

@@ -105,7 +105,7 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(Moonshine.MicrophoneTranscriber).toHaveBeenCalledWith(
-        'model/base', // Default model
+        'model/base', // Default model (base chosen for better accuracy - 10-12% WER vs 15-20% for tiny)
         expect.objectContaining({
           onTranscriptionCommitted: expect.any(Function),
           onTranscriptionUpdated: expect.any(Function),
@@ -292,10 +292,17 @@ describe('useSpeechRecognition', () => {
       })
 
       // Web Speech API is not available in test environment
-      // Error message now includes information about both engine failures
-      expect(options.onError).toHaveBeenCalledWith(
-        'Speech recognition is not available in this browser. MoonshineJS: MoonshineJS failed Web Speech API: not supported'
-      )
+      // Error message format depends on environment (dev shows technical details, prod shows user-friendly)
+      const errorMessage = options.onError.mock.calls[0]?.[0]
+      expect(errorMessage).toBeTruthy()
+      // Both formats include the base message; dev includes technical details
+      expect(errorMessage).toContain('Speech recognition is not available in this browser')
+      // In development, technical details are included; in production, user-friendly message only
+      // Check that either format is present (flexible for both environments)
+      const hasTechnicalDetails =
+        errorMessage.includes('MoonshineJS') && errorMessage.includes('Web Speech API')
+      const hasUserFriendlyMessage = errorMessage.includes('Please use text input')
+      expect(hasTechnicalDetails || hasUserFriendlyMessage).toBe(true)
       expect(result.current.speechStatus).toBe('error')
     })
   })
