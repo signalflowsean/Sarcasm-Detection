@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createMoonshineEngine } from './moonshineEngine'
 import type { SpeechEngine, SpeechStatus, TranscriptUpdate } from './types'
+import { INITIALIZATION_CANCELLED_ERROR } from './types'
 import { createWebSpeechEngine } from './webSpeechEngine'
 
 export type { SpeechStatus, TranscriptUpdate }
@@ -115,7 +116,7 @@ export function useSpeechRecognition({
         } catch (err) {
           // Check if stop() was called during start() - if so, don't fallback
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          const wasIntentionallyStopped = errorMessage.includes('was stopped during initialization')
+          const wasIntentionallyStopped = errorMessage === INITIALIZATION_CANCELLED_ERROR
 
           if (wasIntentionallyStopped) {
             log(

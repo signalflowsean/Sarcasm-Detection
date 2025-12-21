@@ -17,6 +17,7 @@
 
 import * as Moonshine from '@moonshine-ai/moonshine-js'
 import type { SpeechEngine, SpeechEngineCallbacks } from './types'
+import { INITIALIZATION_CANCELLED_ERROR } from './types'
 
 const LOG_PREFIX = '[Moonshine]'
 
@@ -110,7 +111,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // to prevent fallback to Web Speech API
       if (wasStopped || !transcriber) {
         log('Start was interrupted by stop() call')
-        throw new Error('Speech recognition initialization was cancelled by user')
+        throw new Error(INITIALIZATION_CANCELLED_ERROR)
       }
 
       log('Started, isListening:', transcriber.isListening())

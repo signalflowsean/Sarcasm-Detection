@@ -40,3 +40,10 @@ export interface SpeechEngine {
 }
 
 export type SpeechEngineFactory = (callbacks: SpeechEngineCallbacks) => SpeechEngine
+
+/**
+ * Error message thrown when speech recognition initialization is cancelled by user.
+ * Used to prevent fallback to alternative engines when user intentionally stops.
+ */
+export const INITIALIZATION_CANCELLED_ERROR =
+  'Speech recognition initialization was cancelled by user'
