@@ -42,6 +42,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Create a stable ref for isRecording that speech recognition needs
   const isRecordingRef = useRef<boolean>(false)
 
+  // Track previous lexical mode to only run cleanup on transitions
+  const prevIsLexicalRef = useRef<boolean>(isLexical)
+
   /**
    * Refs for handlers that break circular dependency between hooks:
    *
@@ -169,7 +172,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
   // Clear audio state when switching to lexical mode
   useEffect(() => {
-    if (isLexical) {
+    // Only run cleanup when transitioning from prosodic to lexical mode
+    const wasProsodic = !prevIsLexicalRef.current
+    const isNowLexical = isLexical
+
+    if (wasProsodic && isNowLexical) {
       // Stop any active recording
       if (state.isRecording) {
         stopRecording()
@@ -187,15 +194,13 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         discardRecording()
       }
     }
-  }, [
-    isLexical,
-    state.isRecording,
-    state.audioBlob,
-    state.audioUrl,
-    stopRecording,
-    discardRecording,
-    audioRef,
-  ])
+
+    // Update ref for next comparison
+    prevIsLexicalRef.current = isLexical
+    // Only depend on isLexical. Function references and state values don't need to trigger
+    // re-execution - we only want to run cleanup when isLexical changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLexical])
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Derived state (mode-aware)
