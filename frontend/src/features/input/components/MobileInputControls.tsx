@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/useDetection'
 import { sendLexicalText, sendProsodicAudio } from '../apiService'
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useWaveform } from '../hooks/useWaveform'
-import { clamp01, formatDuration, isMacPlatform } from '../utils'
-import SharedTextArea from './SharedTextArea'
+import { formatDuration, isMacPlatform } from '../utils'
 import MicButton from './MicButton'
-
-type DetectionMode = 'lexical' | 'prosodic'
+import SharedTextArea from './SharedTextArea'
+import SpeechStatus from './SpeechStatus'
 
 type MobileInputControlsProps = {
   detectionMode: DetectionMode
@@ -41,7 +41,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackMs, setPlaybackMs] = useState(0)
-  const [audioDurationMs, setAudioDurationMs] = useState(0)
 
   // Detection context
   const { setLoading, setDetectionResult } = useDetection()
@@ -61,15 +60,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     isRecordingRef.current = isRecording
   }, [isRecording])
 
-  // Waveform hook
-  const {
-    canvasRef,
-    setupWaveform,
-    cleanupWaveform,
-    invalidatePeaks,
-    computePeaksFromBlob,
-    resetWaveform,
-  } = useWaveform({ isRecording })
+  // Waveform hook (canvasRef not used in mobile - no waveform display)
+  const { setupWaveform, cleanupWaveform, invalidatePeaks, computePeaksFromBlob, resetWaveform } =
+    useWaveform({ isRecording })
 
   // Speech recognition
   const handleTranscriptUpdate = useCallback(
@@ -134,7 +127,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     setInterimTranscript('')
     setError(null)
     setPlaybackMs(0)
-    setAudioDurationMs(0)
     resetWaveform()
 
     try {
@@ -147,13 +139,14 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         'audio/ogg;codecs=opus',
         'audio/mp4',
       ]
-      const chosenType = preferredTypes.find(t => {
-        try {
-          return MediaRecorder.isTypeSupported(t)
-        } catch {
-          return false
-        }
-      }) || null
+      const chosenType =
+        preferredTypes.find(t => {
+          try {
+            return MediaRecorder.isTypeSupported(t)
+          } catch {
+            return false
+          }
+        }) || null
 
       const mr = new MediaRecorder(stream, chosenType ? { mimeType: chosenType } : undefined)
       audioChunksRef.current = []
@@ -181,7 +174,17 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       const message = err instanceof Error ? err.message : 'Microphone permission denied'
       setError(message)
     }
-  }, [isRecording, isLexical, audioUrl, invalidatePeaks, resetWaveform, setupWaveform, startTimer, startSpeechRecognition, computePeaksFromBlob])
+  }, [
+    isRecording,
+    isLexical,
+    audioUrl,
+    invalidatePeaks,
+    resetWaveform,
+    setupWaveform,
+    startTimer,
+    startSpeechRecognition,
+    computePeaksFromBlob,
+  ])
 
   const stopRecording = useCallback(() => {
     if (!isRecording) return
@@ -212,7 +215,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     setTranscript('')
     setInterimTranscript('')
     setPlaybackMs(0)
-    setAudioDurationMs(0)
     resetWaveform()
   }, [stopRecording, audioUrl, resetWaveform])
 
@@ -224,7 +226,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       if (!Number.isNaN(el.duration) && Math.abs(el.currentTime - el.duration) < 0.05) {
         el.currentTime = 0
       }
-      el.play().then(() => setIsPlaying(true)).catch(() => {})
+      el.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {})
     } else {
       el.pause()
     }
@@ -239,7 +243,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     const onTimeUpdate = () => setPlaybackMs(Math.max(0, el.currentTime * 1000))
     const onLoadedMetadata = () => {
       setPlaybackMs(0)
-      setAudioDurationMs(Number.isFinite(el.duration) ? el.duration * 1000 : 0)
     }
 
     el.addEventListener('ended', onEnded)
@@ -277,6 +280,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           prosodicReliable: true,
         })
         setText('')
+        setLoading(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
         setLoading(false)
@@ -304,6 +308,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         })
         discardRecording()
         setText('')
+        setLoading(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
         setLoading(false)
@@ -311,7 +316,16 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         setIsSending(false)
       }
     }
-  }, [isLexical, text, transcript, interimTranscript, audioBlob, setLoading, setDetectionResult, discardRecording])
+  }, [
+    isLexical,
+    text,
+    transcript,
+    interimTranscript,
+    audioBlob,
+    setLoading,
+    setDetectionResult,
+    discardRecording,
+  ])
 
   // Mic button handlers
   const onMicClick = useCallback(() => {
@@ -319,20 +333,26 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     else startRecording()
   }, [isRecording, stopRecording, startRecording])
 
-  const onMicKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.code === 'Enter') {
-      onMicClick()
-      e.preventDefault()
-    }
-  }, [onMicClick])
+  const onMicKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.code === 'Enter') {
+        onMicClick()
+        e.preventDefault()
+      }
+    },
+    [onMicClick]
+  )
 
   // Keyboard shortcut for send (on the container)
-  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      handleSend()
-    }
-  }, [handleSend])
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSend()
+      }
+    },
+    [handleSend]
+  )
 
   // Platform detection for shortcut display
   const isMac = isMacPlatform()
@@ -372,17 +392,26 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [canPlay, canDiscard, isProsodic, isPlaying, isSending, togglePlay, discardRecording, onMicClick])
+  }, [
+    canPlay,
+    canDiscard,
+    isProsodic,
+    isPlaying,
+    isSending,
+    togglePlay,
+    discardRecording,
+    onMicClick,
+  ])
 
   // Determine what to show in textarea
   // In prosodic mode: show transcription (readonly)
   // In lexical mode: editable text input
-  const textareaValue = isProsodic
-    ? (transcript + ' ' + interimTranscript).trim()
-    : text
+  const textareaValue = isProsodic ? (transcript + ' ' + interimTranscript).trim() : text
 
   const textareaPlaceholder = isProsodic
-    ? (speechStatus === 'loading' ? 'Loading speech model...' : 'Transcription will appear here...')
+    ? speechStatus === 'loading'
+      ? 'Loading speech model...'
+      : 'Transcription will appear here...'
     : 'Type something here and send it to the detector...'
 
   // Can send logic
@@ -403,12 +432,16 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       <div className="mobile-input-controls__textarea">
         <SharedTextArea
           value={textareaValue}
-          onChange={isProsodic ? undefined : (newText) => {
-            setText(newText)
-            if (newText.length > 0 && !hasEverTyped) {
-              setHasEverTyped(true)
-            }
-          }}
+          onChange={
+            isProsodic
+              ? undefined
+              : newText => {
+                  setText(newText)
+                  if (newText.length > 0 && !hasEverTyped) {
+                    setHasEverTyped(true)
+                  }
+                }
+          }
           placeholder={textareaPlaceholder}
           disabled={isSending || isProsodic}
           rows={2}
@@ -455,7 +488,10 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             </svg>
           )}
           {canPlay && (
-            <kbd className="mobile-input-controls__btn-shortcut" aria-label="Keyboard shortcut: Space">
+            <kbd
+              className="mobile-input-controls__btn-shortcut"
+              aria-label="Keyboard shortcut: Space"
+            >
               Space
             </kbd>
           )}
@@ -468,13 +504,24 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           aria-label="Discard recording"
           data-testid="mobile-trash-button"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            width="20"
+            height="20"
+            aria-hidden="true"
+          >
             <path d="M3 6h18" />
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
           </svg>
           {canDiscard && (
-            <kbd className="mobile-input-controls__btn-shortcut" aria-label="Keyboard shortcut: Delete">
+            <kbd
+              className="mobile-input-controls__btn-shortcut"
+              aria-label="Keyboard shortcut: Delete"
+            >
               Del
             </kbd>
           )}
@@ -491,16 +538,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           data-testid="mobile-send-button"
         >
           <span>{isSending ? 'Sending...' : 'Send to Detector'}</span>
-          {canSend && (
-            <kbd className="mobile-input-controls__shortcut">
-              {modifierKey}+↵
-            </kbd>
-          )}
+          {canSend && <kbd className="mobile-input-controls__shortcut">{modifierKey}+↵</kbd>}
         </button>
       </div>
 
       {/* Hidden audio element for playback */}
       <audio ref={audioRef} src={audioUrl ?? undefined} preload="metadata" />
+
+      {/* Speech status (loading/error for speech-to-text model) */}
+      <SpeechStatus status={speechStatus} isRecording={isRecording} onDismiss={resetSpeechStatus} />
 
       {/* Error display */}
       {error && (
@@ -513,4 +559,3 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 }
 
 export default MobileInputControls
-

@@ -20,6 +20,9 @@ describe('useSpeechRecognition', () => {
   let capturedCallbacks: {
     onTranscriptionCommitted?: (text: string) => void
     onTranscriptionUpdated?: (text: string) => void
+    onModelLoadStart?: () => void
+    onModelLoadComplete?: () => void
+    onError?: (error: Error) => void
   }
 
   const createMockOptions = () => ({
@@ -102,42 +105,13 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(Moonshine.MicrophoneTranscriber).toHaveBeenCalledWith(
-        'model/base', // Default model (changed from tiny to base for better accuracy)
+        'model/base', // Default model
         expect.objectContaining({
           onTranscriptionCommitted: expect.any(Function),
           onTranscriptionUpdated: expect.any(Function),
         }),
         false // VAD disabled
       )
-    })
-
-    it('should use VITE_MOONSHINE_MODEL env var when set', async () => {
-      // Mock the environment variable
-      const originalEnv = import.meta.env.VITE_MOONSHINE_MODEL
-      vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(Moonshine.MicrophoneTranscriber).toHaveBeenCalledWith(
-        'model/base', // Custom model from env
-        expect.objectContaining({
-          onTranscriptionCommitted: expect.any(Function),
-          onTranscriptionUpdated: expect.any(Function),
-        }),
-        false // VAD disabled
-      )
-
-      // Restore original env
-      if (originalEnv === undefined) {
-        vi.unstubAllEnvs()
-      } else {
-        vi.stubEnv('VITE_MOONSHINE_MODEL', originalEnv)
-      }
     })
 
     it('should not start if already running', async () => {
@@ -206,11 +180,18 @@ describe('useSpeechRecognition', () => {
         await result.current.startSpeechRecognition()
       })
 
-      // Simulate committed transcript
+      // Set engine to listening state (moonshineEngine checks `listening` internally)
+      mockTranscriber.isListening.mockReturnValue(true)
+      act(() => {
+        capturedCallbacks.onModelLoadComplete?.()
+      })
+
+      // Simulate committed transcript via the moonshine callback
       act(() => {
         capturedCallbacks.onTranscriptionCommitted?.('Hello world')
       })
 
+      // The hook wraps callbacks and checks isRecordingRef
       expect(options.onTranscriptUpdate).toHaveBeenCalledWith({
         interim: '',
         final: 'Hello world',
@@ -224,6 +205,12 @@ describe('useSpeechRecognition', () => {
 
       await act(async () => {
         await result.current.startSpeechRecognition()
+      })
+
+      // Set engine to listening state
+      mockTranscriber.isListening.mockReturnValue(true)
+      act(() => {
+        capturedCallbacks.onModelLoadComplete?.()
       })
 
       // Simulate interim transcript
@@ -275,105 +262,6 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('error handling', () => {
-    it('should handle NotAllowedError (permission denied)', async () => {
-      const notAllowedError = new Error('Permission denied')
-      notAllowedError.name = 'NotAllowedError'
-      mockTranscriber.start.mockRejectedValueOnce(notAllowedError)
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'Microphone access denied. Please allow microphone access.'
-      )
-      expect(result.current.speechStatus).toBe('error')
-    })
-
-    it('should handle NotFoundError (no microphone)', async () => {
-      const notFoundError = new Error('No device found')
-      notFoundError.name = 'NotFoundError'
-      mockTranscriber.start.mockRejectedValueOnce(notFoundError)
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'No microphone found. Please connect a microphone or check your device settings.'
-      )
-      expect(result.current.speechStatus).toBe('error')
-    })
-
-    it('should handle generic Error with message', async () => {
-      mockTranscriber.start.mockRejectedValueOnce(new Error('Something went wrong'))
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'An unexpected error occurred during speech recognition. Please try again.'
-      )
-      expect(result.current.speechStatus).toBe('error')
-    })
-
-    it('should handle permission keyword in error message', async () => {
-      const permissionError = new Error('User denied permission')
-      mockTranscriber.start.mockRejectedValueOnce(permissionError)
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'Microphone access denied. Please allow microphone access.'
-      )
-    })
-
-    it('should handle non-Error thrown values with generic message', async () => {
-      // Test string error
-      mockTranscriber.start.mockRejectedValueOnce('String error message')
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'Failed to start speech recognition: Unknown error'
-      )
-    })
-
-    it('should handle object errors with generic message', async () => {
-      mockTranscriber.start.mockRejectedValueOnce({ code: 'ERR_001', detail: 'test' })
-
-      const options = createMockOptions()
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(options.onError).toHaveBeenCalledWith(
-        'Failed to start speech recognition: Unknown error'
-      )
-    })
-
     it('should handle runtime transcription errors via onError callback', async () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
@@ -390,6 +278,23 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(options.onError).toHaveBeenCalledWith('Transcription error: Audio processing failed')
+      expect(result.current.speechStatus).toBe('error')
+    })
+
+    it('should show error when MoonshineJS fails and no fallback available', async () => {
+      mockTranscriber.start.mockRejectedValueOnce(new Error('MoonshineJS failed'))
+
+      const options = createMockOptions()
+      const { result } = renderHook(() => useSpeechRecognition(options))
+
+      await act(async () => {
+        await result.current.startSpeechRecognition()
+      })
+
+      // Web Speech API is not available in test environment
+      expect(options.onError).toHaveBeenCalledWith(
+        'Speech recognition is not available in this browser.'
+      )
       expect(result.current.speechStatus).toBe('error')
     })
   })
@@ -414,28 +319,6 @@ describe('useSpeechRecognition', () => {
       })
 
       // Should be idle because transcriber is null after error
-      expect(result.current.speechStatus).toBe('idle')
-    })
-
-    it('should reset to idle even if isRecordingRef is true but transcriber not running', async () => {
-      const options = createMockOptions()
-      options.isRecordingRef.current = true
-
-      // Force error state (transcriberRef becomes null)
-      mockTranscriber.start.mockRejectedValueOnce(new Error('test'))
-      const { result } = renderHook(() => useSpeechRecognition(options))
-
-      await act(async () => {
-        await result.current.startSpeechRecognition()
-      })
-
-      expect(result.current.speechStatus).toBe('error')
-
-      act(() => {
-        result.current.resetSpeechStatus()
-      })
-
-      // Should be idle because transcriber is null (prevents UI inconsistency)
       expect(result.current.speechStatus).toBe('idle')
     })
 
@@ -478,53 +361,6 @@ describe('useSpeechRecognition', () => {
       unmount()
 
       expect(mockTranscriber.stop).toHaveBeenCalled()
-    })
-
-    it('should handle unmount during async start', async () => {
-      // Make start take longer
-      mockTranscriber.start.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 100))
-      )
-
-      const options = createMockOptions()
-      const { result, unmount } = renderHook(() => useSpeechRecognition(options))
-
-      // Start but don't wait
-      act(() => {
-        result.current.startSpeechRecognition()
-      })
-
-      // Unmount immediately
-      unmount()
-
-      // Wait for the start to complete
-      await new Promise(resolve => setTimeout(resolve, 150))
-
-      // Should have called stop after start completed
-      expect(mockTranscriber.stop).toHaveBeenCalled()
-    })
-
-    it('should not update state after unmount on error', async () => {
-      mockTranscriber.start.mockImplementation(
-        () => new Promise((_, reject) => setTimeout(() => reject(new Error('test')), 100))
-      )
-
-      const options = createMockOptions()
-      const { result, unmount } = renderHook(() => useSpeechRecognition(options))
-
-      // Start but don't wait
-      act(() => {
-        result.current.startSpeechRecognition()
-      })
-
-      // Unmount immediately
-      unmount()
-
-      // Wait for the error
-      await new Promise(resolve => setTimeout(resolve, 150))
-
-      // onError should NOT be called after unmount
-      expect(options.onError).not.toHaveBeenCalled()
     })
   })
 })

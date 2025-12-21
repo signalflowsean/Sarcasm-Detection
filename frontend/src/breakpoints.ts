@@ -7,9 +7,9 @@
  *
  * ⚠️  IMPORTANT: If you change values here, you MUST also update:
  *     1. frontend/src/index.css - Media queries at:
- *        - Line ~2345: @media (min-width: ${TABLET_BREAKPOINT}px)  [Desktop styles]
- *        - Line ~2411: @media (max-width: ${TABLET_BREAKPOINT - 1}px)  [Tablet styles]
- *        - Line ~2639: @media (max-width: ${MOBILE_BREAKPOINT}px)  [Mobile styles]
+ *        - Line ~2490: @media (min-width: ${TABLET_BREAKPOINT}px)  [Desktop styles]
+ *        - Line ~2566: @media (max-width: ${TABLET_BREAKPOINT - 1}px)  [Tablet/Mobile styles]
+ *        - Line ~3049: @media (max-width: ${MOBILE_BREAKPOINT - 1}px)  [Mobile-only styles]
  *
  * Why can't CSS use these values directly?
  * CSS media queries don't support CSS custom properties (variables).
@@ -44,7 +44,7 @@ export const MEDIA_QUERIES = {
   /** Matches mobile layout (phones, below 768px) */
   isMobile: `(max-width: ${MOBILE_BREAKPOINT - 1}px)`,
 
-  /** Matches tablet layout (768px to 1439px) */
+  /** Matches non-desktop layout (tablet + mobile, 0px to 1439px) */
   isTablet: `(max-width: ${TABLET_BREAKPOINT - 1}px)`,
 
   /** Matches desktop layout (at or above 1440px) */
