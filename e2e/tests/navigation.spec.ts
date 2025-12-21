@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-// Use a desktop viewport to avoid the mobile modal behavior
-// The app's mobile breakpoint is 1440px
+// Use a desktop viewport to test routing (routing is disabled on mobile/tablet)
+// The app's tablet breakpoint is 1440px (TABLET_BREAKPOINT)
+// Desktop is >= 1440px
 test.use({ viewport: { width: 1500, height: 900 } });
 
-test.describe("Navigation", () => {
+test.describe("Navigation (Desktop)", () => {
   test("should navigate between modes", async ({ page }) => {
     await page.goto("/getting-started");
 
@@ -47,5 +48,35 @@ test.describe("Navigation", () => {
     // Should still be on text route
     await expect(page).toHaveURL(/text-input/);
     await expect(page.getByTestId("text-input")).toBeVisible();
+  });
+});
+
+test.describe("Navigation (Mobile/Tablet - Routing Disabled)", () => {
+  // Use mobile viewport to test that routing is disabled
+  test.use({ viewport: { width: 768, height: 1024 } });
+
+  test("should redirect all routes to root on mobile/tablet", async ({ page }) => {
+    // Try navigating to different routes
+    await page.goto("/text-input");
+    // Should redirect to root
+    await expect(page).toHaveURL("/");
+
+    await page.goto("/audio-input");
+    // Should redirect to root
+    await expect(page).toHaveURL("/");
+
+    await page.goto("/getting-started");
+    // Should redirect to root
+    await expect(page).toHaveURL("/");
+  });
+
+  test("should show mobile controls on root page", async ({ page }) => {
+    await page.goto("/");
+
+    // Mobile input controls should be visible
+    await expect(page.getByTestId("mobile-input-controls")).toBeVisible();
+
+    // Detection mode switch should be visible
+    await expect(page.getByTestId("detection-mode-switch")).toBeVisible();
   });
 });

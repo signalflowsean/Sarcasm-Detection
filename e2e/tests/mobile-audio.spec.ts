@@ -14,6 +14,9 @@ import {
  * Playwright provides real device emulation with proper touch events, viewport, and
  * user agent strings that trigger mobile code paths in the app.
  *
+ * Note: On mobile/tablet, routing is disabled and all controls are visible on one page.
+ * The detection mode switch allows switching between lexical (text) and prosodic (audio) modes.
+ *
  * Note: Speech-to-text transcript content cannot be mocked in E2E tests because
  * ES module imports (MoonshineJS) can't be intercepted at runtime. The transcript
  * tests verify the UI elements exist and recording works, but not transcript content.
@@ -36,7 +39,7 @@ async function injectMobileMocks(
 export { injectMobileMocks, loadTestAudioBase64 };
 
 // Use a small mobile viewport to trigger mobile UI
-// The app's mobile breakpoint considers touch + viewport < 1024px
+// The app's mobile breakpoint is 768px (MOBILE_BREAKPOINT)
 test.use({
   viewport: { width: 390, height: 844 },
   hasTouch: true,
@@ -56,37 +59,46 @@ test.describe("Mobile Audio Recording", () => {
     await injectMobileMocks(page, audioBase64);
   });
 
-  test("should show mobile modal launcher on audio page", async ({ page }) => {
-    await page.goto("/audio-input");
+  test("should show mobile input controls on root page", async ({ page }) => {
+    await page.goto("/");
 
-    // On mobile, should see the floating launcher button
-    const launcher = page.locator(".audio-recorder__launcher");
-    await expect(launcher).toBeVisible();
+    // On mobile, routing is disabled - everything is on one page
+    await expect(page).toHaveURL("/");
+
+    // Mobile input controls should be visible (not in a modal)
+    const mobileControls = page.getByTestId("mobile-input-controls");
+    await expect(mobileControls).toBeVisible();
+
+    // Detection mode switch should be visible
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await expect(modeSwitch).toBeVisible();
   });
 
-  test("should open mobile modal when launcher tapped", async ({ page }) => {
-    await page.goto("/audio-input");
-
-    const launcher = page.locator(".audio-recorder__launcher");
-    await expect(launcher).toBeVisible();
-
-    // Tap the launcher
-    await launcher.tap();
-
-    // Modal should open
-    await expect(page.locator(".audio-recorder__modal")).toBeVisible();
-
-    // Mic button should be visible in modal
-    await expect(page.getByTestId("mic-button")).toBeVisible();
-  });
-
-  test("should record audio in mobile modal", async ({ page }) => {
-    await page.goto("/audio-input");
+  test("should switch to prosodic (audio) mode", async ({ page }) => {
+    await page.goto("/");
     await waitForAudioMocksReady(page);
 
-    // Open modal
-    const launcher = page.locator(".audio-recorder__launcher");
-    await launcher.tap();
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await expect(modeSwitch).toBeVisible();
+
+    // By default, should be in lexical (text) mode
+    // Click the switch to toggle to prosodic (audio) mode
+    // The switch toggles between left (lexical) and right (prosodic)
+    await modeSwitch.click();
+
+    // Mic button should now be enabled (not disabled by lexical mode)
+    const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeVisible();
+    await expect(micButton).toBeEnabled();
+  });
+
+  test("should record audio in prosodic mode", async ({ page }) => {
+    await page.goto("/");
+    await waitForAudioMocksReady(page);
+
+    // Switch to prosodic mode
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await modeSwitch.click();
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeVisible();
@@ -102,35 +114,36 @@ test.describe("Mobile Audio Recording", () => {
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Should have send button
-    await expect(page.getByTestId("send-button")).toBeVisible();
+    await expect(page.getByTestId("mobile-send-button")).toBeVisible();
   });
 
   test("should have transcript area visible during recording", async ({
     page,
   }) => {
-    await page.goto("/audio-input");
+    await page.goto("/");
     await waitForAudioMocksReady(page);
 
-    // Open modal
-    await page.locator(".audio-recorder__launcher").tap();
+    // Switch to prosodic mode
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await modeSwitch.click();
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeEnabled();
     await micButton.tap({ force: true });
     await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
 
-    // Transcript area should be visible and accessible
-    const transcript = page.locator(".audio-recorder__transcript");
-    await expect(transcript).toBeVisible();
-    await expect(transcript).toHaveAttribute("aria-label", "Speech transcript");
+    // Transcript area should be visible (readonly in prosodic mode)
+    const textarea = page.locator(".mobile-input-controls__textarea textarea");
+    await expect(textarea).toBeVisible();
+    await expect(textarea).toBeDisabled(); // Readonly in prosodic mode
 
     // Stop recording
     await micButton.tap({ force: true });
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Send button should be available after recording
-    await expect(page.getByTestId("send-button")).toBeVisible();
-    await expect(page.getByTestId("send-button")).toBeEnabled();
+    await expect(page.getByTestId("mobile-send-button")).toBeVisible();
+    await expect(page.getByTestId("mobile-send-button")).toBeEnabled();
   });
 });
 
@@ -140,22 +153,23 @@ test.describe("Mobile Audio UI", () => {
     await injectMobileMocks(page, audioBase64);
   });
 
-  test("should show correct placeholder in transcript area", async ({
+  test("should show correct placeholder in transcript area for prosodic mode", async ({
     page,
   }) => {
-    await page.goto("/audio-input");
+    await page.goto("/");
     await waitForAudioMocksReady(page);
 
-    // Open modal
-    await page.locator(".audio-recorder__launcher").tap();
+    // Switch to prosodic mode
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await modeSwitch.click();
 
-    const transcript = page.locator(".audio-recorder__transcript");
-    await expect(transcript).toBeVisible();
+    const textarea = page.locator(".mobile-input-controls__textarea textarea");
+    await expect(textarea).toBeVisible();
 
-    // Placeholder should show "Speak to transcribe..." or "Loading speech model..."
-    const placeholder = await transcript.getAttribute("placeholder");
+    // Placeholder should show "Transcription will appear here..." or "Loading speech model..."
+    const placeholder = await textarea.getAttribute("placeholder");
     expect(
-      placeholder?.includes("Speak to transcribe") ||
+      placeholder?.includes("Transcription will appear here") ||
         placeholder?.includes("Loading speech model"),
     ).toBe(true);
   });
@@ -163,11 +177,12 @@ test.describe("Mobile Audio UI", () => {
   test("should complete full recording workflow on mobile", async ({
     page,
   }) => {
-    await page.goto("/audio-input");
+    await page.goto("/");
     await waitForAudioMocksReady(page);
 
-    // Open modal
-    await page.locator(".audio-recorder__launcher").tap();
+    // Switch to prosodic mode
+    const modeSwitch = page.getByTestId("detection-mode-switch");
+    await modeSwitch.click();
 
     const micButton = page.getByTestId("mic-button");
     await expect(micButton).toBeEnabled();
@@ -184,10 +199,54 @@ test.describe("Mobile Audio UI", () => {
     await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
 
     // Verify all controls are available
-    await expect(page.getByTestId("send-button")).toBeVisible();
-    await expect(page.getByTestId("send-button")).toBeEnabled();
-    await expect(page.getByTestId("discard-button")).toBeVisible();
-    await expect(page.getByTestId("discard-button")).toBeEnabled();
-    await expect(page.getByTestId("play-button")).toBeVisible();
+    await expect(page.getByTestId("mobile-send-button")).toBeVisible();
+    await expect(page.getByTestId("mobile-send-button")).toBeEnabled();
+    await expect(page.getByTestId("mobile-trash-button")).toBeVisible();
+    await expect(page.getByTestId("mobile-trash-button")).toBeEnabled();
+    await expect(page.getByTestId("mobile-play-button")).toBeVisible();
+  });
+
+  test("should disable audio controls in lexical mode", async ({ page }) => {
+    await page.goto("/");
+
+    // Should be in lexical mode by default
+    const mobileControls = page.getByTestId("mobile-input-controls");
+    await expect(mobileControls).toHaveAttribute("data-mode", "lexical");
+
+    // Audio controls should be visible but disabled
+    const micButton = page.getByTestId("mic-button");
+    await expect(micButton).toBeVisible();
+    await expect(micButton).toBeDisabled();
+
+    const playButton = page.getByTestId("mobile-play-button");
+    await expect(playButton).toBeVisible();
+    await expect(playButton).toBeDisabled();
+
+    const discardButton = page.getByTestId("mobile-trash-button");
+    await expect(discardButton).toBeVisible();
+    await expect(discardButton).toBeDisabled();
+  });
+
+  test("should show info button on mobile", async ({ page }) => {
+    await page.goto("/");
+
+    // Info button should be visible on mobile/tablet
+    const infoButton = page.locator(".meter__info-button");
+    await expect(infoButton).toBeVisible();
+    await expect(infoButton).toHaveAttribute("aria-label", "Open getting started guide");
+  });
+
+  test("should open getting started modal when info button clicked", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const infoButton = page.locator(".meter__info-button");
+    await infoButton.click();
+
+    // Modal should open with getting started content
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
   });
 });

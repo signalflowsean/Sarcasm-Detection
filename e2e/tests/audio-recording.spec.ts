@@ -19,8 +19,9 @@ async function clickMicButton(page: Page) {
   });
 }
 
-// Use a desktop viewport to avoid the mobile modal behavior
-// The app's mobile breakpoint is 1440px
+// Use a desktop viewport to test desktop audio recording behavior
+// The app's tablet breakpoint is 1440px (TABLET_BREAKPOINT)
+// Desktop is >= 1440px
 test.use({ viewport: { width: 1500, height: 900 } });
 
 /**
