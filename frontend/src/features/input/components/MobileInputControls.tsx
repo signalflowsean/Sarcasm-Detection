@@ -495,22 +495,28 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Cleanup timer and media resources on unmount
   useEffect(() => {
     return () => {
-      // Stop timer if running
-      stopTimer()
+      // Stop timer if running (access ref directly to avoid stale closure)
+      if (timerIntervalRef.current != null) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
+      }
       // Stop media recorder if active
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop()
+        mediaRecorderRef.current = null
       }
       // Stop all media tracks
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop())
+        mediaStreamRef.current = null
       }
       // Stop speech recognition
       stopSpeechRecognition()
       // Cleanup waveform
       cleanupWaveform()
     }
-  }, [stopTimer, stopSpeechRecognition, cleanupWaveform])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependencies - only run cleanup on unmount. Functions access refs internally, so safe to call.
 
   // Determine what to show in textarea
   // In prosodic mode: show transcription (readonly)
