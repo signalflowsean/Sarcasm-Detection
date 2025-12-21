@@ -110,7 +110,15 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
   // Recording functions
   const startRecording = useCallback(async () => {
-    if (isRecording || isLexical) return
+    if (isLexical) {
+      // Recording is disabled in lexical mode
+      return
+    }
+
+    if (isRecording) {
+      // Already recording, ignore duplicate call
+      return
+    }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Audio recording not supported in this browser.')
@@ -280,12 +288,11 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           prosodicReliable: true,
         })
         setText('')
-        setLoading(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
-        setLoading(false)
       } finally {
         setIsSending(false)
+        setLoading(false)
       }
     } else {
       // Prosodic mode
@@ -311,9 +318,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         setLoading(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send')
-        setLoading(false)
       } finally {
         setIsSending(false)
+        setLoading(false)
       }
     }
   }, [
@@ -365,10 +372,18 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   // Global keyboard shortcuts for audio controls
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input/textarea
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        return
+      // Ignore if user is typing in an input/textarea or contenteditable element
+      const target = e.target as HTMLElement | null
+      if (target) {
+        if (target.isContentEditable) {
+          return
+        }
+        const textLikeAncestor = target.closest(
+          'input, textarea, [contenteditable="true"], [role="textbox"]'
+        )
+        if (textLikeAncestor) {
+          return
+        }
       }
 
       // Space - toggle play/pause

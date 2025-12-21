@@ -12,8 +12,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createMoonshineEngine } from './moonshineEngine'
-import { createWebSpeechEngine } from './webSpeechEngine'
 import type { SpeechEngine, SpeechStatus, TranscriptUpdate } from './types'
+import { createWebSpeechEngine } from './webSpeechEngine'
 
 export type { SpeechStatus, TranscriptUpdate }
 
@@ -158,7 +158,10 @@ export function useSpeechRecognition({
     stopSpeechRecognition,
     speechStatus,
     resetSpeechStatus,
-    /** The name of the currently active engine (for debugging) */
+    /**
+     * The name of the currently active engine (MoonshineJS or Web Speech API).
+     * @internal For debugging purposes only.
+     */
     activeEngine,
   }
 }

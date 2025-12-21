@@ -2714,6 +2714,11 @@ body:has(.audio-recorder__modal) .detector-jack {
     overflow: visible;
   }
 
+  /* Hide input container on mobile/tablet - controls are in meter */
+  .input-container--mobile-hidden {
+    display: none;
+  }
+
   /* Hide desktop cable overlay on mobile */
   .cable-overlay {
     display: none;

@@ -147,6 +147,10 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
           case 'aborted':
             // User or code stopped it, not an error
             break
+          case 'audio-capture':
+            callbacks.onError('Audio capture failed. Your device may not support audio input.')
+            callbacks.onStatusChange('error')
+            break
           default:
             callbacks.onError(`Speech recognition error: ${event.error}`)
             callbacks.onStatusChange('error')

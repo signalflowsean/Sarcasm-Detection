@@ -17,12 +17,19 @@ export function RouteSync() {
   const { value, setValue } = useWhichInput()
   const isInitialMount = useRef(true)
   const isTabletOrMobile = useMediaQuery(MEDIA_QUERIES.isTablet)
+  const hasRedirectedToRoot = useRef(false)
 
   // On mobile/tablet, skip route sync - single page experience
   // Just ensure we're on a valid route on initial load
   useEffect(() => {
-    if (isTabletOrMobile && location.pathname !== '/') {
+    if (!isTabletOrMobile) {
+      hasRedirectedToRoot.current = false
+      return
+    }
+    if (hasRedirectedToRoot.current) return
+    if (location.pathname !== '/') {
       // Redirect to root on mobile/tablet to avoid route confusion
+      hasRedirectedToRoot.current = true
       navigate('/', { replace: true })
     }
   }, [isTabletOrMobile, location.pathname, navigate])
