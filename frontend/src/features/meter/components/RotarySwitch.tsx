@@ -1,6 +1,6 @@
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
-import { useWhichInput } from '../useWhichInput'
-import { angleFromPoints, circularDistance, normalizeDegrees } from '../utils'
+import { useWhichInput } from '../hooks/useWhichInput'
+import { angleFromPoints, circularDistance, normalizeDegrees } from '../utils/utils'
 import { DefaultIcon } from './icons'
 
 type CSSVarProps = React.CSSProperties & Record<`--${string}`, string | number>

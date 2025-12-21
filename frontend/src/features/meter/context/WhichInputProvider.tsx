@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import type { WhichInputOption } from './constants'
-import { DEFAULT_POSITIONS, PATH_TO_VALUE } from './constants'
-import { WhichInputCtx, type WhichInputContext } from './useWhichInput'
+import { WhichInputCtx, type WhichInputContext } from '../hooks/useWhichInput'
+import type { WhichInputOption } from '../utils/constants'
+import { DEFAULT_POSITIONS, PATH_TO_VALUE } from '../utils/constants'
 
 type ProviderProps = {
   children: React.ReactNode

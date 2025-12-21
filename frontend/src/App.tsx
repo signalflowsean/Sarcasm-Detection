@@ -1,10 +1,46 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import MeterSection from './features/meter'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { MEDIA_QUERIES } from './breakpoints'
 import InputContainer from './features/input/InputContainer'
 import CableOverlay from './features/input/components/CableOverlay'
+import { useMediaQuery } from './features/input/hooks'
+import MeterSection from './features/meter'
 import { RouteSync } from './features/meter/RouteSync'
-import { DetectionProvider } from './features/meter/DetectionProvider'
 import FirstTimeOverlay from './features/meter/components/FirstTimeOverlay'
+import { DetectionProvider } from './features/meter/context/DetectionProvider'
+
+/**
+ * Conditional root route component.
+ * On desktop: redirects to /getting-started
+ * On mobile/tablet: renders InputContainer directly (routing is disabled)
+ */
+const RootRoute = () => {
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+
+  // On mobile/tablet, render InputContainer directly (RouteSync handles keeping route at /)
+  // On desktop, redirect to /getting-started
+  if (isMobileOrTablet) {
+    return <InputContainer />
+  }
+
+  return <Navigate to="/getting-started" replace />
+}
+
+/**
+ * Catch-all route component for invalid paths.
+ * On desktop: redirects to /getting-started
+ * On mobile/tablet: redirects to / (routing is disabled, RouteSync will keep it at /)
+ */
+const CatchAllRoute = () => {
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+
+  // On mobile/tablet, redirect to root (RouteSync will keep it there)
+  // On desktop, redirect to /getting-started
+  if (isMobileOrTablet) {
+    return <Navigate to="/" replace />
+  }
+
+  return <Navigate to="/getting-started" replace />
+}
 
 const App = () => {
   return (
@@ -19,9 +55,9 @@ const App = () => {
             <h2 className="subtitle">A signalflowsean production</h2>
           </div>
           <Routes>
-            <Route path="/" element={<Navigate to="/getting-started" replace />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/:mode" element={<InputContainer />} />
-            <Route path="*" element={<Navigate to="/getting-started" replace />} />
+            <Route path="*" element={<CatchAllRoute />} />
           </Routes>
         </section>
         <MeterSection />

@@ -1,5 +1,5 @@
-import type { Tick } from './types'
-import { SMALL, LARGE } from './constants'
+import type { Tick } from '../types'
+import { LARGE, SMALL } from './constants'
 
 export const generateTicks = ({ numberOfTicks = 7, largeTickInterval = 2 }): Tick[] =>
   Array.from({ length: numberOfTicks }, (_, i) => ({

@@ -1,20 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
-import { TICKS } from './utils'
-import type { Tick } from './types'
-import RotarySwitch from './components/RotarySwitch'
+import { MEDIA_QUERIES } from '../../breakpoints'
+import GettingStarted from '../input/GettingStarted'
+import MobileInputControls from '../input/components/MobileInputControls'
+import MobileModal from '../input/components/MobileModal'
+import { useMediaQuery } from '../input/hooks'
+import DetectionModeSwitch, { type DetectionMode } from './components/DetectionModeSwitch'
 import LevelIndicators from './components/LevelIndicators'
-import { useWhichInput } from './useWhichInput'
-import { useDetection } from './useDetection'
-import { DetectionState } from './meterConstants'
+import RotarySwitch from './components/RotarySwitch'
+import { useDetection } from './hooks/useDetection'
+import { useWhichInput } from './hooks/useWhichInput'
+import type { Tick } from './types'
 import {
-  NEEDLE_ANIM_DURATION_MS,
-  NEEDLE_RETURN_DURATION_MS,
+  DetectionState,
   LEVEL_INDICATOR_ANIM_DURATION_MS,
   LEVEL_INDICATOR_RETURN_DURATION_MS,
-  POWER_ON_STUTTER_DURATION_MS,
+  NEEDLE_ANIM_DURATION_MS,
   NEEDLE_MIN_DEG,
   NEEDLE_RANGE_DEG,
-} from './meterConstants'
+  NEEDLE_RETURN_DURATION_MS,
+  POWER_ON_STUTTER_DURATION_MS,
+} from './utils/meterConstants'
+import { TICKS } from './utils/utils'
 
 type PowerState = 'off' | 'on'
 type InputMode = 'text' | 'audio' | 'off'
@@ -31,13 +37,27 @@ const MeterSection = () => {
     isReliable,
   } = useDetection()
 
-  // Derive power state and input mode from rotary switch
-  const powerState: PowerState = value === 'off' ? 'off' : 'on'
-  const inputMode: InputMode = value as InputMode
+  // Check if we're on mobile/tablet
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+
+  // Detection mode for mobile/tablet (lexical = text, prosodic = audio)
+  const [detectionMode, setDetectionMode] = useState<DetectionMode>('lexical')
+
+  // Derive power state and input mode
+  // On mobile/tablet: power is always "on", mode comes from detection switch
+  // On desktop: power and mode come from rotary switch
+  const desktopPowerState: PowerState = value === 'off' ? 'off' : 'on'
+  const powerState: PowerState = isMobileOrTablet ? 'on' : desktopPowerState
+
+  const mobileInputMode: InputMode = detectionMode === 'lexical' ? 'text' : 'audio'
+  const inputMode: InputMode = isMobileOrTablet ? mobileInputMode : (value as InputMode)
 
   // Track previous power state to detect power-on transition
   const prevPowerStateRef = useRef<PowerState>(powerState)
   const [isPoweringOn, setIsPoweringOn] = useState(false)
+
+  // Info modal state (for mobile/tablet getting started)
+  const [showInfoModal, setShowInfoModal] = useState(false)
 
   // Detect power-on transition
   useEffect(() => {
@@ -63,12 +83,11 @@ const MeterSection = () => {
   // - When both inputs are enabled (audio mode): average them
   // - When only lexical is enabled (text mode): use lexical value directly
   // - When powered off: 0
-  const displayMainValue =
-    powerState === 'on'
-      ? prosodicEnabled
-        ? mainValue // Audio mode: use average of both
-        : lexicalValue // Text mode: use lexical directly (no averaging with disabled prosodic)
-      : 0
+  const getMainValue = (): number => {
+    if (powerState !== 'on') return 0
+    return prosodicEnabled ? mainValue : lexicalValue
+  }
+  const displayMainValue = getMainValue()
 
   // Determine animation duration based on state
   const needleAnimDuration =
@@ -89,9 +108,34 @@ const MeterSection = () => {
       data-input-mode={inputMode}
       data-testid="meter"
     >
-      <h1 className="meter__title">Sarcasm Detector™</h1>
-      {/* Portal target for mobile launcher button */}
-      <div id="mobile-launcher-portal" className="mobile-launcher-portal" />
+      <div className="meter__title-container">
+        <h1 className="meter__title">Sarcasm Detector™</h1>
+        <button
+          type="button"
+          className="meter__info-button"
+          onClick={() => setShowInfoModal(true)}
+          aria-label="Open getting started guide"
+        >
+          <span className="meter__info-button__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              focusable="false"
+              width="20"
+              height="20"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <rect x="11" y="10" width="2" height="7" rx="1" />
+              <circle cx="12" cy="7" r="1.25" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      {/* Info modal for getting started (mobile/tablet only) */}
+      <MobileModal open={showInfoModal} onClose={() => setShowInfoModal(false)}>
+        <GettingStarted />
+      </MobileModal>
 
       <div className="meter__display-wrapper">
         {/* Level labels - positioned outside display to avoid filter effects */}
@@ -157,7 +201,14 @@ const MeterSection = () => {
       </div>
 
       <div className="meter__controls">
-        <RotarySwitch />
+        {isMobileOrTablet ? (
+          <>
+            <DetectionModeSwitch value={detectionMode} onChange={setDetectionMode} />
+            <MobileInputControls detectionMode={detectionMode} />
+          </>
+        ) : (
+          <RotarySwitch />
+        )}
       </div>
 
       {/* Unreliable prediction warning */}

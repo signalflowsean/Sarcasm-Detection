@@ -112,7 +112,7 @@ const INDICATOR_WIDTH_PCT = 5
 const INDICATOR_HEIGHT_PCT = 4
 
 // Import shared needle rotation constants
-import { NEEDLE_MIN_DEG, NEEDLE_MAX_DEG, NEEDLE_RANGE_DEG } from '../meterConstants'
+import { NEEDLE_MAX_DEG, NEEDLE_MIN_DEG, NEEDLE_RANGE_DEG } from '../utils/meterConstants'
 
 const MAX_SIN = Math.sin((NEEDLE_MAX_DEG * Math.PI) / 180) // sin(55°) ≈ 0.819
 

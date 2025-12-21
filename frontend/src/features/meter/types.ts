@@ -1,4 +1,4 @@
-import { SMALL, LARGE } from './constants'
+import { LARGE, SMALL } from './utils/constants'
 
 export type Tick = {
   uuid: string

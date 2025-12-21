@@ -1,6 +1,6 @@
 import { useContext } from 'react'
-import { DetectionContext } from './DetectionProvider'
-import type { DetectionContextType } from './DetectionProvider'
+import type { DetectionContextType } from '../context/DetectionProvider'
+import { DetectionContext } from '../context/DetectionProvider'
 
 /**
  * Hook to access detection state and methods

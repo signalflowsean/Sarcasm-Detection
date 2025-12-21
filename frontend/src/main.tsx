@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import App from './App.tsx'
+import { WhichInputProvider } from './features/meter/context/WhichInputProvider'
 import './index.css'
 import './version' // Initialize version info (accessible via window.__APP_VERSION__)
-import App from './App.tsx'
-import { WhichInputProvider } from './features/meter/WhichInputProvider.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

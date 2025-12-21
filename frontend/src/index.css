@@ -112,6 +112,34 @@
     --meter-padding: 1.5rem;
     --meter-aspect-ratio: calc(3 / 4);
 
+    /* Cable jack dimensions */
+    --cable-jack-width: 22px;
+
+    /* Z-index layering system
+     * Use these variables to ensure consistent layering across the app
+     * Lower values = behind, higher values = in front
+     * 
+     * Hierarchy:
+     * - Base content (0)
+     * - Elevated elements (1-10)
+     * - Sticky/fixed UI (20-50)
+     * - Dropdowns/popovers (100-200)
+     * - Modals (300-400)
+     * - Toasts/notifications (500)
+     * - Critical overlays (1000+)
+     */
+    --z-base: 0;
+    --z-elevated: 1;
+    --z-dropdown: 10;
+    --z-sticky: 20;
+    --z-fixed: 50;
+    --z-popover: 100;
+    --z-modal-backdrop: 200;
+    --z-modal: 300;
+    --z-tooltip: 400;
+    --z-toast: 500;
+    --z-overlay: 1000;
+
     color-scheme: light dark;
   }
 
@@ -522,6 +550,12 @@
     animation: fade-in 0.2s ease-out;
   }
 
+  /* Container for speech status - reserves space on desktop, overlay on mobile */
+  .speech-status--container {
+    /* Desktop: reserve space to prevent layout shifts */
+    min-height: 1.5rem;
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -653,7 +687,7 @@
   .audio-recorder__modal {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: var(--z-modal);
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -852,9 +886,6 @@
     border: 1px solid rgba(139, 115, 85, 0.3);
 
     padding-top: 1.875rem;
-    > *:not(.meter__title) {
-      flex: 1 1 0;
-    }
 
     /* Brass corner accents */
     &::before,
@@ -898,20 +929,6 @@
       0 2px 0 rgba(0, 0, 0, 0.6),
       0 -1px 0 rgba(255, 223, 150, 0.2),
       0 0 15px rgba(212, 175, 55, 0.25);
-  }
-
-  /* Mobile launcher portal container */
-  .mobile-launcher-portal {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none; /* Allow clicks through to meter */
-  }
-
-  .mobile-launcher-portal > * {
-    pointer-events: auto; /* But allow clicks on the button itself */
   }
 
   /* Unreliable prediction warning banner */
@@ -1785,6 +1802,174 @@
       0 0 8px rgba(212, 175, 55, 0.15);
     pointer-events: none;
   }
+
+  /* ========================================
+     DETECTION MODE SWITCH
+     Horizontal toggle for lexical/prosodic modes
+     ======================================== */
+
+  .detection-switch {
+    /* Reset default button styles */
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    margin-block-start: 0.5rem;
+    font: inherit;
+    color: inherit;
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+  }
+
+  .detection-switch:focus-visible {
+    outline: 3px solid #d4af37;
+    outline-offset: 6px;
+    border-radius: 4px;
+  }
+
+  .detection-switch--disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: grayscale(40%);
+  }
+
+  .detection-switch__track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 7rem;
+    height: 2.5rem;
+    padding: 0 0.5rem;
+    border-radius: 1.5rem;
+    /* Steel/chrome track background */
+    background: 
+      /* Subtle machined texture */
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 3px
+      ),
+      /* Main metallic gradient */
+        linear-gradient(180deg, #5a5550 0%, #4a4540 20%, #3a3632 50%, #2a2520 80%, #1f1c19 100%);
+    /* Recessed track effect */
+    box-shadow:
+      inset 0 3px 8px rgba(0, 0, 0, 0.5),
+      inset 0 -2px 4px rgba(255, 255, 255, 0.08),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(139, 115, 85, 0.3);
+  }
+
+  .detection-switch__icon {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: rgba(212, 175, 55, 0.35);
+    transition:
+      color 200ms ease,
+      filter 200ms ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+
+  .detection-switch__icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  .detection-switch__icon.is-active {
+    color: #d4af37;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+  }
+
+  .detection-switch__knob {
+    position: absolute;
+    top: 50%;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    transition: left 250ms cubic-bezier(0.34, 1.2, 0.64, 1);
+    /* Brass knob appearance */
+    background:
+      /* Top highlight dome */
+      radial-gradient(
+        ellipse 80% 60% at 40% 30%,
+        rgba(255, 223, 150, 0.6) 0%,
+        rgba(255, 223, 150, 0.2) 40%,
+        transparent 70%
+      ),
+      /* Main brass gradient */
+        radial-gradient(
+          circle at 50% 50%,
+          #f4e4bc 0%,
+          #d4af37 25%,
+          #b8960b 50%,
+          #8b6914 75%,
+          #5c4a1f 100%
+        );
+    box-shadow:
+      0 3px 10px rgba(0, 0, 0, 0.5),
+      0 1px 3px rgba(0, 0, 0, 0.4),
+      inset 0 2px 4px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(92, 74, 31, 0.5);
+  }
+
+  .detection-switch__knob--left {
+    left: 0.25rem;
+  }
+
+  .detection-switch__knob--right {
+    left: calc(100% - 2.25rem);
+  }
+
+  .detection-switch:hover:not(.detection-switch--disabled) .detection-switch__knob {
+    filter: brightness(1.1);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.55),
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      inset 0 2px 4px rgba(255, 255, 255, 0.35),
+      inset 0 -2px 6px rgba(0, 0, 0, 0.3),
+      0 0 12px rgba(212, 175, 55, 0.2);
+  }
+
+  .detection-switch__labels {
+    display: flex;
+    justify-content: space-between;
+    width: 7rem;
+    padding: 0 0.25rem;
+  }
+
+  .detection-switch__label {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(212, 175, 55, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    transition:
+      color 200ms ease,
+      text-shadow 200ms ease;
+  }
+
+  .detection-switch__label.is-active {
+    color: rgba(212, 175, 55, 0.9);
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.7),
+      0 0 8px rgba(212, 175, 55, 0.2);
+  }
 }
 
 /* Input container styling (desktop) */
@@ -2167,8 +2352,8 @@
   position: absolute;
   bottom: 0.75rem;
   left: 0.75rem;
-  width: 22px;
-  height: 22px;
+  width: var(--cable-jack-width);
+  height: var(--cable-jack-width);
   border-radius: 50%;
   /* Steel bezel base */
   background: radial-gradient(circle at 35% 35%, #7b7b7b, #3b3b3b 60%, #1a1a1a 100%);
@@ -2223,8 +2408,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   top: -9px;
   left: 50%;
   transform: translateX(-50%);
-  width: 21px;
-  height: 21px;
+  width: var(--cable-jack-width);
+  height: var(--cable-jack-width);
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #777, #3a3a3a 60%, #1f1f1f 100%);
   box-shadow:
@@ -2305,27 +2490,30 @@ body:has(.audio-recorder__modal) .detector-jack {
    BREAKPOINTS DOCUMENTATION
    ============================================================================
 
-   The mobile breakpoint controls when the app switches between:
-     - Desktop: Side-by-side layout (meter + input panel)
-     - Mobile: Stacked layout with modal-based input
+   The app uses two breakpoints for responsive layout:
 
-   CURRENT VALUES:
-     - Main breakpoint: 1440px
-     - Small mobile: 768px (only affects FirstTimeOverlay text sizing)
+   BREAKPOINT VALUES:
+     - MOBILE_BREAKPOINT: 768px (phones)
+       CSS implementation: max-width: 767px (implements < 768px)
+     - TABLET_BREAKPOINT: 1440px (tablet/desktop boundary)
+       CSS implementation: max-width: 1439px for mobile/tablet, min-width: 1440px for desktop
 
-   HOW TO CHANGE THE MAIN BREAKPOINT:
+   LAYOUT MODES:
+     - Desktop (>= 1440px): Side-by-side layout (meter + input panel)
+     - Tablet (768px - 1439px): Meter-focused layout with modal-based input
+     - Mobile (< 768px): Full-screen meter with consolidated controls
+
+   HOW TO CHANGE BREAKPOINTS:
 
      You need to update 2 places:
 
-     1. JavaScript constant (SINGLE SOURCE OF TRUTH):
+     1. JavaScript constants (SINGLE SOURCE OF TRUTH):
         File: frontend/src/breakpoints.ts
-        Update: MOBILE_BREAKPOINT = <new value>
+        Update: MOBILE_BREAKPOINT and/or TABLET_BREAKPOINT
 
      2. CSS media queries (cannot use JS variables):
         File: frontend/src/index.css (this file)
-        Update BOTH:
-          - @media (min-width: <new value>px)     [Desktop styles below]
-          - @media (max-width: <new value - 1>px) [Mobile styles further below]
+        Update the @media query values to match
 
    WHY TWO PLACES?
      CSS media queries don't support CSS custom properties (--variables).
@@ -2335,14 +2523,24 @@ body:has(.audio-recorder__modal) .detector-jack {
    FILES THAT USE BREAKPOINTS:
      - frontend/src/breakpoints.ts                      - Constants & media query strings
      - frontend/src/index.css                           - CSS media queries (this file)
-     - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isMobile
+     - frontend/src/features/input/InputContainer.tsx   - Uses MEDIA_QUERIES.isMobileOrTablet
 
    ============================================================================ */
 
 /* ============================================
    RESPONSIVE STYLES - Desktop (min-width: 1440px)
+   See breakpoints.ts TABLET_BREAKPOINT
    ============================================ */
 @media (min-width: 1440px) {
+  /* Hide mobile/tablet only elements on desktop */
+  .meter__title-container {
+    display: none;
+  }
+
+  .meter__info-button {
+    display: none;
+  }
+
   .audio-recorder {
     gap: 1.125rem;
   }
@@ -2406,7 +2604,8 @@ body:has(.audio-recorder__modal) .detector-jack {
 }
 
 /* ============================================
-   RESPONSIVE STYLES - Mobile (max-width: 1439px)
+   RESPONSIVE STYLES - Tablet & Mobile (max-width: 1439px)
+   See breakpoints.ts TABLET_BREAKPOINT
    ============================================ */
 @media (max-width: 1439px) {
   main {
@@ -2414,6 +2613,9 @@ body:has(.audio-recorder__modal) .detector-jack {
     grid-template-rows: 1fr;
     place-items: center;
     padding: 0.75rem;
+  }
+  .meter__display-wrapper {
+    margin-block-start: 0;
   }
 
   /* Hide the entire stack section on mobile, but keep it in DOM for the Portal */
@@ -2434,6 +2636,13 @@ body:has(.audio-recorder__modal) .detector-jack {
     display: none; /* Hide the title on mobile - it will show on the meter instead */
   }
 
+  /* Title container with info button visible on mobile/tablet */
+  .meter__title-container {
+    display: flex;
+    padding: 0.75rem 2.25rem;
+    align-items: center;
+  }
+
   .meter__title {
     display: block;
     text-align: center;
@@ -2443,12 +2652,64 @@ body:has(.audio-recorder__modal) .detector-jack {
     letter-spacing: 0.12em;
     font-weight: 900;
     font-size: clamp(0.83rem, 3.75vw, 1.2rem);
-    padding: 0.94rem 0.375rem 0.94rem;
-    flex: 0 0 auto;
+    padding: 0;
+    flex: 1;
     text-shadow:
       0 2px 0 rgba(0, 0, 0, 0.6),
       0 -1px 0 rgba(255, 223, 150, 0.2),
       0 0 11px rgba(212, 175, 55, 0.25);
+  }
+
+  .meter__info-button {
+    /* Make visible and circular on mobile/tablet */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    border-radius: 50%;
+    border: 2px solid rgba(212, 175, 55, 0.4);
+    /* Dark bakelite background matching meter */
+    background: radial-gradient(circle at 35% 35%, #3d3632, #2a2520);
+    color: #d4af37;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    /* Shadow for depth */
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .meter__info-button:hover {
+    filter: brightness(1.15);
+    box-shadow:
+      0 6px 16px rgba(0, 0, 0, 0.6),
+      inset 0 1px 2px rgba(255, 255, 255, 0.15);
+  }
+
+  .meter__info-button:active {
+    transform: scale(0.95);
+  }
+
+  .meter__info-button:focus-visible {
+    outline: 3px solid #d4af37;
+    outline-offset: 3px;
+  }
+
+  .meter__info-button__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      0 0 8px rgba(212, 175, 55, 0.2);
   }
 
   .meter {
@@ -2497,6 +2758,11 @@ body:has(.audio-recorder__modal) .detector-jack {
     overflow: visible;
   }
 
+  /* Hide input container on mobile/tablet - controls are in meter */
+  .input-container--mobile-hidden {
+    display: none;
+  }
+
   /* Hide desktop cable overlay on mobile */
   .cable-overlay {
     display: none;
@@ -2511,8 +2777,10 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-cable {
     display: block;
     position: absolute;
-    bottom: calc(0.75rem + 11px - 2px);
-    right: calc(100% - (0.75rem + 11px));
+    /* Position cable at center of jack (jack width / 2) with 2px offset for visual alignment */
+    /* Calculation: 0.75rem (padding) + 22px/2 (half jack width) - 2px (visual offset) = 0.75rem + 9px */
+    bottom: calc(0.75rem + var(--cable-jack-width) / 2 - 2px);
+    right: calc(100% - (0.75rem + var(--cable-jack-width) / 2));
     width: 120vw;
     height: 5px;
     background: linear-gradient(180deg, #2a2a2a, #444);
@@ -2549,6 +2817,250 @@ body:has(.audio-recorder__modal) .detector-jack {
       transform: translateX(0);
     }
   }
+
+  /* ============================================
+     MOBILE INPUT CONTROLS
+     Consolidated input controls for mobile/tablet
+     ============================================ */
+  .mobile-input-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem;
+    /* Extra bottom padding for absolutely positioned send button */
+    padding-bottom: 3rem;
+    position: relative; /* Establish positioning context for absolutely positioned send button */
+    background: transparent;
+  }
+
+  /* Textarea spans full width */
+  .mobile-input-controls__textarea {
+    width: 100%;
+  }
+
+  .mobile-input-controls__textarea .shared-textarea {
+    min-height: 3rem;
+    max-height: 4rem;
+    resize: none;
+    font-size: 0.875rem;
+  }
+
+  /* Audio row: mic, waveform, play, trash in a single row */
+  .mobile-input-controls__audio-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 3rem;
+  }
+
+  .mobile-input-controls__audio-row .audio-recorder__mic {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  /* Waveform wrapper - fills available space */
+  .mobile-input-controls__waveform-wrapper {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .mobile-input-controls__waveform-wrapper .audio-recorder__waveform {
+    min-height: 2.5rem;
+    height: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+  }
+
+  .mobile-input-controls__waveform-wrapper .audio-recorder__waveform canvas {
+    height: 2rem;
+  }
+
+  .mobile-input-controls__waveform-wrapper .audio-recorder__waveform__empty {
+    font-size: 0.65rem;
+  }
+
+  .mobile-input-controls__duration {
+    position: absolute;
+    bottom: -0.25rem;
+    left: 0.5rem;
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 0.625rem;
+    color: rgba(212, 175, 55, 0.8);
+  }
+
+  .mobile-input-controls__play,
+  .mobile-input-controls__trash {
+    position: relative; /* For shortcut indicator positioning */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    background: radial-gradient(circle at 35% 35%, #3d3632, #2a2520);
+    color: #d4af37;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-input-controls__play:hover:not(:disabled),
+  .mobile-input-controls__trash:hover:not(:disabled) {
+    filter: brightness(1.15);
+    border-color: rgba(212, 175, 55, 0.5);
+  }
+
+  .mobile-input-controls__play:disabled,
+  .mobile-input-controls__trash:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(40%);
+  }
+
+  .mobile-input-controls__trash {
+    color: #dc3545;
+    border-color: rgba(220, 53, 69, 0.3);
+  }
+
+  .mobile-input-controls__trash:hover:not(:disabled) {
+    border-color: rgba(220, 53, 69, 0.5);
+  }
+
+  /* Shortcut indicator for play/trash buttons */
+  .mobile-input-controls__btn-shortcut {
+    position: absolute;
+    bottom: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 0.55rem;
+    font-weight: 500;
+    padding: 0.1rem 0.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 0.2rem;
+    color: rgba(212, 175, 55, 0.8);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Send button - positioned adjacent to cable jack */
+  .mobile-input-controls__send {
+    position: absolute;
+    bottom: 0.5rem;
+    /* Position to the right of the cable jack (jack is at left: 0.75rem, width from --cable-jack-width) */
+    left: calc(0.75rem + var(--cable-jack-width) + 0.75rem);
+    right: 0.75rem;
+  }
+
+  .mobile-input-controls__send-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    background: radial-gradient(circle at 35% 35%, #3d3632, #2a2520);
+    color: #d4af37;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-input-controls__send-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    border-color: rgba(212, 175, 55, 0.5);
+  }
+
+  .mobile-input-controls__send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .mobile-input-controls__send-btn--active {
+    border-color: rgba(212, 175, 55, 0.6);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
+  }
+
+  .mobile-input-controls__shortcut {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0.25rem;
+    opacity: 0.7;
+  }
+
+  /* Speech status in mobile controls */
+  .mobile-input-controls .speech-status {
+    margin-top: 0;
+  }
+
+  /* Speech status overlay on mobile - doesn't reserve space to save room */
+  /* Uses popover z-index - appears above base content but below modals */
+  /* Note: Speech status should be hidden when modals are open (handled by component logic) */
+  .speech-status--container {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: var(--z-popover);
+    min-height: 0;
+    width: calc(100% - 2rem);
+    max-width: 600px;
+  }
+
+  .speech-status--container .speech-status {
+    margin-top: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Error display */
+  .mobile-input-controls__error {
+    padding: 0.5rem 0.75rem;
+    background: rgba(220, 53, 69, 0.15);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 0.375rem;
+    color: #f8d7da;
+    font-size: 0.75rem;
+  }
+
+  /* Disabled state for lexical mode - visual indicator */
+  .mobile-input-controls[data-mode='lexical']
+    .mobile-input-controls__audio-row
+    .audio-recorder__mic,
+  .mobile-input-controls[data-mode='lexical'] .mobile-input-controls__play,
+  .mobile-input-controls[data-mode='lexical'] .mobile-input-controls__trash,
+  .mobile-input-controls[data-mode='lexical'] .mobile-input-controls__waveform-wrapper {
+    opacity: 0.3;
+    filter: grayscale(60%);
+  }
+
+  /* Flash animation for mic button in prosodic mode (needs higher specificity for mobile) */
+  .mobile-input-controls__audio-row .audio-recorder__mic.should-flash {
+    animation: mic-pulse 1.6s ease-in-out infinite;
+  }
 }
 
 /* ============================================
@@ -2558,7 +3070,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   position: fixed;
   inset: 0;
   background: transparent;
-  z-index: 10000;
+  /* Highest z-index - must appear above everything including modals */
+  z-index: var(--z-overlay);
   pointer-events: none; /* Allow interaction with knob underneath */
   animation: fadeIn 0.4s ease-in;
   overflow: visible;
@@ -2635,8 +3148,8 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 }
 
-/* Small mobile adjustments - see breakpoints.ts SMALL_MOBILE_BREAKPOINT */
-@media (max-width: 768px) {
+/* Mobile adjustments - see breakpoints.ts MOBILE_BREAKPOINT (< 768px, max-width: 767px) */
+@media (max-width: 767px) {
   .first-time-overlay__content {
     flex-direction: column;
     gap: 0.375rem;

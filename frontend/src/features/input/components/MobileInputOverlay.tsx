@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useWhichInput } from '../../meter/useWhichInput'
-import { MODE_LABELS } from '../../meter/constants'
+import { KeyboardIcon } from '../../meter/components/icons'
+import { useWhichInput } from '../../meter/hooks/useWhichInput'
+import { MODE_LABELS } from '../../meter/utils/constants'
 import MobileModal from './MobileModal'
 import Portal from './Portal'
-import { KeyboardIcon } from '../../meter/components/icons'
 
 type Props = {
   children: React.ReactNode | ((props: { onClose: () => void }) => React.ReactNode)

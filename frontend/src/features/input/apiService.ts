@@ -19,6 +19,12 @@ export type LexicalResponse = {
   reliable: boolean // true if from real ML model, false if fallback
 }
 
+/**
+ * ID used for fallback lexical response when no text is available.
+ * Used when sending audio-only requests in prosodic mode.
+ */
+export const NO_TEXT_RESPONSE_ID = 'no-text'
+
 // Map MIME types to file extensions for upload filename
 const MIME_TO_EXTENSION: Record<string, string> = {
   'audio/webm': '.webm',

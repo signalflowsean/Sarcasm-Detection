@@ -1,4 +1,6 @@
-import type { SpeechStatus as SpeechStatusType } from '../hooks/useSpeechRecognition'
+import { MEDIA_QUERIES } from '../../../breakpoints'
+import { useMediaQuery } from '../hooks'
+import type { SpeechStatus as SpeechStatusType } from '../hooks/speech'
 
 type Props = {
   status: SpeechStatusType
@@ -124,7 +126,10 @@ const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
  * - Actionable messages reassure users their audio is still recording
  */
 const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
-  // Always render a container to prevent layout shifts, but hide content when not needed
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+  // Always render a container, but behavior differs by platform:
+  // - Desktop: Reserves space (minHeight) to prevent layout shifts
+  // - Mobile: Overlay positioning (no reserved space) to save room
   const shouldShow = isRecording && status !== 'idle' && status !== 'listening'
   const config = shouldShow ? STATUS_CONFIG[status] : null
 
@@ -136,8 +141,10 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
       aria-atomic="true"
       data-testid="speech-status"
       style={{
-        // Reserve space even when hidden to prevent layout shifts
-        minHeight: shouldShow ? undefined : '1.5rem',
+        // Desktop: Reserve space even when hidden to prevent layout shifts
+        // Mobile: Overlay positioning (no reserved space to save room)
+        minHeight: !isMobileOrTablet && !shouldShow ? '1.5rem' : undefined,
+        padding: shouldShow ? undefined : '0',
       }}
     >
       {shouldShow && config && (
