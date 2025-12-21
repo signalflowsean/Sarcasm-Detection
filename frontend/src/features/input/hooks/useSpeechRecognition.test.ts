@@ -292,8 +292,9 @@ describe('useSpeechRecognition', () => {
       })
 
       // Web Speech API is not available in test environment
+      // Error message now includes information about both engine failures
       expect(options.onError).toHaveBeenCalledWith(
-        'Speech recognition is not available in this browser.'
+        'Speech recognition is not available in this browser. MoonshineJS: MoonshineJS failed Web Speech API: not supported'
       )
       expect(result.current.speechStatus).toBe('error')
     })
