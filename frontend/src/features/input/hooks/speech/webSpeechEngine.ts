@@ -169,15 +169,15 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
             recognition.start()
           } catch (e) {
             logError('Failed to restart:', e)
-            // Notify consumers that restart failed and recognition stopped
+            // Notify consumers that restart failed
             const errorMessage =
-              e instanceof Error
-                ? `Failed to restart speech recognition: ${e.message}`
-                : 'Failed to restart speech recognition'
-            callbacks.onError(errorMessage)
+              e instanceof Error ? e.message : 'Failed to restart speech recognition'
+            callbacks.onError(`Failed to restart speech recognition: ${errorMessage}`)
             callbacks.onStatusChange('error')
-            // Reset state to prevent further restart attempts
+            // Disable auto-restart to prevent infinite retry loops
             shouldRestart = false
+            // Null recognition to allow recovery: start() will create a new instance when recognition is null.
+            // This enables recovery from transient errors (consumer can call start() again).
             recognition = null
           }
         }

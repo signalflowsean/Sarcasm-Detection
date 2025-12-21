@@ -59,18 +59,24 @@ const DetectionModeSwitch: React.FC<DetectionModeSwitchProps> = ({
   )
 
   const modeLabel = isLexical ? 'Lexical (text)' : 'Prosodic (audio)'
+  const instructionsId = 'detection-mode-switch-instructions'
 
   return (
     <div
       className={`detection-switch ${disabled ? 'detection-switch--disabled' : ''}`}
       role="switch"
       aria-checked={!isLexical}
-      aria-label={`Detection mode: ${modeLabel}. Use arrow keys or space to toggle.`}
+      aria-label={`Detection mode: ${modeLabel}`}
+      aria-describedby={instructionsId}
       tabIndex={disabled ? -1 : 0}
       onClick={handleToggle}
       onKeyDown={handleKeyDown}
       data-testid="detection-mode-switch"
     >
+      {/* Visually hidden instructions for screen readers */}
+      <span id={instructionsId} className="sr-only">
+        Use arrow keys or space to toggle.
+      </span>
       {/* Track */}
       <div className="detection-switch__track" aria-hidden="true">
         {/* Left icon (Lexical) */}

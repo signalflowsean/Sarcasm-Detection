@@ -21,13 +21,15 @@
  *
  * MOBILE_BREAKPOINT (768px):
  *   - True mobile devices (phones)
- *   - max-width: 767px triggers mobile-specific styles
+ *   - CSS implementation: max-width: 767px (which implements < 768px)
+ *   - Note: CSS max-width uses inclusive upper bound, so max-width: 767px = <= 767px = < 768px
  *   - Used in: index.css (CSS media query)
  *
  * TABLET_BREAKPOINT (1440px):
  *   - Separates mobile/tablet from desktop
  *   - Desktop: min-width: 1440px (side-by-side layout)
- *   - Mobile/Tablet: max-width: 1439px (meter-focused layout)
+ *   - Mobile/Tablet: max-width: 1439px (which implements < 1440px)
+ *   - Note: CSS max-width uses inclusive upper bound, so max-width: 1439px = <= 1439px = < 1440px
  *   - Used in: InputContainer.tsx (JS), index.css (CSS media queries)
  *
  * ============================================================================

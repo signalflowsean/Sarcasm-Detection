@@ -522,6 +522,12 @@
     animation: fade-in 0.2s ease-out;
   }
 
+  /* Container for speech status - reserves space on desktop, overlay on mobile */
+  .speech-status--container {
+    /* Desktop: reserve space to prevent layout shifts */
+    min-height: 1.5rem;
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -2452,7 +2458,9 @@ body:has(.audio-recorder__modal) .detector-jack {
 
    BREAKPOINT VALUES:
      - MOBILE_BREAKPOINT: 768px (phones)
+       CSS implementation: max-width: 767px (implements < 768px)
      - TABLET_BREAKPOINT: 1440px (tablet/desktop boundary)
+       CSS implementation: max-width: 1439px for mobile/tablet, min-width: 1440px for desktop
 
    LAYOUT MODES:
      - Desktop (>= 1440px): Side-by-side layout (meter + input panel)
@@ -2969,6 +2977,23 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Speech status in mobile controls */
   .mobile-input-controls .speech-status {
     margin-top: 0;
+  }
+
+  /* Speech status overlay on mobile - doesn't reserve space to save room */
+  .speech-status--container {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    min-height: 0;
+    width: calc(100% - 2rem);
+    max-width: 600px;
+  }
+
+  .speech-status--container .speech-status {
+    margin-top: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   /* Error display */

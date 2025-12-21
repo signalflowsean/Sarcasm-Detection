@@ -450,14 +450,44 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       // Ignore if user is typing in an input/textarea or contenteditable element
       const target = e.target as HTMLElement | null
       if (target) {
+        // Check if target itself is contenteditable (handles all values: true, "", inherit)
         if (target.isContentEditable) {
           return
         }
-        const textLikeAncestor = target.closest(
-          'input, textarea, [contenteditable="true"], [role="textbox"]'
-        )
-        if (textLikeAncestor) {
-          return
+        // Check if target is inside an editable ancestor
+        // Note: [contenteditable] matches any contenteditable attribute, but we need to filter
+        // out contenteditable="false". Using closest with manual check for better accuracy.
+        let ancestor: HTMLElement | null = target.parentElement
+        while (ancestor) {
+          if (
+            ancestor.tagName === 'INPUT' ||
+            ancestor.tagName === 'TEXTAREA' ||
+            ancestor.isContentEditable ||
+            ancestor.getAttribute('role') === 'textbox'
+          ) {
+            return
+          }
+          ancestor = ancestor.parentElement
+        }
+
+        // Ignore if the focused element is a button that performs the same action
+        // This prevents double-firing when keyboard users press Space/Delete on focused buttons
+        const buttonAncestor = target.closest('button')
+        if (buttonAncestor) {
+          // Space on play button - let button handle it natively
+          if (
+            e.code === 'Space' &&
+            buttonAncestor.getAttribute('data-testid') === 'mobile-play-button'
+          ) {
+            return
+          }
+          // Delete/Backspace on trash button - let button handle it natively
+          if (
+            (e.code === 'Delete' || e.code === 'Backspace') &&
+            buttonAncestor.getAttribute('data-testid') === 'mobile-trash-button'
+          ) {
+            return
+          }
         }
       }
 
@@ -517,7 +547,14 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       cleanupWaveform()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty dependencies - only run cleanup on unmount. Functions access refs internally, so safe to call.
+  }, [])
+  // Empty dependencies - only run cleanup on unmount.
+  // Note: stopSpeechRecognition() and cleanupWaveform() are called here even though their
+  // identities may change. This is safe because:
+  // 1. cleanupWaveform is stable (useCallback with empty deps)
+  // 2. stopSpeechRecognition accesses engineRef.current internally (a ref), so it works
+  //    correctly even if called with a stale closure
+  // 3. This cleanup only runs on unmount, so function identity changes don't matter
 
   // Determine what to show in textarea
   // In prosodic mode: show transcription (readonly)
