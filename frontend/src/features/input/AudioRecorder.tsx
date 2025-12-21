@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDetection } from '../meter/hooks/useDetection'
-import { sendLexicalText, sendProsodicAudio } from './apiService'
+import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from './apiService'
 import RecorderContent from './components/RecorderContent'
 import SpeechStatus from './components/SpeechStatus'
 import { useSpeechRecognition } from './hooks/speech'
@@ -157,7 +157,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         sendProsodicAudio(state.audioBlob),
         state.transcript.trim()
           ? sendLexicalText(state.transcript.trim())
-          : Promise.resolve({ id: 'no-text', value: 0, reliable: true }),
+          : Promise.resolve({ id: NO_TEXT_RESPONSE_ID, value: 0, reliable: true }),
       ])
       // Pass both values to detection provider, including reliability info
       setDetectionResult({

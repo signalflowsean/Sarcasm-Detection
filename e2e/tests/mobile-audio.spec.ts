@@ -6,6 +6,7 @@ import {
   waitForAudioMocksReady,
   type MoonshineMockOptions,
 } from './utils/audio-mocks';
+import { REDIRECT_TIMEOUT } from './utils/constants';
 
 /**
  * Mobile Audio Recording E2E Tests
@@ -64,7 +65,7 @@ test.describe('Mobile Audio Recording', () => {
 
     // On mobile, routing is disabled - RouteSync will redirect /getting-started back to /
     // Wait for any redirects to complete
-    await page.waitForURL('/', { timeout: 5000 });
+    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
 
     // Mobile input controls should be visible (not in a modal)
     const mobileControls = page.getByTestId('mobile-input-controls');

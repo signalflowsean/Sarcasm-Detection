@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/hooks/useDetection'
-import { sendLexicalText, sendProsodicAudio } from '../apiService'
+import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useWaveform } from '../hooks/useWaveform'
@@ -264,7 +264,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           sendProsodicAudio(state.audioBlob),
           fullTranscript
             ? sendLexicalText(fullTranscript)
-            : Promise.resolve({ id: 'no-text', value: 0, reliable: true }),
+            : Promise.resolve({ id: NO_TEXT_RESPONSE_ID, value: 0, reliable: true }),
         ])
         setDetectionResult({
           lexical: lexicalResponse.value,

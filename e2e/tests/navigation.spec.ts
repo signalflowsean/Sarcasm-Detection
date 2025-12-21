@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { REDIRECT_TIMEOUT } from './utils/constants';
 
 // Use a desktop viewport to test routing (routing is disabled on mobile/tablet)
 // The app's tablet breakpoint is 1440px (TABLET_BREAKPOINT)
@@ -61,24 +62,24 @@ test.describe('Navigation (Mobile/Tablet - Routing Disabled)', () => {
     // Try navigating to different routes
     await page.goto('/text-input');
     // Should redirect to root (redirect should be instant, use shorter timeout)
-    await page.waitForURL('/', { timeout: 1000 });
+    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
     await expect(page).toHaveURL('/');
 
     await page.goto('/audio-input');
     // Should redirect to root
-    await page.waitForURL('/', { timeout: 1000 });
+    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
     await expect(page).toHaveURL('/');
 
     await page.goto('/getting-started');
     // Should redirect to root
-    await page.waitForURL('/', { timeout: 1000 });
+    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
     await expect(page).toHaveURL('/');
   });
 
   test('should show mobile controls on root page', async ({ page }) => {
     await page.goto('/');
     // Wait for any redirects to complete (redirect should be instant, use shorter timeout)
-    await page.waitForURL('/', { timeout: 1000 });
+    await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
 
     // Mobile input controls should be visible
     await expect(page.getByTestId('mobile-input-controls')).toBeVisible();

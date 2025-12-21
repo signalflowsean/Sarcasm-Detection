@@ -110,7 +110,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // to prevent fallback to Web Speech API
       if (wasStopped || !transcriber) {
         log('Start was interrupted by stop() call')
-        throw new Error('Speech recognition was stopped during initialization')
+        throw new Error('Speech recognition initialization was cancelled by user')
       }
 
       log('Started, isListening:', transcriber.isListening())
