@@ -1022,6 +1022,8 @@
   .meter__controls {
     display: grid;
     place-items: center;
+    flex: 1 1 50%; /* Take half the space - matches display-wrapper */
+    min-height: 0; /* Allow shrinking in flex context */
   }
 
   .meter__display__boundary {
@@ -1471,7 +1473,8 @@
     position: relative;
     margin-block-start: var(--meter-display-margin);
     margin-inline: var(--meter-display-margin);
-    flex: 1 1 auto;
+    flex: 1 1 50%; /* Take half the space - matches controls */
+    min-height: 0; /* Allow shrinking in flex context */
     display: flex;
     flex-direction: column;
   }
@@ -2564,10 +2567,13 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   .meter {
+    /* Fill viewport height on desktop, width calculated from aspect-ratio */
     width: min(
       100% - var(--meter-padding),
-      max(600px, (100svh - var(--meter-padding)) * var(--meter-aspect-ratio))
+      max(600px, calc((100svh - var(--meter-padding)) * var(--meter-aspect-ratio)))
     );
+    height: calc(100svh - var(--meter-padding));
+    aspect-ratio: unset; /* Override to allow explicit height with 50/50 split */
     padding-top: 0;
   }
 
@@ -2713,10 +2719,17 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   .meter {
+    /* Fill viewport height on mobile */
     width: 100%;
-    max-width: 450px;
-    height: auto;
+    max-width: min(100%, calc((100svh - 1.5rem) * var(--meter-aspect-ratio)));
+    height: calc(100svh - 1.5rem);
+    aspect-ratio: unset; /* Override aspect-ratio to allow explicit height */
     padding-top: 0;
+  }
+
+  .meter__controls {
+    align-content: start; /* Align controls to top of their section on mobile */
+    padding-top: 0.5rem;
   }
 
   .meter__display {

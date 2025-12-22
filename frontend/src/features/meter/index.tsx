@@ -117,17 +117,7 @@ const MeterSection = () => {
           aria-label="Open getting started guide"
         >
           <span className="meter__info-button__icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              focusable="false"
-              width="20"
-              height="20"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <rect x="11" y="10" width="2" height="7" rx="1" />
-              <circle cx="12" cy="7" r="1.25" />
-            </svg>
+            i
           </span>
         </button>
       </div>
