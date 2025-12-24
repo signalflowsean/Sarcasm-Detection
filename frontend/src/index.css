@@ -1456,7 +1456,6 @@
     min-height: 0; /* Allow shrinking in flex context */
     display: flex;
     flex-direction: column;
-    max-height: 40%;
   }
 
   .meter__display-wrapper .meter__display {
