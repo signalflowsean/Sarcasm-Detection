@@ -1,3 +1,5 @@
+import { MEDIA_QUERIES } from '../../../breakpoints'
+import { useMediaQuery } from '../hooks'
 import type { SpeechStatus } from '../hooks/speech'
 import Controls from './Controls'
 import MicButton from './MicButton'
@@ -58,6 +60,7 @@ const RecorderContent = ({
   onDiscard,
   onSend,
 }: Props) => {
+  const isMobile = useMediaQuery(MEDIA_QUERIES.isMobile)
   const transcriptDescriptionId = 'transcript-description'
   const transcriptDescription =
     'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
@@ -65,6 +68,9 @@ const RecorderContent = ({
   // Show loading indicator in placeholder when model is loading
   const placeholder =
     speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
+
+  // Use mobile-appropriate messaging for the empty waveform state
+  const emptyMessage = isMobile ? 'Tap Microphone to Record' : 'Click Microphone to Record'
 
   return (
     <div className="audio-recorder" aria-live="polite" data-testid="audio-recorder">
@@ -92,7 +98,7 @@ const RecorderContent = ({
         isSeekEnabled={isSeekEnabled}
         onSeekPercent={onSeekPercent}
         showEmpty={!isRecording && !audioSrc}
-        emptyMessage={'Press Down on Microphone to Record'}
+        emptyMessage={emptyMessage}
       />
 
       {/* Visually hidden description for screen readers */}

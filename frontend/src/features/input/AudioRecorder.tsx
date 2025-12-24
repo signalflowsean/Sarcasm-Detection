@@ -5,6 +5,7 @@ import RecorderContent from './components/RecorderContent'
 import SpeechStatus from './components/SpeechStatus'
 import { useSpeechRecognition } from './hooks/speech'
 import { useAudioRecorder } from './hooks/useAudioRecorder'
+import { useDevLoadingOverride } from './hooks/useDevLoadingOverride'
 import { useWaveform } from './hooks/useWaveform'
 import { formatDuration } from './utils'
 
@@ -194,6 +195,12 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   ])
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Dev mode: Toggle loading spinner override
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const devLoadingOverride = useDevLoadingOverride()
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Global keyboard shortcuts
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -286,6 +293,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       ? Math.min(1, Math.max(0, playback.playbackMs / playback.audioDurationMs))
       : 0
 
+  // Apply dev mode loading override (works even when not recording)
+  const displaySpeechStatus = import.meta.env.DEV && devLoadingOverride ? 'loading' : speechStatus
+
   return (
     <>
       <RecorderContent
@@ -296,7 +306,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         canvasRef={canvasRef}
         audioRef={audioRef}
         audioSrc={state.audioUrl ?? undefined}
-        speechStatus={speechStatus}
+        speechStatus={displaySpeechStatus}
         transcript={state.transcript}
         interimTranscript={state.interimTranscript}
         isPlaying={playback.isPlaying}
@@ -315,7 +325,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         onSend={onSend}
       />
       <SpeechStatus
-        status={speechStatus}
+        status={displaySpeechStatus}
         isRecording={state.isRecording}
         onDismiss={resetSpeechStatus}
       />

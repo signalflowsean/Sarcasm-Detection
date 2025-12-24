@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import { isMobileBrowser } from '../utils'
 
 type Props = {
   isRecording: boolean
@@ -12,6 +13,8 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton(
   { isRecording, shouldFlash, disabled, onClick, onKeyDown },
   ref
 ) {
+  const isMobile = isMobileBrowser()
+
   return (
     <button
       ref={ref}
@@ -39,7 +42,7 @@ const MicButton = forwardRef<HTMLButtonElement, Props>(function MicButton(
         <line x1="12" x2="12" y1="19" y2="22" />
       </svg>
       <span className="audio-recorder__mic__power" aria-hidden="true" />
-      {!disabled && (
+      {!disabled && !isMobile && (
         <kbd className="audio-recorder__mic__shortcut" aria-label="Keyboard shortcut: R">
           R
         </kbd>

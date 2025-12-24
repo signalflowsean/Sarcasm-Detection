@@ -4,8 +4,9 @@ import { useDetection } from '../../meter/hooks/useDetection'
 import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
+import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
 import { useWaveform } from '../hooks/useWaveform'
-import { formatDuration, isMacPlatform } from '../utils'
+import { formatDuration, isMacPlatform, isMobileBrowser } from '../utils'
 import DiscardButton from './DiscardButton'
 import MicButton from './MicButton'
 import PlayButton from './PlayButton'
@@ -88,6 +89,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       onTranscriptUpdate: handleTranscriptUpdate,
       onError: handleSpeechError,
     })
+
+  // Dev mode: Toggle loading spinner override
+  const devLoadingOverride = useDevLoadingOverride()
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Waveform hook
@@ -396,6 +400,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
   const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
+  const isMobile = isMobileBrowser()
 
   // Waveform playhead calculations
   const playheadPercent =
@@ -488,7 +493,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           disabled={!canPlay}
           isPlaying={playback.isPlaying}
           canPlay={canPlay}
-          className={`mobile-input-controls__play ${canPlay ? 'mobile-input-controls__play--with-shortcut' : ''}`}
+          className={`mobile-input-controls__play ${canPlay && !isMobile ? 'mobile-input-controls__play--with-shortcut' : ''}`}
           shortcutClassName="mobile-input-controls__btn-shortcut"
           testId="mobile-play-button"
           aria-label={playback.isPlaying ? 'Pause' : 'Play'}
@@ -500,7 +505,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           onClick={discardRecording}
           disabled={!canDiscard}
           canDiscard={canDiscard}
-          className={`mobile-input-controls__trash ${canDiscard ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
+          className={`mobile-input-controls__trash ${canDiscard && !isMobile ? 'mobile-input-controls__trash--with-shortcut' : ''}`}
           shortcutClassName="mobile-input-controls__btn-shortcut"
           testId="mobile-trash-button"
         />
@@ -516,7 +521,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           data-testid="mobile-send-button"
         >
           <span>{isSending ? 'Sending...' : 'Send to Detector'}</span>
-          {canSend && <kbd className="mobile-input-controls__shortcut">{modifierKey}+↵</kbd>}
+          {canSend && !isMobile && (
+            <kbd className="mobile-input-controls__shortcut">{modifierKey}+↵</kbd>
+          )}
         </button>
       </div>
 
@@ -525,7 +532,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       {/* Speech status (loading/error for speech-to-text model) */}
       <SpeechStatus
-        status={speechStatus}
+        status={import.meta.env.DEV && devLoadingOverride ? 'loading' : speechStatus}
         isRecording={state.isRecording}
         onDismiss={resetSpeechStatus}
       />

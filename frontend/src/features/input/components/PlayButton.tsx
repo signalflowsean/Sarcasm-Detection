@@ -1,3 +1,5 @@
+import { isMobileBrowser } from '../utils'
+
 type Props = {
   onClick: () => void
   disabled?: boolean
@@ -35,6 +37,8 @@ const PlayButton = ({
   playLabel = 'Preview Audio',
   pauseLabel = 'Pause',
 }: Props) => {
+  const isMobile = isMobileBrowser()
+
   // Default aria-label if not provided
   const defaultAriaLabel = isPlaying ? pauseLabel : playLabel
   const finalAriaLabel = ariaLabel || defaultAriaLabel
@@ -66,7 +70,7 @@ const PlayButton = ({
           )}
         </>
       )}
-      {canPlay && (
+      {canPlay && !isMobile && (
         <kbd className={shortcutClassName} aria-label="Keyboard shortcut: Space">
           Space
         </kbd>
