@@ -2959,12 +2959,7 @@ body:has(.audio-recorder__modal) .detector-jack {
 
   /* Send button - positioned adjacent to cable jack */
   .mobile-input-controls__send {
-    /* position: absolute; */
-    bottom: 0.5rem;
     margin-inline: 2.5rem;
-    /* Position to the right of the cable jack (jack is at left: 0.75rem, width from --cable-jack-width) */
-    /* left: calc(0.75rem + var(--cable-jack-width) + 0.75rem); */
-    /* right: 0.75rem; */
   }
 
   .mobile-input-controls__send-btn {

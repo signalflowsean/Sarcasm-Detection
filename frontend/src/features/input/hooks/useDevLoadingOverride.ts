@@ -45,10 +45,10 @@ export function useDevLoadingOverride(): boolean {
       window.addEventListener('keydown', handleKeyDown)
     }
 
-    // Cleanup: remove listener and event handler if last one
+    // Cleanup: remove listener and event handler if this instance added it and it's the last one
     return () => {
       listeners.delete(updateState)
-      if (handleKeyDown && listeners.size === 0) {
+      if (isFirstListener && handleKeyDown && listeners.size === 0) {
         window.removeEventListener('keydown', handleKeyDown)
       }
     }
