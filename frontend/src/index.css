@@ -1026,25 +1026,6 @@
     min-height: 0; /* Allow shrinking in flex context */
   }
 
-  .meter__display__boundary {
-    width: 100%;
-    height: 100%;
-    grid-row: 1 / 5;
-    /* Use the same solid color as display */
-    background-color: var(--meter-face-color, #f5f1e4);
-    z-index: 1;
-  }
-
-  .meter__display__boundary--left {
-    grid-column: 1 / 2;
-    clip-path: polygon(0 0, 100% 100%, 0 100%);
-  }
-
-  .meter__display__boundary--right {
-    grid-column: 3 / 4;
-    clip-path: polygon(100% 0, 100% 100%, 0 100%);
-  }
-
   .meter__display__level {
     grid-column: 1 / -1;
 
@@ -1053,6 +1034,13 @@
 
     background: var(--level-color);
     clip-path: ellipse(50% 100% at bottom center);
+
+    /*
+     * Each level needs its own mask based on its vertical position.
+     * Uses boundary equation x = y_display/3 where y_display is in full display coordinates.
+     * Prosodic (row 2): display y from 25% to 50% → mask x from 8.33% to 16.67%
+     * Lexical (row 3): display y from 50% to 75% → mask x from 16.67% to 25%
+     */
 
     /* Position above the level indicators */
     position: relative;
@@ -1071,6 +1059,15 @@
     );
     background: var(--level-color);
     grid-row: 2 / 3;
+    /*
+     * Prosodic is row 2 of 4 (display y: 25% to 50%)
+     * Using x = y_display/3, then offset by half indicator width (2.5%) to align with START not center
+     * Left edge: 8.33 - 2.5 = 5.83% to 16.67 - 2.5 = 14.17%
+     */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='5.83,0 94.17,0 85.83,100 14.17,100' fill='black'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='5.83,0 94.17,0 85.83,100 14.17,100' fill='black'/%3E%3C/svg%3E");
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
   }
 
   .meter__display__level--lexical {
@@ -1085,6 +1082,15 @@
     );
     background: var(--level-color);
     grid-row: 3 / 4;
+    /*
+     * Lexical is row 3 of 4 (display y: 50% to 75%)
+     * Using x = y_display/3, then offset by half indicator width (2.5%) to align with START not center
+     * Left edge: 16.67 - 2.5 = 14.17% to 25 - 2.5 = 22.5%
+     */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='14.17,0 85.83,0 77.5,100 22.5,100' fill='black'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='14.17,0 85.83,0 77.5,100 22.5,100' fill='black'/%3E%3C/svg%3E");
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
   }
 
   .meter__display__ticks__wrapper {
@@ -1296,47 +1302,6 @@
       /* Warm incandescent backlight glow */ inset 0 0 100px rgba(255, 230, 170, 0.4),
       inset 0 0 50px rgba(255, 215, 140, 0.3),
       /* Outer warm glow */ 0 0 35px rgba(255, 215, 140, 0.2);
-    /* Hint browser to optimize for box-shadow changes (promotes to own layer) */
-    will-change: box-shadow;
-    animation: backlight-pulse 8s ease-in-out infinite;
-  }
-
-  /* Disable animation for users who prefer reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    .meter__display--backlit {
-      animation: none;
-      will-change: auto;
-    }
-  }
-
-  @keyframes backlight-pulse {
-    0%,
-    100% {
-      box-shadow:
-        inset 0 0 0 4px #b89060,
-        inset 0 0 0 5px #7a6040,
-        inset 0 0 0 6px rgba(0, 0, 0, 0.25),
-        inset 0 8px 20px rgba(0, 0, 0, 0.1),
-        inset 0 -4px 12px rgba(255, 250, 235, 0.35),
-        inset 6px 0 15px rgba(0, 0, 0, 0.05),
-        inset -6px 0 15px rgba(0, 0, 0, 0.05),
-        inset 0 0 100px rgba(255, 230, 170, 0.4),
-        inset 0 0 50px rgba(255, 215, 140, 0.3),
-        0 0 35px rgba(255, 215, 140, 0.2);
-    }
-    50% {
-      box-shadow:
-        inset 0 0 0 4px #c9a070,
-        inset 0 0 0 5px #8a7050,
-        inset 0 0 0 6px rgba(0, 0, 0, 0.2),
-        inset 0 8px 20px rgba(0, 0, 0, 0.06),
-        inset 0 -4px 12px rgba(255, 250, 235, 0.45),
-        inset 6px 0 15px rgba(0, 0, 0, 0.04),
-        inset -6px 0 15px rgba(0, 0, 0, 0.04),
-        inset 0 0 120px rgba(255, 235, 180, 0.5),
-        inset 0 0 60px rgba(255, 220, 150, 0.4),
-        0 0 45px rgba(255, 220, 150, 0.25);
-    }
   }
 
   /* Power-on animation - vacuum tube warm-up effect */

@@ -76,6 +76,8 @@ npm run dev
 npm run dev
 ```
 
+> **Note:** The backend will start successfully without the `wav2vec2.onnx` file, but prosodic (audio-based) detection will return fallback values. For full functionality, export the ONNX model (see [Model Training](#model-training) section).
+
 ### E2E Tests
 
 ```bash
@@ -157,6 +159,12 @@ brew install ffmpeg  # or: sudo apt install ffmpeg
 python mustard_prepare.py      # Download & extract audio
 python mustard_embeddings.py   # Extract Wav2Vec2 embeddings
 python train_prosodic.py       # Train classifier
+
+# Export ONNX model for backend deployment (optional but recommended)
+pip install torch transformers onnx onnxruntime
+python export_onnx.py
+# Copy wav2vec2.onnx to backend/ directory
+cp wav2vec2.onnx ../../backend/
 ```
 
 See [ml/README.md](ml/README.md) for detailed documentation.
@@ -211,9 +219,17 @@ Health check endpoint for container orchestration.
 
 ```json
 {
-  "status": "healthy"
+  "status": "healthy",
+  "version": "1.0.0",
+  "models": {
+    "lexical": true,
+    "prosodic": false,
+    "wav2vec_onnx": false
+  }
 }
 ```
+
+> **Note:** The `models` field indicates which ML models are currently loaded and available. `prosodic` and `wav2vec_onnx` will be `false` if the ONNX model file (`wav2vec2.onnx`) is not present - the prosodic endpoint will still work but return fallback values.
 
 ## Technology Stack
 

@@ -1,4 +1,6 @@
 import { forwardRef, useRef } from 'react'
+import { MEDIA_QUERIES } from '../../../breakpoints'
+import { useMediaQuery } from '../hooks'
 import { clamp01 } from '../utils'
 
 type Props = {
@@ -23,7 +25,11 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
   },
   ref
 ) {
+  const isMobile = useMediaQuery(MEDIA_QUERIES.isMobile)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Use mobile-appropriate messaging for the empty waveform state
+  const defaultEmptyMessage = isMobile ? 'Tap Microphone to Record' : 'Click Microphone to Record'
 
   const isScrubbingRef = useRef(false)
   const seekAtClientX = (clientX: number) => {
@@ -113,7 +119,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
       )}
       {showEmpty && (
         <div className="audio-recorder__waveform__empty" aria-hidden="true">
-          {emptyMessage || 'Press Down on Microphone to Record'}
+          {emptyMessage || defaultEmptyMessage}
         </div>
       )}
     </div>

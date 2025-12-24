@@ -1,3 +1,5 @@
+import { isMobileBrowser } from '../utils'
+
 type Props = {
   onClick: () => void
   disabled?: boolean
@@ -21,6 +23,8 @@ const DiscardButton = ({
   testId = 'discard-button',
   'aria-label': ariaLabel = 'Discard recording',
 }: Props) => {
+  const isMobile = isMobileBrowser()
+
   return (
     <button
       type="button"
@@ -45,7 +49,7 @@ const DiscardButton = ({
         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
       </svg>
-      {canDiscard && (
+      {canDiscard && !isMobile && (
         <kbd className={shortcutClassName} aria-label="Keyboard shortcut: Delete">
           Del
         </kbd>

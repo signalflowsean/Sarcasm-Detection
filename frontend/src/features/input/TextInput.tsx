@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useDetection } from '../meter/hooks/useDetection'
 import { sendLexicalText } from './apiService'
 import SharedTextArea from './components/SharedTextArea'
-import { isMacPlatform } from './utils'
+import { isMacPlatform, isMobileBrowser } from './utils'
 
 type TextInputProps = {
   onClose?: () => void
@@ -19,6 +19,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
   // Detect platform for keyboard shortcut display
   const isMac = isMacPlatform()
   const modifierKey = isMac ? '⌘' : 'Ctrl'
+  const isMobile = isMobileBrowser()
 
   const handleSend = async () => {
     const payload = text.trim()
@@ -75,7 +76,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
       <div className="text-input__controls">
         <button
           type="button"
-          className={`text-input__send-btn ${text.trim() && !isSending ? 'text-input__send-btn--with-shortcut' : ''}`}
+          className={`text-input__send-btn ${text.trim() && !isSending && !isMobile ? 'text-input__send-btn--with-shortcut' : ''}`}
           onClick={handleSend}
           disabled={!text.trim() || isSending}
           data-testid="text-send-button"
@@ -83,7 +84,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
           <span className="text-input__send-btn__label">
             {isSending ? 'Sending...' : 'Send to Detector'}
           </span>
-          {text.trim() && !isSending && (
+          {text.trim() && !isSending && !isMobile && (
             <kbd
               className="text-input__send-btn__shortcut"
               aria-label={`Keyboard shortcut: ${modifierKey} + Enter`}

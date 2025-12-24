@@ -183,10 +183,6 @@ const MeterSection = () => {
             isPoweringOn={isPoweringOn}
             animDuration={needleAnimDuration}
           />
-
-          {/* Boundaries (visual trim) */}
-          <Boundary variant="left" />
-          <Boundary variant="right" />
         </div>
       </div>
 
@@ -226,14 +222,6 @@ const MeterSection = () => {
     </section>
   )
 }
-
-type BoundaryProps = {
-  variant: 'left' | 'right'
-}
-
-const Boundary = ({ variant }: BoundaryProps) => (
-  <div className={`meter__display__boundary meter__display__boundary--${variant}`} />
-)
 
 type LevelProps = {
   variant: 'prosodic' | 'lexical'
