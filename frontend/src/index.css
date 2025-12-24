@@ -1069,9 +1069,14 @@
     background: var(--level-color);
     grid-row: 2 / 3;
     /*
-     * Prosodic is row 2 of 4 (display y: 25% to 50%)
-     * Using x = y_display/3, then offset by half indicator width (2.5%) to align with START not center
-     * Left edge: 8.33 - 2.5 = 5.83% to 16.67 - 2.5 = 14.17%
+     * Prosodic is row 2 of 4 (display y: 25% to 50%).
+     * Using x = y_display / 3 gives the *center* x-position of the indicator:
+     *   25% / 3 ≈ 8.33%, 50% / 3 ≈ 16.67%.
+     * The visual indicator is 5% wide, so its half-width is 2.5%. To align the
+     * mask with the START (left edge) of the indicator instead of the center,
+     * subtract 2.5% from these center positions:
+     *   left edge: 8.33% - 2.5% = 5.83%, 16.67% - 2.5% = 14.17%.
+     * These values are used as the polygon's left x-coordinates below.
      */
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='5.83,0 94.17,0 85.83,100 14.17,100' fill='black'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpolygon points='5.83,0 94.17,0 85.83,100 14.17,100' fill='black'/%3E%3C/svg%3E");
