@@ -130,8 +130,12 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
   // Always render a container, but behavior differs by platform:
   // - Desktop: Reserves space (minHeight) to prevent layout shifts
   // - Mobile: Overlay positioning (no reserved space) to save room
-  const shouldShow = isRecording && status !== 'idle' && status !== 'listening'
-  const config = shouldShow ? STATUS_CONFIG[status] : null
+  // In dev mode, allow showing loading spinner even when not recording (for testing)
+  const shouldShow =
+    (isRecording && status !== 'idle' && status !== 'listening') ||
+    (import.meta.env.DEV && status === 'loading')
+  const config =
+    shouldShow && (status === 'loading' || status === 'error') ? STATUS_CONFIG[status] : null
 
   return (
     <div

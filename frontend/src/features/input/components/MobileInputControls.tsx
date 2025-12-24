@@ -4,6 +4,7 @@ import { useDetection } from '../../meter/hooks/useDetection'
 import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
+import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
 import { useWaveform } from '../hooks/useWaveform'
 import { formatDuration, isMacPlatform } from '../utils'
 import DiscardButton from './DiscardButton'
@@ -88,6 +89,9 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       onTranscriptUpdate: handleTranscriptUpdate,
       onError: handleSpeechError,
     })
+
+  // Dev mode: Toggle loading spinner override
+  const devLoadingOverride = useDevLoadingOverride()
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Waveform hook
@@ -525,7 +529,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       {/* Speech status (loading/error for speech-to-text model) */}
       <SpeechStatus
-        status={speechStatus}
+        status={import.meta.env.DEV && devLoadingOverride ? 'loading' : speechStatus}
         isRecording={state.isRecording}
         onDismiss={resetSpeechStatus}
       />
