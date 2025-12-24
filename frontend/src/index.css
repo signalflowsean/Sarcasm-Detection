@@ -799,6 +799,13 @@
     font-size: clamp(1.01rem, 2.625vw, 1.24rem);
   }
 
+  /* Mobile & Tablet: Increase "Tap Microphone to Record" font size by 30% */
+  @media (max-width: 1439px) {
+    .audio-recorder__modal .audio-recorder__waveform__empty {
+      font-size: clamp(1.313rem, 3.4125vw, 1.612rem); /* 30% increase */
+    }
+  }
+
   .audio-recorder__modal .audio-recorder__transcript p {
     font-size: clamp(1.01rem, 2.625vw, 1.24rem);
     line-height: 1.7;
@@ -1021,7 +1028,9 @@
 
   .meter__controls {
     display: grid;
-    place-items: center;
+    grid-template-rows: auto 1fr; /* DetectionModeSwitch auto, MobileInputControls fills remaining */
+    justify-items: center; /* Center horizontally */
+    align-items: stretch; /* Allow grid items to stretch vertically */
     flex: 1 1 50%; /* Take half the space - matches display-wrapper */
     min-height: 0; /* Allow shrinking in flex context */
   }
@@ -1442,6 +1451,7 @@
     min-height: 0; /* Allow shrinking in flex context */
     display: flex;
     flex-direction: column;
+    max-height: 40%;
   }
 
   .meter__display-wrapper .meter__display {
@@ -1487,6 +1497,18 @@
   .meter__curved-label--disabled {
     color: #8a8578 !important;
     filter: none;
+  }
+
+  /* Mobile & Tablet: Increase curved label font size by 30% and adjust container for larger text */
+  @media (max-width: 1439px) {
+    .meter__curved-label {
+      left: 0%; /* Remove left margin to prevent clipping */
+      right: 0%; /* Remove right margin */
+      width: 100%; /* Full width */
+    }
+    .meter__curved-label__text {
+      font-size: 13px; /* 30% increase from 10px */
+    }
   }
 
   /* ========================================
@@ -2803,11 +2825,10 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-input-controls {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    justify-content: space-between; /* Evenly distribute rows vertically */
     width: 100%;
+    height: 100%; /* Fill grid cell height */
     padding: 0.75rem;
-    /* Extra bottom padding for absolutely positioned send button */
-    padding-bottom: 3rem;
     position: relative; /* Establish positioning context for absolutely positioned send button */
     background: transparent;
   }
@@ -2864,7 +2885,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   .mobile-input-controls__waveform-wrapper .audio-recorder__waveform__empty {
-    font-size: 0.65rem;
+    font-size: 0.845rem; /* 30% increase from 0.65rem */
   }
 
   .mobile-input-controls__duration {
@@ -2938,11 +2959,12 @@ body:has(.audio-recorder__modal) .detector-jack {
 
   /* Send button - positioned adjacent to cable jack */
   .mobile-input-controls__send {
-    position: absolute;
+    /* position: absolute; */
     bottom: 0.5rem;
+    margin-inline: 2.5rem;
     /* Position to the right of the cable jack (jack is at left: 0.75rem, width from --cable-jack-width) */
-    left: calc(0.75rem + var(--cable-jack-width) + 0.75rem);
-    right: 0.75rem;
+    /* left: calc(0.75rem + var(--cable-jack-width) + 0.75rem); */
+    /* right: 0.75rem; */
   }
 
   .mobile-input-controls__send-btn {
@@ -2961,6 +2983,13 @@ body:has(.audio-recorder__modal) .detector-jack {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+  }
+
+  /* Mobile & Tablet: Increase "Send to Detector" font size by 20% */
+  @media (max-width: 1439px) {
+    .mobile-input-controls__send-btn {
+      font-size: 0.96rem; /* 20% increase from 0.8rem */
+    }
   }
 
   .mobile-input-controls__send-btn:hover:not(:disabled) {

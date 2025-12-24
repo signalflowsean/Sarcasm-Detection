@@ -249,15 +249,25 @@ type CurvedLabelProps = {
 
 const CurvedLabel = ({ variant, label, enabled }: CurvedLabelProps) => {
   const pathId = `curve-${variant}`
+  const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+
+  // Use wider path on mobile/tablet to prevent text clipping with larger font
+  // Extend viewBox and path to accommodate larger text that may overflow
+  const pathD = isMobileOrTablet
+    ? 'M -10,38 Q 120,5 250,38' // Wider path: extends beyond viewBox to prevent clipping
+    : 'M 8,38 Q 120,5 232,38' // Original path: starts at x=8, ends at x=232
+  const viewBox = isMobileOrTablet
+    ? '-10 0 260 45' // Extended viewBox: x=-10, width=260 to include overflow
+    : '0 0 240 45' // Original viewBox
 
   return (
     <svg
       className={`meter__curved-label meter__curved-label--${variant} ${enabled ? '' : 'meter__curved-label--disabled'}`}
-      viewBox="0 0 240 45"
+      viewBox={viewBox}
       preserveAspectRatio="xMidYMax meet"
     >
       <defs>
-        <path id={pathId} d="M 8,38 Q 120,5 232,38" fill="none" />
+        <path id={pathId} d={pathD} fill="none" />
       </defs>
       <text className="meter__curved-label__text">
         <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
