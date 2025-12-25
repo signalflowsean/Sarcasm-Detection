@@ -44,56 +44,59 @@ def prosodic_detection():
 
     audio_file = request.files['audio']
 
+    # CRITICAL: Check if audio_file is None or empty (defense in depth)
+    if not audio_file or not audio_file.filename:
+        return jsonify({'error': UserError.AUDIO_MISSING}), 400
+
     # Validate audio file (type, size, and content)
     # Pass request object to enable Content-Length header check for performance
     is_valid, error_message = validate_audio_file(audio_file, request=request)
     if not is_valid:
         return jsonify({'error': error_message}), 400
 
-    # SECURITY: Double-check file size before reading into memory
-    # This prevents memory exhaustion attacks if validation was bypassed
-    # or if file was modified between validation and read
-    try:
-        audio_file.seek(0, 2)  # Seek to end
-        file_size = audio_file.tell()
-        audio_file.seek(0)  # Reset to beginning
-    except OSError as e:
-        logger.error(f'[PROSODIC ERROR] Failed to seek audio file: {type(e).__name__}: {e}')
-        return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
-
+    # SECURITY: Double-check file size immediately before reading into memory
+    # This minimizes TOCTOU (time-of-check-time-of-use) window and prevents memory exhaustion attacks
+    # if validation was bypassed or if file was modified between validation and read
     from config import MAX_AUDIO_SIZE_BYTES
 
-    if file_size > MAX_AUDIO_SIZE_BYTES:
-        logger.warning(
-            f'[PROSODIC SECURITY] File size exceeded limit after validation: {file_size} bytes '
-            f'(max: {MAX_AUDIO_SIZE_BYTES})'
-        )
-        return jsonify({'error': UserError.AUDIO_TOO_LARGE}), 400
-
-    # Read the audio data (now safe - size validated)
-    # SECURITY: Use size limit in read() to prevent reading more than expected
-    # This provides defense in depth against memory exhaustion attacks
     try:
-        # Reset to beginning before read (defense in depth)
-        audio_file.seek(0)
-        # Read with explicit size limit to prevent reading more than validated size
-        # Add small buffer (1KB) to account for any file system inconsistencies
-        max_read_size = file_size + 1024
-        audio_bytes = audio_file.read(max_read_size)
+        # Re-check file size immediately before read to minimize TOCTOU window
+        audio_file.seek(0, 2)  # Seek to end
+        file_size = audio_file.tell()
+        audio_file.seek(0)  # Reset to beginning for read
+
+        # Validate size limit immediately before reading
+        if file_size > MAX_AUDIO_SIZE_BYTES:
+            logger.warning(
+                f'[PROSODIC SECURITY] File size exceeded limit after validation: {file_size} bytes '
+                f'(max: {MAX_AUDIO_SIZE_BYTES})'
+            )
+            return jsonify({'error': UserError.AUDIO_TOO_LARGE}), 400
+
+        # Read the audio data immediately after size check (minimizes TOCTOU window)
+        # SECURITY: Read exactly the validated file size - no buffer to prevent reading more than validated
+        # This prevents potential memory exhaustion if file was modified between validation and read
+        audio_bytes = audio_file.read(file_size)
 
         # SECURITY: Verify we didn't read more than expected (indicates file was modified)
-        if len(audio_bytes) > file_size + 1024:  # Allow small buffer for file system overhead
+        if len(audio_bytes) > file_size:
             logger.error(
                 f'[PROSODIC SECURITY] Read more bytes than expected: {len(audio_bytes)} > {file_size}'
             )
             return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
 
-        # SECURITY: Verify file position is at end after read
+        # SECURITY: Verify file position matches expected after read
         current_pos = audio_file.tell()
-        if current_pos != file_size and current_pos != len(audio_bytes):
+        if current_pos != file_size:
             logger.warning(
                 f'[PROSODIC] File position mismatch after read: expected {file_size}, got {current_pos}'
             )
+            # If we read less than expected, this could indicate file was truncated
+            # If we read more than expected, this is a security issue (handled above)
+            if len(audio_bytes) < file_size:
+                logger.warning(
+                    f'[PROSODIC] Read fewer bytes than expected: {len(audio_bytes)} < {file_size}'
+                )
 
         # Reset file position for any potential retries (defense in depth)
         audio_file.seek(0)
@@ -122,14 +125,14 @@ def prosodic_detection():
         )
         return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
 
-    # SECURITY: Verify read size matches expected file size (within tolerance)
-    # This detects if file was modified between size check and read
-    size_diff = abs(len(audio_bytes) - file_size)
-    if size_diff > 1024:  # Allow 1KB tolerance for file system overhead
-        logger.warning(
+    # SECURITY: Verify read size matches expected file size exactly
+    # This detects if file was modified between size check and read (TOCTOU issue)
+    if len(audio_bytes) != file_size:
+        logger.error(
             f'[PROSODIC SECURITY] Size mismatch: read {len(audio_bytes)} bytes, expected {file_size}'
         )
-        # Still process if within reasonable bounds, but log the discrepancy
+        # Fail if size doesn't match - this prevents processing files that were modified
+        return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
 
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:

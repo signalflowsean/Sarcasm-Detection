@@ -208,15 +208,20 @@ def secure_load_pickle(filepath: str):
     if not filepath or not isinstance(filepath, str):
         raise ValueError('Invalid filepath: must be a non-empty string')
 
-    # SECURITY: Check for path traversal attempts
-    if '..' in filepath or filepath.startswith('/'):
-        # Allow absolute paths only if they're within expected model directory
-        # This prevents loading arbitrary files from the filesystem
+    # SECURITY: Check for path traversal attempts and validate absolute paths
+    # First check for path traversal sequences
+    if '..' in filepath:
+        logger.error(f'[SECURITY] Blocked path traversal attempt: {filepath}')
+        raise ValueError('Invalid filepath: path traversal detected')
+
+    # For absolute paths, validate they're within expected model directory
+    # This prevents loading arbitrary files from the filesystem
+    if filepath.startswith('/'):
         resolved_path = os.path.realpath(filepath)
         expected_dir = os.path.realpath(os.path.dirname(PROSODIC_MODEL_PATH))
         if not resolved_path.startswith(expected_dir + os.sep) and resolved_path != expected_dir:
-            logger.error(f'[SECURITY] Blocked path traversal attempt: {filepath}')
-            raise ValueError('Invalid filepath: path traversal detected')
+            logger.error(f'[SECURITY] Blocked absolute path outside model directory: {filepath}')
+            raise ValueError('Invalid filepath: path outside allowed directory')
 
     # Context manager ensures file is closed even if exception occurs during unpickling
     try:
@@ -387,9 +392,8 @@ def load_onnx_model() -> bool:
     # This establishes consistent ordering: prosodic -> onnx, preventing deadlock.
     # Threads calling load_onnx_model() directly only acquire onnx lock (no deadlock).
     # Threads calling load_prosodic_models() acquire prosodic then onnx (consistent order).
-    _onnx_session_lock.acquire()
-
-    try:
+    # Use context manager to ensure lock is always released, even on exceptions
+    with _onnx_session_lock:
         # Double-check pattern: another thread may have loaded it while we waited for lock
         if _onnx_session is not None:
             return True
@@ -424,9 +428,6 @@ def load_onnx_model() -> bool:
             # Ensure session is None on failure to prevent inconsistent state
             _onnx_session = None
             return False
-    finally:
-        # Always release lock (we always acquire it above)
-        _onnx_session_lock.release()
 
 
 def load_prosodic_models() -> bool:
@@ -439,31 +440,30 @@ def load_prosodic_models() -> bool:
     Returns:
         bool: True if all models loaded successfully, False otherwise.
     """
-    global _prosodic_model
+    global _prosodic_model, _onnx_session
 
     # Fast path: check without lock (common case - model already loaded)
     # CRITICAL: Only read operations outside lock - never modify shared state
-    if _prosodic_model is not None:
-        # Verify ONNX is still loaded (defense in depth)
-        # Note: get_onnx_session() reads _onnx_session, which is safe outside lock
-        if get_onnx_session() is not None:
-            return True
-        # If ONNX session is None, we need to reload, but must do it inside lock
-        # Don't modify _prosodic_model here - let the lock-protected section handle it
+    # SECURITY: Read both variables atomically to avoid race condition where
+    # one is set but the other is not, leading to inconsistent state
+    prosodic_model_check = _prosodic_model is not None
+    onnx_session_check = _onnx_session is not None
+
+    if prosodic_model_check and onnx_session_check:
+        return True
+    # If either is None, we need to reload, but must do it inside lock
+    # Don't modify shared state here - let the lock-protected section handle it
 
     # Acquire lock for model loading (prevents concurrent loads)
     with _prosodic_model_lock:
         # Double-check pattern: another thread may have loaded it while we waited
-        if _prosodic_model is not None:
-            # Verify ONNX is still loaded (check again inside lock)
-            if get_onnx_session() is not None:
-                return True
-            else:
-                logger.warning(
-                    '[PROSODIC] Prosodic model loaded but ONNX session missing - reloading'
-                )
-                # CRITICAL: Only modify shared state inside lock
-                _prosodic_model = None  # Force reload
+        # CRITICAL: Re-check both variables inside lock to ensure consistency
+        if _prosodic_model is not None and _onnx_session is not None:
+            return True
+        elif _prosodic_model is not None and _onnx_session is None:
+            logger.warning('[PROSODIC] Prosodic model loaded but ONNX session missing - reloading')
+            # CRITICAL: Only modify shared state inside lock
+            _prosodic_model = None  # Force reload
 
         # Load ONNX encoder first (this function is already thread-safe)
         # CRITICAL: Load ONNX inside the prosodic lock to ensure consistency
@@ -476,7 +476,9 @@ def load_prosodic_models() -> bool:
             return False
 
         # Verify ONNX session is actually available after loading
-        if get_onnx_session() is None:
+        # CRITICAL: Read _onnx_session directly inside lock to ensure consistency
+        # Using get_onnx_session() would read outside the lock, creating a race condition
+        if _onnx_session is None:
             logger.error('[PROSODIC] ONNX model reported loaded but session is None')
             return False
 

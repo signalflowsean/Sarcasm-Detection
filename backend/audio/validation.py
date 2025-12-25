@@ -65,11 +65,33 @@ def validate_audio_file(audio_file, request=None) -> tuple:
     # PERFORMANCE: Early rejection using Content-Length header (if available)
     # For multipart/form-data, Content-Length includes boundaries, so it's an upper bound.
     # This allows early rejection of obviously too-large requests before processing.
+    # SECURITY: Validate Content-Length to prevent DoS attacks via negative or overflow values
     if request is not None:
         content_length = request.headers.get('Content-Length')
         if content_length:
             try:
+                # SECURITY: Check for negative values and integer overflow
+                # Python int() can handle arbitrarily large integers, but we need to validate
+                # reasonable bounds to prevent DoS attacks
                 request_size = int(content_length)
+                
+                # SECURITY: Reject negative Content-Length (malicious or corrupted header)
+                if request_size < 0:
+                    logger.warning(
+                        f'[VALIDATION SECURITY] Negative Content-Length header: {request_size}'
+                    )
+                    return False, UserError.AUDIO_INVALID_CONTENT
+                
+                # SECURITY: Reject extremely large values that could cause integer overflow
+                # or memory exhaustion (max 64-bit signed integer is ~9 exabytes)
+                # Use a reasonable upper bound: 100GB (100 * 1024^3 bytes)
+                MAX_REASONABLE_CONTENT_LENGTH = 100 * 1024 * 1024 * 1024  # 100GB
+                if request_size > MAX_REASONABLE_CONTENT_LENGTH:
+                    logger.warning(
+                        f'[VALIDATION SECURITY] Content-Length too large (potential DoS): {request_size} bytes'
+                    )
+                    return False, UserError.AUDIO_TOO_LARGE
+                
                 # Content-Length for multipart includes boundaries (~200-500 bytes overhead)
                 # So if request is significantly larger than max, we can reject early
                 # Use a small buffer (1MB) to account for multipart overhead
@@ -81,8 +103,8 @@ def validate_audio_file(audio_file, request=None) -> tuple:
                     )
                     return False, UserError.AUDIO_TOO_LARGE
                 logger.debug(f'[VALIDATION] Content-Length check passed: {request_size} bytes')
-            except (ValueError, TypeError):
-                # Invalid Content-Length header - continue with file size check
+            except (ValueError, TypeError, OverflowError):
+                # Invalid Content-Length header (non-numeric, overflow, etc.) - continue with file size check
                 logger.debug('[VALIDATION] Invalid Content-Length header, skipping early check')
 
     # Check actual file size by seeking to end

@@ -9,6 +9,7 @@ import numpy as np
 from .loader import (
     get_lexical_model,
     get_prosodic_model,
+    load_lexical_model,
     load_prosodic_models,
 )
 
@@ -31,9 +32,11 @@ def lexical_predict(text: str) -> tuple[float, bool]:
         logger.error(f'[LEXICAL MODEL] Invalid input type: {type(text)}, expected str')
         return 0.5, False
 
+    # Ensure model is loaded (consistent with prosodic_predict)
+    model_loaded = load_lexical_model()
     model = get_lexical_model()
 
-    if model is not None:
+    if model_loaded and model is not None:
         try:
             # SECURITY: Strip and validate text is not empty
             text = text.strip()

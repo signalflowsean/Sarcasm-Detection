@@ -38,18 +38,32 @@ def lexical_detection():
     """
     data = request.get_json()
 
+    # CRITICAL: Handle case where get_json() returns None (e.g., invalid JSON or wrong Content-Type)
+    if data is None:
+        return jsonify({'error': UserError.TEXT_MISSING}), 400
+
     if not data or 'text' not in data:
         return jsonify({'error': UserError.TEXT_MISSING}), 400
 
     text = data['text']
-    if not isinstance(text, str) or not text.strip():
+    # SECURITY: Validate text is a string before calling methods on it
+    if not isinstance(text, str):
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
+
+    # SECURITY: Check if text is empty before sanitization
+    if not text.strip():
         return jsonify({'error': UserError.TEXT_INVALID}), 400
 
     # Sanitize text input: normalize Unicode, remove control characters
     # This prevents issues with malformed input while preserving legitimate text
-    original_length = len(text)
-    text = sanitize_text(text)
-    sanitized_length = len(text)
+    # SECURITY: Wrap sanitization in try-except to handle any unexpected errors
+    try:
+        original_length = len(text)
+        text = sanitize_text(text)
+        sanitized_length = len(text)
+    except Exception as e:
+        logger.error(f'[LEXICAL ERROR] Text sanitization failed: {type(e).__name__}: {e}')
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
 
     if original_length != sanitized_length:
         logger.debug(
