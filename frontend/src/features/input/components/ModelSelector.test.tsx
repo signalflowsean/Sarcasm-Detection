@@ -114,4 +114,82 @@ describe('ModelSelector', () => {
     // Now it should have reloaded
     expect(window.location.reload).toHaveBeenCalledTimes(1)
   })
+
+  it('should dismiss when dismiss button is clicked', () => {
+    vi.stubEnv('MODE', 'development')
+    vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
+
+    const { container } = render(<ModelSelector />)
+
+    // Should be visible initially
+    expect(screen.getByText(/Dev: Model Override/i)).toBeInTheDocument()
+
+    // Find and click dismiss button
+    const dismissButton = screen.getByTitle('Dismiss')
+    fireEvent.click(dismissButton)
+
+    // Should be hidden
+    expect(container.firstChild).toBeNull()
+    expect(localStorage.getItem('moonshine_model_selector_dismissed')).toBe('true')
+  })
+
+  it('should not render if dismissed in localStorage', () => {
+    vi.stubEnv('MODE', 'development')
+    localStorage.setItem('moonshine_model_selector_dismissed', 'true')
+
+    const { container } = render(<ModelSelector />)
+
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('should minimize when minimize button is clicked', () => {
+    vi.stubEnv('MODE', 'development')
+    vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
+
+    render(<ModelSelector />)
+
+    // Should show full component initially
+    expect(screen.getByText(/Dev: Model Override/i)).toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
+
+    // Find and click minimize button
+    const minimizeButton = screen.getByTitle('Minimize')
+    fireEvent.click(minimizeButton)
+
+    // Should show minimized version (just the icon button)
+    expect(screen.queryByText(/Dev: Model Override/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.getByTitle('Expand Model Selector')).toBeInTheDocument()
+    expect(localStorage.getItem('moonshine_model_selector_minimized')).toBe('true')
+  })
+
+  it('should expand when minimized button is clicked', () => {
+    vi.stubEnv('MODE', 'development')
+    vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
+    localStorage.setItem('moonshine_model_selector_minimized', 'true')
+
+    render(<ModelSelector />)
+
+    // Should show minimized version initially
+    expect(screen.queryByText(/Dev: Model Override/i)).not.toBeInTheDocument()
+    const expandButton = screen.getByTitle('Expand Model Selector')
+
+    // Click to expand
+    fireEvent.click(expandButton)
+
+    // Should show full component
+    expect(screen.getByText(/Dev: Model Override/i)).toBeInTheDocument()
+    expect(screen.getByRole('combobox')).toBeInTheDocument()
+    expect(localStorage.getItem('moonshine_model_selector_minimized')).toBe('false')
+  })
+
+  it('should render minimized version if minimized in localStorage', () => {
+    vi.stubEnv('MODE', 'development')
+    localStorage.setItem('moonshine_model_selector_minimized', 'true')
+
+    render(<ModelSelector />)
+
+    expect(screen.queryByText(/Dev: Model Override/i)).not.toBeInTheDocument()
+    expect(screen.getByTitle('Expand Model Selector')).toBeInTheDocument()
+  })
 })

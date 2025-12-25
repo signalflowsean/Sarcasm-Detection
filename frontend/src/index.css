@@ -2568,6 +2568,12 @@ body:has(.audio-recorder__modal) .detector-jack {
     padding-top: 0;
   }
 
+  .meter__controls {
+    /* On desktop, vertically center the rotary knob */
+    align-items: center;
+    grid-template-rows: 1fr; /* Single row for rotary knob */
+  }
+
   .input-container {
     padding: 1.875rem;
     padding-top: calc(1.125rem + 12px);
