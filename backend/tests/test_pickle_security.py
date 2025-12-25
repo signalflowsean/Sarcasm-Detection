@@ -81,14 +81,6 @@ def test_restricted_unpickler_blocks_arbitrary_module():
         ('pickle', 'loads'),  # Prevent recursive pickle loading
     ]
 
-    # Python 2-only module (skip on Python 3)
-    import sys
-
-    if sys.version_info < (3,):
-        dangerous_modules.append(
-            ('__builtin__', 'execfile')
-        )  # Python 2 compatibility (should be blocked)
-
     for module_name, class_name in dangerous_modules:
         try:
             malicious_pickle = create_malicious_pickle(module_name, class_name)

@@ -62,7 +62,7 @@ export function trackModelPerformance(metrics: ModelMetrics) {
  */
 export function viewMetrics(): ModelMetrics[] | undefined {
   if (import.meta.env.MODE !== 'development') {
-    // Silently return in production (no console output)
+    console.warn('Metrics only available in dev mode')
     return
   }
 
@@ -137,7 +137,7 @@ export function viewMetrics(): ModelMetrics[] | undefined {
  */
 export function clearMetrics() {
   if (import.meta.env.MODE !== 'development') {
-    // Silently return in production (no console output)
+    console.warn('Metrics only available in dev mode')
     return
   }
 

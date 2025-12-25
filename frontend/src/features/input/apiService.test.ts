@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sendLexicalText, sendProsodicAudio } from './apiService'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  createMockAudioBlob,
+  createMockFetchError,
+  createMockFetchResponse,
   mockLexicalResponse,
   mockProsodicResponse,
-  createMockFetchResponse,
-  createMockFetchError,
-  createMockAudioBlob,
 } from '../../test/mocks'
+import { sendLexicalText, sendProsodicAudio } from './apiService'
 
 describe('apiService', () => {
   beforeEach(() => {
@@ -19,7 +19,9 @@ describe('apiService', () => {
 
   describe('sendLexicalText', () => {
     it('should send text and return response', async () => {
-      vi.mocked(fetch).mockReturnValueOnce(createMockFetchResponse(mockLexicalResponse))
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve(createMockFetchResponse(mockLexicalResponse))
+      )
 
       const result = await sendLexicalText('Test text')
 
@@ -99,7 +101,9 @@ describe('apiService', () => {
 
   describe('sendProsodicAudio', () => {
     it('should send audio and return response', async () => {
-      vi.mocked(fetch).mockReturnValueOnce(createMockFetchResponse(mockProsodicResponse))
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve(createMockFetchResponse(mockProsodicResponse))
+      )
 
       const audioBlob = createMockAudioBlob()
       const result = await sendProsodicAudio(audioBlob)
