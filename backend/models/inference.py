@@ -26,15 +26,45 @@ def lexical_predict(text: str) -> tuple[float, bool]:
         tuple: (score between 0.0 and 1.0, is_real_prediction)
         Falls back to neutral 0.5 score if model unavailable.
     """
+    # SECURITY: Validate input is string
+    if not isinstance(text, str):
+        logger.error(f'[LEXICAL MODEL] Invalid input type: {type(text)}, expected str')
+        return 0.5, False
+
     model = get_lexical_model()
 
     if model is not None:
         try:
-            score = float(model.predict_proba([text.strip()])[0][1])
+            # SECURITY: Strip and validate text is not empty
+            text = text.strip()
+            if not text:
+                logger.warning('[LEXICAL MODEL] Empty text after stripping')
+                return 0.5, False
+
+            proba = model.predict_proba([text])
+            # SECURITY: Validate array shape before indexing to prevent IndexError
+            # predict_proba should return shape (n_samples, n_classes) for binary classification
+            if proba.shape != (1, 2):
+                logger.error(
+                    f'[LEXICAL MODEL] Unexpected predict_proba shape: {proba.shape}, expected (1, 2)'
+                )
+                raise ValueError('Model returned unexpected prediction shape')
+            score = float(proba[0][1])
+            # SECURITY: Validate score is in valid range [0, 1]
+            if not (0.0 <= score <= 1.0):
+                logger.error(f'[LEXICAL MODEL] Invalid prediction score: {score}, expected [0, 1]')
+                raise ValueError(f'Model returned invalid score: {score}')
             logger.info(f'[LEXICAL MODEL] Prediction: {score:.4f}')
             return score, True
+        except (ValueError, IndexError, AttributeError) as e:
+            # Expected errors: model interface issues, shape mismatches
+            logger.error(f'[LEXICAL MODEL] Model prediction error: {type(e).__name__}: {e}')
         except Exception as e:
-            logger.error(f'[LEXICAL MODEL] Error during prediction: {e}')
+            # Unexpected errors: log but don't expose details to prevent information leakage
+            logger.error(
+                f'[LEXICAL MODEL] Unexpected error during prediction: {type(e).__name__}. '
+                'Details logged internally for debugging.'
+            )
     else:
         logger.warning('[LEXICAL MODEL] Model not loaded')
 
@@ -62,12 +92,49 @@ def prosodic_predict(embedding: np.ndarray) -> tuple[float, bool]:
 
     if models_loaded and model is not None:
         try:
+            # SECURITY: Validate embedding is numpy array
+            if not isinstance(embedding, np.ndarray):
+                logger.error(
+                    f'[PROSODIC MODEL] Invalid embedding type: {type(embedding)}, expected numpy.ndarray'
+                )
+                raise ValueError('Invalid embedding type')
+
+            # SECURITY: Validate embedding shape before processing
+            if embedding.shape != (768,):
+                logger.error(
+                    f'[PROSODIC MODEL] Invalid embedding shape: {embedding.shape}, expected (768,)'
+                )
+                raise ValueError('Invalid embedding shape')
+
+            # SECURITY: Ensure embedding is float32 to prevent dtype issues
+            if embedding.dtype != np.float32:
+                embedding = embedding.astype(np.float32)
+
             embedding_2d = embedding.reshape(1, -1)
-            score = float(model.predict_proba(embedding_2d)[0, 1])
+            proba = model.predict_proba(embedding_2d)
+            # SECURITY: Validate array shape before indexing to prevent IndexError
+            # predict_proba should return shape (n_samples, n_classes) for binary classification
+            if proba.shape != (1, 2):
+                logger.error(
+                    f'[PROSODIC MODEL] Unexpected predict_proba shape: {proba.shape}, expected (1, 2)'
+                )
+                raise ValueError('Model returned unexpected prediction shape')
+            score = float(proba[0, 1])
+            # SECURITY: Validate score is in valid range [0, 1]
+            if not (0.0 <= score <= 1.0):
+                logger.error(f'[PROSODIC MODEL] Invalid prediction score: {score}, expected [0, 1]')
+                raise ValueError(f'Model returned invalid score: {score}')
             logger.info(f'[PROSODIC MODEL] Prediction: {score:.4f}')
             return score, True
+        except (ValueError, IndexError, AttributeError) as e:
+            # Expected errors: model interface issues, shape mismatches
+            logger.error(f'[PROSODIC MODEL] Model prediction error: {type(e).__name__}: {e}')
         except Exception as e:
-            logger.error(f'[PROSODIC MODEL] Error during prediction: {e}')
+            # Unexpected errors: log but don't expose details to prevent information leakage
+            logger.error(
+                f'[PROSODIC MODEL] Unexpected error during prediction: {type(e).__name__}. '
+                'Details logged internally for debugging.'
+            )
     else:
         logger.warning('[PROSODIC MODEL] Model not loaded')
 

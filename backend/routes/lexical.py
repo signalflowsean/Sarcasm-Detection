@@ -14,6 +14,7 @@ from config import API_DELAY_SECONDS, MAX_TEXT_LENGTH, RATE_LIMIT_LEXICAL
 from errors import UserError
 from extensions import limiter
 from models import lexical_predict
+from models.loader import load_lexical_model
 from text import sanitize_text
 
 bp = Blueprint('lexical', __name__)
@@ -65,11 +66,24 @@ def lexical_detection():
         logger.warning(f'[LEXICAL] Text too long: {len(text)} chars (max: {MAX_TEXT_LENGTH})')
         return jsonify({'error': UserError.TEXT_TOO_LONG}), 400
 
+    # Ensure model is loaded before prediction
+    # This prevents errors if model failed to load at startup
+    if not load_lexical_model():
+        logger.warning('[LEXICAL] Model not available, using fallback score')
+        return jsonify({'id': str(uuid.uuid4()), 'value': 0.5, 'reliable': False})
+
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
 
     # Returns (score, is_real_prediction)
-    score, is_real = lexical_predict(text)
+    try:
+        score, is_real = lexical_predict(text)
+    except Exception as e:
+        # Unexpected error during prediction - log internally, return fallback
+        logger.error(f'[LEXICAL ERROR] Unexpected error during prediction: {type(e).__name__}: {e}')
+        # Return fallback score (0.5 = uncertain) instead of crashing
+        score = 0.5
+        is_real = False
 
     return jsonify({'id': str(uuid.uuid4()), 'value': score, 'reliable': is_real})

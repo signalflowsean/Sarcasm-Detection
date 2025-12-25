@@ -30,7 +30,10 @@ def test_is_valid_ip():
 def test_rate_limit_key_with_x_forwarded_for(app):
     """Test rate limiting key uses X-Forwarded-For header."""
     with app.test_request_context(
-        '/api/lexical', method='POST', headers={'X-Forwarded-For': '192.168.1.100'}
+        '/api/lexical',
+        method='POST',
+        headers={'X-Forwarded-For': '192.168.1.100'},
+        environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
         assert key == '192.168.1.100'
@@ -42,6 +45,7 @@ def test_rate_limit_key_with_multiple_ips(app):
         '/api/lexical',
         method='POST',
         headers={'X-Forwarded-For': '10.0.0.50, 192.168.1.1, 172.16.0.1'},
+        environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
         assert key == '10.0.0.50'  # Should use first IP
@@ -50,7 +54,10 @@ def test_rate_limit_key_with_multiple_ips(app):
 def test_rate_limit_key_with_x_real_ip(app):
     """Test rate limiting key falls back to X-Real-IP."""
     with app.test_request_context(
-        '/api/lexical', method='POST', headers={'X-Real-IP': '172.16.0.100'}
+        '/api/lexical',
+        method='POST',
+        headers={'X-Real-IP': '172.16.0.100'},
+        environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
         assert key == '172.16.0.100'
@@ -62,6 +69,7 @@ def test_rate_limit_key_priority(app):
         '/api/lexical',
         method='POST',
         headers={'X-Forwarded-For': '192.168.1.100', 'X-Real-IP': '172.16.0.100'},
+        environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
         assert key == '192.168.1.100'  # X-Forwarded-For should win
@@ -69,10 +77,12 @@ def test_rate_limit_key_priority(app):
 
 def test_rate_limit_key_fallback_to_remote_addr(app):
     """Test rate limiting key falls back to remote_addr."""
-    with app.test_request_context('/api/lexical', method='POST'):
+    with app.test_request_context(
+        '/api/lexical', method='POST', environ_base={'REMOTE_ADDR': '127.0.0.1'}
+    ):
         key = get_rate_limit_key()
-        # Should use request.remote_addr (test client uses 127.0.0.1)
-        assert key in ('127.0.0.1', 'unknown')
+        # Should use request.remote_addr
+        assert key == '127.0.0.1'
 
 
 def test_rate_limit_key_invalid_ip_in_header(app):
@@ -89,7 +99,10 @@ def test_rate_limit_key_invalid_ip_in_header(app):
 def test_rate_limit_key_whitespace_handling(app):
     """Test rate limiting key handles whitespace in headers."""
     with app.test_request_context(
-        '/api/lexical', method='POST', headers={'X-Forwarded-For': '  192.168.1.100  '}
+        '/api/lexical',
+        method='POST',
+        headers={'X-Forwarded-For': '  192.168.1.100  '},
+        environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
         assert key == '192.168.1.100'  # Should strip whitespace

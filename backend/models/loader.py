@@ -16,6 +16,7 @@ Future Considerations:
 import logging
 import os
 import pickle
+import threading
 
 from config import LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
 
@@ -119,6 +120,27 @@ TRUSTED_MODULES = frozenset(
     ]
 )
 
+# Blocklist of dangerous class names that should never be loaded, even from trusted modules
+# SECURITY: These functions can execute arbitrary code and must be blocked
+BLOCKED_CLASS_NAMES = frozenset(
+    [
+        'eval',  # Can execute arbitrary Python code
+        'exec',  # Can execute arbitrary Python code
+        'execfile',  # Can execute arbitrary Python files (Python 2)
+        'compile',  # Can compile arbitrary code
+        '__import__',  # Can import arbitrary modules
+        'open',  # Can open arbitrary files (though we allow it for basic file operations)
+        'file',  # Python 2 file type
+        'input',  # Can read from stdin
+        'raw_input',  # Python 2 input function
+        'reload',  # Can reload modules
+        'exit',  # Can exit the process
+        'quit',  # Can exit the process
+        'loads',  # Can unpickle arbitrary data (recursive pickle loading)
+        'load',  # Can unpickle arbitrary data (recursive pickle loading)
+    ]
+)
+
 
 class RestrictedUnpickler(pickle.Unpickler):
     """
@@ -140,8 +162,18 @@ class RestrictedUnpickler(pickle.Unpickler):
             The class object if trusted
 
         Raises:
-            pickle.UnpicklingError: If module is not in the allowlist
+            pickle.UnpicklingError: If module is not in the allowlist or class is blocked
         """
+        # SECURITY: Block dangerous class names even from trusted modules
+        if name in BLOCKED_CLASS_NAMES:
+            logger.error(
+                f'[SECURITY] Blocked dangerous class during unpickling: {module}.{name}. '
+                'This class can execute arbitrary code and is not safe for model loading.'
+            )
+            raise pickle.UnpicklingError(
+                f'Untrusted module blocked: {module}.{name}. Model file may be corrupted or malicious.'
+            )
+
         # SECURITY: Only allow explicitly listed modules - no wildcards or prefix matching
         if module in TRUSTED_MODULES:
             return super().find_class(module, name)
@@ -170,9 +202,32 @@ def secure_load_pickle(filepath: str):
     Raises:
         pickle.UnpicklingError: If untrusted classes are found
         FileNotFoundError: If file doesn't exist
+        ValueError: If filepath is invalid or contains path traversal
     """
-    with open(filepath, 'rb') as f:
-        return RestrictedUnpickler(f).load()
+    # SECURITY: Validate filepath before opening to prevent path traversal
+    if not filepath or not isinstance(filepath, str):
+        raise ValueError('Invalid filepath: must be a non-empty string')
+
+    # SECURITY: Check for path traversal attempts
+    if '..' in filepath or filepath.startswith('/'):
+        # Allow absolute paths only if they're within expected model directory
+        # This prevents loading arbitrary files from the filesystem
+        resolved_path = os.path.realpath(filepath)
+        expected_dir = os.path.realpath(os.path.dirname(PROSODIC_MODEL_PATH))
+        if not resolved_path.startswith(expected_dir + os.sep) and resolved_path != expected_dir:
+            logger.error(f'[SECURITY] Blocked path traversal attempt: {filepath}')
+            raise ValueError('Invalid filepath: path traversal detected')
+
+    # Context manager ensures file is closed even if exception occurs during unpickling
+    try:
+        with open(filepath, 'rb') as f:
+            return RestrictedUnpickler(f).load()
+    except FileNotFoundError:
+        logger.error(f'[SECURITY] Model file not found: {filepath}')
+        raise
+    except OSError as e:
+        logger.error(f'[SECURITY] Failed to open model file: {filepath}, error: {e}')
+        raise ValueError(f'Failed to open model file: {e}') from e
 
 
 def validate_sklearn_model(model, model_name: str) -> bool:
@@ -207,6 +262,13 @@ def validate_sklearn_model(model, model_name: str) -> bool:
 # ============================================================================
 # Model State (module-level singletons)
 # ============================================================================
+
+# Thread locks to prevent race conditions during model loading
+# CRITICAL: Flask apps run in multi-threaded environments (gunicorn workers)
+# Multiple requests could trigger concurrent model loading without locks
+_lexical_model_lock = threading.Lock()
+_prosodic_model_lock = threading.Lock()
+_onnx_session_lock = threading.Lock()
 
 _lexical_model = None
 _prosodic_model = None
@@ -257,74 +319,114 @@ def load_lexical_model() -> bool:
     Uses RestrictedUnpickler to prevent arbitrary code execution from
     malicious pickle files. Only trusted scikit-learn classes are allowed.
 
+    Thread-safe: Uses locks to prevent race conditions in multi-threaded environments.
+
     Returns:
         bool: True if model loaded and validated successfully, False otherwise.
     """
     global _lexical_model
 
+    # Fast path: check without lock (common case - model already loaded)
     if _lexical_model is not None:
         return True
 
-    if not os.path.exists(LEXICAL_MODEL_PATH):
-        logger.warning(f'Could not find lexical model at {LEXICAL_MODEL_PATH}')
-        return False
+    # Acquire lock for model loading (prevents concurrent loads)
+    with _lexical_model_lock:
+        # Double-check pattern: another thread may have loaded it while we waited
+        if _lexical_model is not None:
+            return True
 
-    try:
-        logger.info(f'Loading lexical model from: {LEXICAL_MODEL_PATH}')
-
-        # Use secure restricted unpickler instead of pickle.load()
-        model = secure_load_pickle(LEXICAL_MODEL_PATH)
-
-        # Validate the loaded model has expected interface
-        if not validate_sklearn_model(model, 'Lexical model'):
-            logger.error('Lexical model validation failed')
+        if not os.path.exists(LEXICAL_MODEL_PATH):
+            logger.warning(f'Could not find lexical model at {LEXICAL_MODEL_PATH}')
             return False
 
-        _lexical_model = model
-        logger.info('Lexical model loaded and validated successfully')
-        return True
+        try:
+            logger.info(f'Loading lexical model from: {LEXICAL_MODEL_PATH}')
 
-    except pickle.UnpicklingError as e:
-        logger.error(f'[SECURITY] Lexical model loading blocked: {e}')
-        return False
-    except Exception as e:
-        logger.error(f'Failed to load lexical model: {e}')
-        return False
+            # Use secure restricted unpickler instead of pickle.load()
+            model = secure_load_pickle(LEXICAL_MODEL_PATH)
+
+            # Validate the loaded model has expected interface
+            if not validate_sklearn_model(model, 'Lexical model'):
+                logger.error('Lexical model validation failed')
+                return False
+
+            _lexical_model = model
+            logger.info('Lexical model loaded and validated successfully')
+            return True
+
+        except pickle.UnpicklingError as e:
+            logger.error(f'[SECURITY] Lexical model loading blocked: {e}')
+            return False
+        except Exception as e:
+            logger.error(f'Failed to load lexical model: {e}')
+            return False
 
 
 def load_onnx_model() -> bool:
     """
     Load the ONNX Wav2Vec2 model for audio embedding extraction.
 
+    Thread-safe: Uses locks to prevent race conditions in multi-threaded environments.
+    Lock ordering: When called from load_prosodic_models(), this function acquires
+    _onnx_session_lock while the caller holds _prosodic_model_lock. This establishes
+    consistent lock ordering (prosodic -> onnx) to prevent deadlock.
+
     Returns:
         bool: True if model loaded successfully, False otherwise.
     """
     global _onnx_session
 
+    # Fast path: check without lock (common case - model already loaded)
     if _onnx_session is not None:
         return True
 
-    if not _onnx_available:
-        logger.warning('ONNX Runtime not available')
-        return False
-
-    if not os.path.exists(ONNX_MODEL_PATH):
-        logger.warning(f'Could not find ONNX model at {ONNX_MODEL_PATH}')
-        return False
+    # CRITICAL: Always acquire lock to prevent concurrent model loading
+    # Lock ordering: When called from load_prosodic_models(), we already hold
+    # _prosodic_model_lock, so we acquire _onnx_session_lock second.
+    # This establishes consistent ordering: prosodic -> onnx, preventing deadlock.
+    # Threads calling load_onnx_model() directly only acquire onnx lock (no deadlock).
+    # Threads calling load_prosodic_models() acquire prosodic then onnx (consistent order).
+    _onnx_session_lock.acquire()
 
     try:
-        logger.info(f'Loading ONNX model from: {ONNX_MODEL_PATH}')
+        # Double-check pattern: another thread may have loaded it while we waited for lock
+        if _onnx_session is not None:
+            return True
 
-        import onnxruntime as ort
+        if not _onnx_available:
+            logger.warning('ONNX Runtime not available')
+            return False
 
-        _onnx_session = ort.InferenceSession(ONNX_MODEL_PATH, providers=['CPUExecutionProvider'])
+        if not os.path.exists(ONNX_MODEL_PATH):
+            logger.warning(f'Could not find ONNX model at {ONNX_MODEL_PATH}')
+            return False
 
-        logger.info('ONNX Wav2Vec2 model loaded successfully')
-        return True
+        try:
+            logger.info(f'Loading ONNX model from: {ONNX_MODEL_PATH}')
 
-    except Exception as e:
-        logger.error(f'Failed to load ONNX model: {e}')
-        return False
+            import onnxruntime as ort
+
+            session = ort.InferenceSession(ONNX_MODEL_PATH, providers=['CPUExecutionProvider'])
+
+            # SECURITY: Validate session was created successfully before assigning
+            if session is None:
+                logger.error('[SECURITY] ONNX InferenceSession creation returned None')
+                return False
+
+            # Only assign after successful creation to prevent partial state
+            _onnx_session = session
+            logger.info('ONNX Wav2Vec2 model loaded successfully')
+            return True
+
+        except Exception as e:
+            logger.error(f'Failed to load ONNX model: {e}')
+            # Ensure session is None on failure to prevent inconsistent state
+            _onnx_session = None
+            return False
+    finally:
+        # Always release lock (we always acquire it above)
+        _onnx_session_lock.release()
 
 
 def load_prosodic_models() -> bool:
@@ -332,17 +434,52 @@ def load_prosodic_models() -> bool:
     Load prosodic model components.
     Loads both ONNX encoder and the prosodic classifier.
 
+    Thread-safe: Uses locks to prevent race conditions in multi-threaded environments.
+
     Returns:
         bool: True if all models loaded successfully, False otherwise.
     """
     global _prosodic_model
 
-    # Load ONNX encoder
-    if not load_onnx_model():
-        return False
+    # Fast path: check without lock (common case - model already loaded)
+    # CRITICAL: Only read operations outside lock - never modify shared state
+    if _prosodic_model is not None:
+        # Verify ONNX is still loaded (defense in depth)
+        # Note: get_onnx_session() reads _onnx_session, which is safe outside lock
+        if get_onnx_session() is not None:
+            return True
+        # If ONNX session is None, we need to reload, but must do it inside lock
+        # Don't modify _prosodic_model here - let the lock-protected section handle it
 
-    # Load classifier securely
-    if _prosodic_model is None:
+    # Acquire lock for model loading (prevents concurrent loads)
+    with _prosodic_model_lock:
+        # Double-check pattern: another thread may have loaded it while we waited
+        if _prosodic_model is not None:
+            # Verify ONNX is still loaded (check again inside lock)
+            if get_onnx_session() is not None:
+                return True
+            else:
+                logger.warning(
+                    '[PROSODIC] Prosodic model loaded but ONNX session missing - reloading'
+                )
+                # CRITICAL: Only modify shared state inside lock
+                _prosodic_model = None  # Force reload
+
+        # Load ONNX encoder first (this function is already thread-safe)
+        # CRITICAL: Load ONNX inside the prosodic lock to ensure consistency
+        # Lock ordering: We hold _prosodic_model_lock, then load_onnx_model() acquires
+        # _onnx_session_lock. This establishes consistent ordering (prosodic -> onnx)
+        # to prevent deadlock. Other threads calling load_onnx_model() directly only
+        # acquire onnx lock, so no deadlock is possible.
+        if not load_onnx_model():
+            logger.error('[PROSODIC] Failed to load ONNX model - cannot load prosodic classifier')
+            return False
+
+        # Verify ONNX session is actually available after loading
+        if get_onnx_session() is None:
+            logger.error('[PROSODIC] ONNX model reported loaded but session is None')
+            return False
+
         if not os.path.exists(PROSODIC_MODEL_PATH):
             logger.warning(f'Could not find prosodic model at {PROSODIC_MODEL_PATH}')
             return False
@@ -375,5 +512,9 @@ def load_prosodic_models() -> bool:
 # Startup Loading
 # ============================================================================
 
-# Load lexical model at import time (it's small and fast)
-load_lexical_model()
+# Note: Model loading is handled by preload_models() in app.py, which respects
+# the PRELOAD_MODELS configuration. We don't load at import time to avoid
+# preventing app startup if model loading fails and to respect user preferences.
+#
+# Models will be loaded on first request if not preloaded, ensuring graceful
+# degradation rather than startup failure.

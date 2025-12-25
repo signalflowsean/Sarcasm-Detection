@@ -65,7 +65,7 @@ def _validate_path_in_directory(file_path: str, base_dir: str) -> str:
                 f'which is outside base directory {resolved_base}'
             )
             raise ValueError('Invalid file path: path traversal detected')
-    except ValueError:
+    except ValueError as e:
         # os.path.commonpath raises ValueError if paths are on different drives (Windows)
         # In this case, check if resolved_path starts with resolved_base
         if not resolved_path.startswith(resolved_base + os.sep) and resolved_path != resolved_base:
@@ -73,7 +73,8 @@ def _validate_path_in_directory(file_path: str, base_dir: str) -> str:
                 f'[SECURITY] Path traversal attempt detected: {file_path} resolves to {resolved_path} '
                 f'which is outside base directory {resolved_base}'
             )
-            raise ValueError('Invalid file path: path traversal detected')
+            # Chain exception to preserve context for debugging while sanitizing user message
+            raise ValueError('Invalid file path: path traversal detected') from e
 
     # Additional check: warn if path contains path traversal sequences
     # (This shouldn't happen with os.path.join, but provides defense in depth)
@@ -171,12 +172,14 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
             logger.debug(f'FFmpeg successfully decoded audio: {len(waveform)} samples at {sr}Hz')
             return waveform, sr
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             logger.error(f'[AUDIO] FFmpeg conversion timed out after {FFMPEG_TIMEOUT} seconds')
-            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
-        except FileNotFoundError:
+            # Chain exception to preserve context for debugging while sanitizing user message
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
+        except FileNotFoundError as e:
             logger.error('[AUDIO] FFmpeg binary not found in PATH')
-            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
+            # Chain exception to preserve context for debugging while sanitizing user message
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
         except ValueError:
             # Re-raise ValueError (already sanitized)
             raise
@@ -185,7 +188,8 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
             logger.error(
                 f'[AUDIO] Unexpected error during FFmpeg conversion: {type(e).__name__}: {e}'
             )
-            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
+            # Chain exception to preserve context for debugging while sanitizing user message
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
 
 
 def decode_audio(audio_bytes: bytes) -> tuple:
@@ -223,7 +227,8 @@ def decode_audio(audio_bytes: bytes) -> tuple:
     except Exception as e:
         # Log internal error details, return sanitized message
         logger.error(f'[AUDIO] Decode failed with unexpected error: {type(e).__name__}: {e}')
-        raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
+        # Chain exception to preserve context for debugging while sanitizing user message
+        raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
 
 
 def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
@@ -247,13 +252,31 @@ def preprocess_audio(waveform: np.ndarray, sr: int) -> np.ndarray:
         waveform = waveform.mean(axis=1)
 
     # Resample to 16kHz if necessary using scipy
+    # SECURITY: Validate sample rate to prevent division by zero
+    if sr <= 0:
+        logger.error(f'[AUDIO] Invalid sample rate: {sr}')
+        raise ValueError('Invalid sample rate: must be greater than 0')
+
     if sr != TARGET_SAMPLE_RATE:
         # Calculate resampling ratio
         num_samples = int(len(waveform) * TARGET_SAMPLE_RATE / sr)
         waveform = _scipy_signal.resample(waveform, num_samples)
 
     # Normalize (zero mean, unit variance)
-    waveform = (waveform - waveform.mean()) / (waveform.std() + 1e-9)
+    # SECURITY: Validate waveform has sufficient variance to prevent division issues
+    waveform_mean = waveform.mean()
+    waveform_std = waveform.std()
+
+    # Check for constant signal (all zeros or constant value)
+    if waveform_std < 1e-9:
+        logger.warning(
+            f'[AUDIO] Waveform has near-zero variance (std={waveform_std:.2e}), '
+            'skipping normalization to prevent division issues'
+        )
+        # Return zero-mean waveform without normalization
+        waveform = waveform - waveform_mean
+    else:
+        waveform = (waveform - waveform_mean) / waveform_std
 
     return waveform.astype(np.float32)
 
@@ -269,26 +292,74 @@ def extract_embedding(waveform: np.ndarray) -> np.ndarray:
         Embedding as numpy array of shape (768,).
 
     Raises:
-        RuntimeError: If ONNX model is not loaded.
+        RuntimeError: If ONNX model is not loaded or inference fails.
     """
     from models.loader import get_onnx_session, load_onnx_model
 
     # Ensure model is loaded
-    load_onnx_model()
+    # CRITICAL: Check return value of load_onnx_model() to handle failures
+    if not load_onnx_model():
+        logger.error('[AUDIO] Failed to load ONNX model - cannot extract embedding')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
+
     session = get_onnx_session()
 
+    # CRITICAL: Double-check session is not None after loading
     if session is None:
-        logger.error('[AUDIO] ONNX model not loaded - cannot extract embedding')
+        logger.error(
+            '[AUDIO] ONNX model reported loaded but session is None - cannot extract embedding'
+        )
         raise RuntimeError(UserError.MODEL_UNAVAILABLE)
+
+    # SECURITY: Validate input waveform
+    if not isinstance(waveform, np.ndarray):
+        logger.error(f'[AUDIO] Invalid waveform type: {type(waveform)}, expected numpy.ndarray')
+        raise ValueError('Invalid waveform type')
+
+    if waveform.size == 0:
+        logger.error('[AUDIO] Empty waveform provided')
+        raise ValueError('Empty waveform')
 
     # Prepare input (add batch dimension)
     input_values = waveform.reshape(1, -1).astype(np.float32)
 
-    # Run ONNX inference
-    outputs = session.run(['last_hidden_state'], {'input_values': input_values})
+    # Run ONNX inference with error handling
+    try:
+        outputs = session.run(['last_hidden_state'], {'input_values': input_values})
+    except Exception as e:
+        # ONNX Runtime can raise various exceptions (InvalidArgument, RuntimeException, etc.)
+        logger.error(f'[AUDIO] ONNX inference failed: {type(e).__name__}: {e}')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE) from e
+
+    # SECURITY: Validate output structure before accessing
+    if not outputs or len(outputs) == 0:
+        logger.error('[AUDIO] ONNX model returned empty output')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
+
+    hidden_states = outputs[0]
+
+    # SECURITY: Validate output shape before processing
+    if not isinstance(hidden_states, np.ndarray):
+        logger.error(f'[AUDIO] ONNX output is not a numpy array: {type(hidden_states)}')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
+
+    if hidden_states.ndim < 2:
+        logger.error(
+            f'[AUDIO] Unexpected ONNX output shape: {hidden_states.shape}, expected at least 2D'
+        )
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
 
     # Mean pool over time dimension
-    hidden_states = outputs[0]  # Shape: (1, seq_len, 768)
-    embedding = hidden_states.mean(axis=1).squeeze(0)  # Shape: (768,)
+    # Expected shape: (batch_size, seq_len, 768) -> (batch_size, 768) -> (768,)
+    try:
+        embedding = hidden_states.mean(axis=1).squeeze(0)  # Shape: (768,)
+    except Exception as e:
+        logger.error(f'[AUDIO] Failed to process ONNX output: {type(e).__name__}: {e}')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE) from e
+
+    # SECURITY: Validate final embedding shape
+    if embedding.shape != (768,):
+        logger.error(f'[AUDIO] Unexpected embedding shape: {embedding.shape}, expected (768,)')
+        raise RuntimeError(UserError.MODEL_UNAVAILABLE)
 
     return embedding

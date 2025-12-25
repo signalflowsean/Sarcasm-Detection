@@ -50,8 +50,86 @@ def prosodic_detection():
     if not is_valid:
         return jsonify({'error': error_message}), 400
 
-    # Read the audio data
-    audio_bytes = audio_file.read()
+    # SECURITY: Double-check file size before reading into memory
+    # This prevents memory exhaustion attacks if validation was bypassed
+    # or if file was modified between validation and read
+    try:
+        audio_file.seek(0, 2)  # Seek to end
+        file_size = audio_file.tell()
+        audio_file.seek(0)  # Reset to beginning
+    except OSError as e:
+        logger.error(f'[PROSODIC ERROR] Failed to seek audio file: {type(e).__name__}: {e}')
+        return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
+
+    from config import MAX_AUDIO_SIZE_BYTES
+
+    if file_size > MAX_AUDIO_SIZE_BYTES:
+        logger.warning(
+            f'[PROSODIC SECURITY] File size exceeded limit after validation: {file_size} bytes '
+            f'(max: {MAX_AUDIO_SIZE_BYTES})'
+        )
+        return jsonify({'error': UserError.AUDIO_TOO_LARGE}), 400
+
+    # Read the audio data (now safe - size validated)
+    # SECURITY: Use size limit in read() to prevent reading more than expected
+    # This provides defense in depth against memory exhaustion attacks
+    try:
+        # Reset to beginning before read (defense in depth)
+        audio_file.seek(0)
+        # Read with explicit size limit to prevent reading more than validated size
+        # Add small buffer (1KB) to account for any file system inconsistencies
+        max_read_size = file_size + 1024
+        audio_bytes = audio_file.read(max_read_size)
+
+        # SECURITY: Verify we didn't read more than expected (indicates file was modified)
+        if len(audio_bytes) > file_size + 1024:  # Allow small buffer for file system overhead
+            logger.error(
+                f'[PROSODIC SECURITY] Read more bytes than expected: {len(audio_bytes)} > {file_size}'
+            )
+            return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
+
+        # SECURITY: Verify file position is at end after read
+        current_pos = audio_file.tell()
+        if current_pos != file_size and current_pos != len(audio_bytes):
+            logger.warning(
+                f'[PROSODIC] File position mismatch after read: expected {file_size}, got {current_pos}'
+            )
+
+        # Reset file position for any potential retries (defense in depth)
+        audio_file.seek(0)
+    except OSError as e:
+        logger.error(f'[PROSODIC ERROR] Failed to read audio file: {type(e).__name__}: {e}')
+        # Try to reset file position even after read error
+        try:
+            audio_file.seek(0)
+        except Exception:
+            pass  # Ignore seek errors if file is already corrupted
+        return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
+    except MemoryError as e:
+        # CRITICAL: Handle memory exhaustion explicitly
+        logger.error(f'[PROSODIC SECURITY] Memory exhaustion while reading audio file: {e}')
+        return jsonify({'error': UserError.AUDIO_TOO_LARGE}), 400
+
+    # SECURITY: Validate that audio data was actually read
+    if not audio_bytes:
+        logger.warning('[PROSODIC SECURITY] Audio file read returned empty bytes')
+        return jsonify({'error': UserError.AUDIO_EMPTY}), 400
+
+    # SECURITY: Validate audio_bytes is actually bytes (defense in depth)
+    if not isinstance(audio_bytes, bytes):
+        logger.error(
+            f'[PROSODIC SECURITY] Audio file read returned non-bytes type: {type(audio_bytes)}'
+        )
+        return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
+
+    # SECURITY: Verify read size matches expected file size (within tolerance)
+    # This detects if file was modified between size check and read
+    size_diff = abs(len(audio_bytes) - file_size)
+    if size_diff > 1024:  # Allow 1KB tolerance for file system overhead
+        logger.warning(
+            f'[PROSODIC SECURITY] Size mismatch: read {len(audio_bytes)} bytes, expected {file_size}'
+        )
+        # Still process if within reasonable bounds, but log the discrepancy
 
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:
@@ -112,9 +190,14 @@ def prosodic_detection():
             score = 0.5
             is_real = False
         else:
-            # Unexpected RuntimeError - re-raise to be handled by Flask error handler
-            logger.error(f'[PROSODIC] Unexpected RuntimeError: {type(e).__name__}: {error_msg}')
-            raise
+            # Unexpected RuntimeError - log and use fallback instead of crashing
+            # This prevents 500 errors for unexpected but recoverable runtime issues
+            logger.error(
+                f'[PROSODIC] Unexpected RuntimeError: {type(e).__name__}: {error_msg}. '
+                'Using fallback score to prevent service disruption.'
+            )
+            score = 0.5
+            is_real = False
 
     except Exception as e:
         # Unexpected error: Something went wrong that we didn't anticipate

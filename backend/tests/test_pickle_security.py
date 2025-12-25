@@ -79,11 +79,23 @@ def test_restricted_unpickler_blocks_arbitrary_module():
         ('sys', 'exit'),
         ('builtins', 'eval'),  # Even builtins.eval should be blocked (not in TRUSTED_MODULES)
         ('pickle', 'loads'),  # Prevent recursive pickle loading
-        ('__builtin__', 'execfile'),  # Python 2 compatibility (should be blocked)
     ]
 
+    # Python 2-only module (skip on Python 3)
+    import sys
+
+    if sys.version_info < (3,):
+        dangerous_modules.append(
+            ('__builtin__', 'execfile')
+        )  # Python 2 compatibility (should be blocked)
+
     for module_name, class_name in dangerous_modules:
-        malicious_pickle = create_malicious_pickle(module_name, class_name)
+        try:
+            malicious_pickle = create_malicious_pickle(module_name, class_name)
+        except (ModuleNotFoundError, ImportError):
+            # Skip modules that don't exist in this Python version
+            continue
+
         buffer = io.BytesIO(malicious_pickle)
         unpickler = RestrictedUnpickler(buffer)
 
