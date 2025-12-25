@@ -14,6 +14,7 @@ from config import API_DELAY_SECONDS, MAX_TEXT_LENGTH, RATE_LIMIT_LEXICAL
 from errors import UserError
 from extensions import limiter
 from models import lexical_predict
+from text import sanitize_text
 
 bp = Blueprint('lexical', __name__)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,22 @@ def lexical_detection():
 
     text = data['text']
     if not isinstance(text, str) or not text.strip():
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
+
+    # Sanitize text input: normalize Unicode, remove control characters
+    # This prevents issues with malformed input while preserving legitimate text
+    original_length = len(text)
+    text = sanitize_text(text)
+    sanitized_length = len(text)
+
+    if original_length != sanitized_length:
+        logger.debug(
+            f'[LEXICAL] Text sanitized: {original_length} -> {sanitized_length} chars '
+            f'(removed {original_length - sanitized_length} problematic character(s))'
+        )
+
+    # Re-check if text is empty after sanitization
+    if not text.strip():
         return jsonify({'error': UserError.TEXT_INVALID}), 400
 
     if len(text) > MAX_TEXT_LENGTH:

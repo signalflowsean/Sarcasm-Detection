@@ -26,15 +26,31 @@ logger = logging.getLogger(__name__)
 # CORS Configuration
 # ============================================================================
 
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
+# In production, CORS_ORIGINS must be explicitly set (cannot be '*')
+# Default to '*' only in development for convenience
+#
+# Railway Production Example:
+#   CORS_ORIGINS=https://sarcasm-detector.com
+#   (or comma-separated: https://sarcasm-detector.com,https://www.sarcasm-detector.com)
+CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*' if not IS_PRODUCTION else None)
 
 # ============================================================================
 # API Configuration
 # ============================================================================
 
+# Default API delay values (in seconds)
+# Used to showcase loading animations in development
+DEFAULT_API_DELAY_DEV = 1.2  # Development: 1.2 seconds delay
+DEFAULT_API_DELAY_PROD = 0.0  # Production: no artificial delay
+
 # Artificial delay in seconds to showcase loading animations
 # Defaults to 0 in production, 1.2 in development
-API_DELAY_SECONDS = float(os.environ.get('API_DELAY_SECONDS', '0' if IS_PRODUCTION else '1.2'))
+API_DELAY_SECONDS = float(
+    os.environ.get(
+        'API_DELAY_SECONDS',
+        str(DEFAULT_API_DELAY_PROD if IS_PRODUCTION else DEFAULT_API_DELAY_DEV),
+    )
+)
 
 # ============================================================================
 # Rate Limiting Configuration
@@ -57,6 +73,16 @@ RATE_LIMIT_STORAGE = os.environ.get('RATE_LIMIT_STORAGE', 'memory://')
 
 # Whether to enable rate limiting (can be disabled for development)
 RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+
+# ============================================================================
+# Model Preloading Configuration
+# ============================================================================
+
+# Whether to preload models at module import time (before Flask app creation)
+# Defaults to True for production (gunicorn --preload) and development convenience
+# Set to False to disable preloading (models will load on first request)
+# Useful for development when you want faster startup or are testing model loading
+PRELOAD_MODELS = os.environ.get('PRELOAD_MODELS', 'true').lower() == 'true'
 
 # ============================================================================
 # Model Paths
@@ -83,6 +109,16 @@ MAX_TEXT_LENGTH = 10000  # Maximum characters for lexical analysis
 # Max file size (aligned with nginx client_max_body_size of 50M)
 MAX_AUDIO_SIZE_MB = 50
 MAX_AUDIO_SIZE_BYTES = MAX_AUDIO_SIZE_MB * 1024 * 1024
+
+# ============================================================================
+# Audio Processing Configuration
+# ============================================================================
+
+# FFmpeg timeout for audio conversion (in seconds)
+# Prevents hanging on corrupted or problematic audio files
+# Default: 30 seconds (reasonable for most audio files)
+# Can be overridden via FFMPEG_TIMEOUT environment variable
+FFMPEG_TIMEOUT = int(os.environ.get('FFMPEG_TIMEOUT', '30'))
 
 # Allowed audio MIME types and their corresponding extensions
 ALLOWED_AUDIO_TYPES = {

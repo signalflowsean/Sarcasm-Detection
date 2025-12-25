@@ -45,7 +45,8 @@ def prosodic_detection():
     audio_file = request.files['audio']
 
     # Validate audio file (type, size, and content)
-    is_valid, error_message = validate_audio_file(audio_file)
+    # Pass request object to enable Content-Length header check for performance
+    is_valid, error_message = validate_audio_file(audio_file, request=request)
     if not is_valid:
         return jsonify({'error': error_message}), 400
 
@@ -81,12 +82,48 @@ def prosodic_detection():
         # Predict sarcasm score (returns score and whether it's a real prediction)
         score, is_real = prosodic_predict(embedding)
 
-    except Exception as e:
-        # Log detailed error internally (may contain sensitive info)
-        logger.error(f'[PROSODIC ERROR] Audio processing failed: {type(e).__name__}: {e}')
-        # Fallback to neutral score on error (0.5 = uncertain)
+    except ValueError as e:
+        # Expected error: Audio decode/processing failures (decode_audio raises ValueError)
+        # These are user input issues or format problems - return fallback score
+        error_msg = str(e)
+        logger.warning(
+            f'[PROSODIC] Audio processing failed (expected error): {type(e).__name__}: {error_msg}'
+        )
+        # Check if it's a sanitized user error message
+        if error_msg in (
+            UserError.AUDIO_DECODE_FAILED,
+            UserError.AUDIO_PROCESSING_FAILED,
+            UserError.MODEL_UNAVAILABLE,
+        ):
+            # User-friendly error already sanitized
+            logger.info('[PROSODIC FALLBACK] Using fallback score due to audio processing error')
+        else:
+            # Unexpected ValueError - log but still use fallback
+            logger.error(f'[PROSODIC] Unexpected ValueError: {error_msg}')
         score = 0.5
         is_real = False
-        logger.warning('[PROSODIC FALLBACK] Using fallback score due to error')
+
+    except RuntimeError as e:
+        # Expected error: Model unavailable (extract_embedding raises RuntimeError)
+        # This is an expected service degradation - return fallback score
+        error_msg = str(e)
+        if UserError.MODEL_UNAVAILABLE in error_msg:
+            logger.warning('[PROSODIC] Model unavailable (expected): Using fallback score')
+            score = 0.5
+            is_real = False
+        else:
+            # Unexpected RuntimeError - re-raise to be handled by Flask error handler
+            logger.error(f'[PROSODIC] Unexpected RuntimeError: {type(e).__name__}: {error_msg}')
+            raise
+
+    except Exception as e:
+        # Unexpected error: Something went wrong that we didn't anticipate
+        # Re-raise to be handled by Flask's error handler (500 error)
+        # This ensures unexpected bugs are properly logged and don't silently fail
+        logger.error(
+            f'[PROSODIC ERROR] Unexpected error during audio processing: {type(e).__name__}: {e}'
+        )
+        # Re-raise to trigger Flask's 500 error handler
+        raise
 
     return jsonify({'id': str(uuid.uuid4()), 'value': score, 'reliable': is_real})

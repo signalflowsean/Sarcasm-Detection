@@ -43,7 +43,57 @@ describe('apiService', () => {
     it('should handle network errors', async () => {
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
-      await expect(sendLexicalText('test')).rejects.toThrow('Network error')
+      await expect(sendLexicalText('test')).rejects.toThrow(
+        'Failed to connect to server: Network error'
+      )
+    })
+
+    it('should handle non-JSON error responses', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.reject(new Error('Invalid JSON')),
+        } as Response)
+      )
+
+      await expect(sendLexicalText('test')).rejects.toThrow('HTTP 500: Internal Server Error')
+    })
+
+    it('should handle invalid JSON in successful response', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new Error('Invalid JSON')),
+        } as Response)
+      )
+
+      await expect(sendLexicalText('test')).rejects.toThrow('Invalid response format from server')
+    })
+
+    it('should reject response with invalid structure', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ invalid: 'structure' }), // Missing required fields
+        } as Response)
+      )
+
+      await expect(sendLexicalText('test')).rejects.toThrow('Invalid response format from server')
+    })
+
+    it('should handle error response without error field', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve({ message: 'Something went wrong' }), // Not ErrorResponse format
+        } as Response)
+      )
+
+      await expect(sendLexicalText('test')).rejects.toThrow('HTTP 500')
     })
   })
 
@@ -68,6 +118,71 @@ describe('apiService', () => {
 
       const audioBlob = createMockAudioBlob()
       await expect(sendProsodicAudio(audioBlob)).rejects.toThrow('No audio file provided')
+    })
+
+    it('should handle network errors', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Failed to fetch'))
+
+      const audioBlob = createMockAudioBlob()
+      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow(
+        'Failed to connect to server: Failed to fetch'
+      )
+    })
+
+    it('should handle non-JSON error responses', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: false,
+          status: 413,
+          statusText: 'Payload Too Large',
+          json: () => Promise.reject(new Error('Invalid JSON')),
+        } as Response)
+      )
+
+      const audioBlob = createMockAudioBlob()
+      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow('HTTP 413: Payload Too Large')
+    })
+
+    it('should handle invalid JSON in successful response', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new Error('Invalid JSON')),
+        } as Response)
+      )
+
+      const audioBlob = createMockAudioBlob()
+      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow(
+        'Invalid response format from server'
+      )
+    })
+
+    it('should reject response with invalid structure', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ invalid: 'structure' }), // Missing required fields
+        } as Response)
+      )
+
+      const audioBlob = createMockAudioBlob()
+      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow(
+        'Invalid response format from server'
+      )
+    })
+
+    it('should handle error response without error field', async () => {
+      vi.mocked(fetch).mockReturnValueOnce(
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve({ message: 'Something went wrong' }), // Not ErrorResponse format
+        } as Response)
+      )
+
+      const audioBlob = createMockAudioBlob()
+      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow('HTTP 500')
     })
   })
 })

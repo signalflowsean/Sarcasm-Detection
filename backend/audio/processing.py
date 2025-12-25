@@ -14,7 +14,7 @@ import tempfile
 
 import numpy as np
 
-from config import TARGET_SAMPLE_RATE
+from config import FFMPEG_TIMEOUT, TARGET_SAMPLE_RATE
 from errors import UserError
 
 logger = logging.getLogger(__name__)
@@ -36,10 +36,60 @@ def _ensure_imports():
         _scipy_signal = signal
 
 
+def _validate_path_in_directory(file_path: str, base_dir: str) -> str:
+    """
+    Validate that a file path is within the specified base directory.
+    Prevents path traversal attacks by ensuring resolved paths are contained.
+
+    Args:
+        file_path: Path to validate
+        base_dir: Base directory that file_path must be within
+
+    Returns:
+        Resolved absolute path if valid
+
+    Raises:
+        ValueError: If path is outside base directory or contains invalid characters
+    """
+    # Resolve both paths to absolute paths (resolves symlinks)
+    resolved_path = os.path.realpath(file_path)
+    resolved_base = os.path.realpath(base_dir)
+
+    # Ensure resolved path starts with resolved base directory
+    # Use os.path.commonpath to handle edge cases correctly
+    try:
+        common_path = os.path.commonpath([resolved_path, resolved_base])
+        if common_path != resolved_base:
+            logger.error(
+                f'[SECURITY] Path traversal attempt detected: {file_path} resolves to {resolved_path} '
+                f'which is outside base directory {resolved_base}'
+            )
+            raise ValueError('Invalid file path: path traversal detected')
+    except ValueError:
+        # os.path.commonpath raises ValueError if paths are on different drives (Windows)
+        # In this case, check if resolved_path starts with resolved_base
+        if not resolved_path.startswith(resolved_base + os.sep) and resolved_path != resolved_base:
+            logger.error(
+                f'[SECURITY] Path traversal attempt detected: {file_path} resolves to {resolved_path} '
+                f'which is outside base directory {resolved_base}'
+            )
+            raise ValueError('Invalid file path: path traversal detected')
+
+    # Additional check: warn if path contains path traversal sequences
+    # (This shouldn't happen with os.path.join, but provides defense in depth)
+    if '..' in file_path:
+        logger.warning(f'[SECURITY] Suspicious path contains "..": {file_path}')
+
+    return resolved_path
+
+
 def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
     """
     Decode audio using FFmpeg as a fallback for formats like WebM/Opus.
     Converts to WAV format which can then be read by soundfile.
+
+    Security: All file paths are validated to prevent path traversal attacks.
+    Command arguments are passed as a list (not shell string) to prevent injection.
 
     Args:
         audio_bytes: Raw audio file bytes.
@@ -48,39 +98,60 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
         tuple: (waveform as numpy array, sample_rate)
 
     Raises:
-        ValueError: If FFmpeg conversion fails.
+        ValueError: If FFmpeg conversion fails or security validation fails.
     """
     _ensure_imports()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        input_path = os.path.join(tmpdir, 'input_audio')
-        output_path = os.path.join(tmpdir, 'output.wav')
+        # Use simple, predictable filenames (no user input)
+        input_filename = 'input_audio'
+        output_filename = 'output.wav'
+
+        # Construct paths using os.path.join (safe for known components)
+        input_path = os.path.join(tmpdir, input_filename)
+        output_path = os.path.join(tmpdir, output_filename)
+
+        # SECURITY: Validate paths are within temp directory (prevents path traversal)
+        try:
+            validated_input_path = _validate_path_in_directory(input_path, tmpdir)
+            validated_output_path = _validate_path_in_directory(output_path, tmpdir)
+        except ValueError as e:
+            logger.error(f'[SECURITY] Path validation failed: {e}')
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
 
         # Write input bytes to temp file
-        with open(input_path, 'wb') as f:
-            f.write(audio_bytes)
+        try:
+            with open(validated_input_path, 'wb') as f:
+                f.write(audio_bytes)
+        except OSError as e:
+            logger.error(f'[AUDIO] Failed to write temp file: {e}')
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from e
 
-        # Use FFmpeg to convert to WAV (16kHz mono for Wav2Vec2)
+        # SECURITY: Build command as list (prevents shell injection)
+        # All arguments are either literals or validated integers
+        # File paths are validated above to be within temp directory
         cmd = [
             'ffmpeg',
             '-i',
-            input_path,
+            validated_input_path,  # Validated path
             '-ar',
-            str(TARGET_SAMPLE_RATE),  # 16kHz sample rate
+            str(TARGET_SAMPLE_RATE),  # Integer literal converted to string
             '-ac',
-            '1',  # Mono
+            '1',  # Literal string
             '-f',
-            'wav',  # Output format
-            '-y',  # Overwrite output
-            '-nostdin',  # Don't read from stdin (security)
-            output_path,
+            'wav',  # Literal string
+            '-y',  # Overwrite output (prevents prompt)
+            '-nostdin',  # Don't read from stdin (security: prevents interactive input)
+            validated_output_path,  # Validated path
         ]
 
         try:
+            # SECURITY: Use list form (no shell=True), capture output, set timeout
             result = subprocess.run(
                 cmd,
                 capture_output=True,
-                timeout=30,  # 30 second timeout
+                timeout=FFMPEG_TIMEOUT,
+                check=False,  # We check returncode manually
             )
 
             if result.returncode != 0:
@@ -90,16 +161,30 @@ def _decode_with_ffmpeg(audio_bytes: bytes) -> tuple:
                 # Return sanitized error to user
                 raise ValueError(UserError.AUDIO_DECODE_FAILED)
 
+            # SECURITY: Validate output file exists and is readable before reading
+            if not os.path.exists(validated_output_path):
+                logger.error(f'[AUDIO] FFmpeg output file not found: {validated_output_path}')
+                raise ValueError(UserError.AUDIO_DECODE_FAILED)
+
             # Read the converted WAV file
-            waveform, sr = _sf.read(output_path)
+            waveform, sr = _sf.read(validated_output_path)
             logger.debug(f'FFmpeg successfully decoded audio: {len(waveform)} samples at {sr}Hz')
             return waveform, sr
 
         except subprocess.TimeoutExpired:
-            logger.error('[AUDIO] FFmpeg conversion timed out after 30 seconds')
+            logger.error(f'[AUDIO] FFmpeg conversion timed out after {FFMPEG_TIMEOUT} seconds')
             raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
         except FileNotFoundError:
             logger.error('[AUDIO] FFmpeg binary not found in PATH')
+            raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
+        except ValueError:
+            # Re-raise ValueError (already sanitized)
+            raise
+        except Exception as e:
+            # Catch any other unexpected errors
+            logger.error(
+                f'[AUDIO] Unexpected error during FFmpeg conversion: {type(e).__name__}: {e}'
+            )
             raise ValueError(UserError.AUDIO_DECODE_FAILED) from None
 
 

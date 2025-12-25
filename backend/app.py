@@ -9,6 +9,7 @@ from flask_cors import CORS
 from config import (
     CORS_ORIGINS,
     IS_PRODUCTION,
+    PRELOAD_MODELS,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_ENABLED,
     logger,
@@ -46,10 +47,33 @@ def create_app():
     app = Flask(__name__)
 
     # CORS configuration: restrict origins in production
-    if CORS_ORIGINS == '*':
-        CORS(app)  # Allow all origins (development)
+    if IS_PRODUCTION:
+        if not CORS_ORIGINS or CORS_ORIGINS == '*':
+            raise ValueError(
+                'CORS_ORIGINS must be explicitly set in production. '
+                'Set the CORS_ORIGINS environment variable to a comma-separated list of allowed origins.'
+            )
+
+        # Security check: warn if using localhost in production (common mistake)
+        cors_origins_list = [origin.strip() for origin in CORS_ORIGINS.split(',')]
+        localhost_origins = [
+            origin
+            for origin in cors_origins_list
+            if 'localhost' in origin.lower() or origin.startswith('http://')
+        ]
+
+        if localhost_origins:
+            logger.warning(
+                f'[SECURITY WARNING] CORS_ORIGINS contains localhost or HTTP-only origins: {localhost_origins}. '
+                'This is unsafe for production. Use HTTPS URLs of your actual domain(s) instead.'
+            )
+
+        CORS(app, origins=cors_origins_list)  # Restrict to specified origins
+        logger.info(f'CORS restricted to origins: {CORS_ORIGINS}')
     else:
-        CORS(app, origins=CORS_ORIGINS.split(','))  # Restrict to specified origins
+        # Development: allow all origins for convenience
+        CORS(app)  # Allow all origins (development)
+        logger.info('CORS enabled for all origins (development mode)')
 
     # Initialize rate limiter with this app
     limiter.init_app(app)
@@ -86,7 +110,14 @@ def create_app():
 
 
 # Preload models before creating app (happens once with gunicorn --preload)
-preload_models()
+# Only preload if explicitly enabled (defaults to True for production)
+# Set PRELOAD_MODELS=false to disable for faster development startup
+if PRELOAD_MODELS:
+    preload_models()
+else:
+    logger.info(
+        'Model preloading disabled (PRELOAD_MODELS=false). Models will load on first request.'
+    )
 
 # Create the app instance
 app = create_app()

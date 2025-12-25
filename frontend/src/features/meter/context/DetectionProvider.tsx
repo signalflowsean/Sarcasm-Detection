@@ -296,19 +296,25 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
 
     // Don't trigger if already in a detection cycle
     if (isLoading || state !== DetectionState.IDLE) {
-      console.log('🔧 Dev mode: Detection already in progress, skipping')
+      if (import.meta.env.DEV) {
+        console.log('🔧 Dev mode: Detection already in progress, skipping')
+      }
       return
     }
 
     // Don't trigger in 'off' mode
     if (inputMode === 'off') {
-      console.log('🔧 Dev mode: Input is off, skipping')
+      if (import.meta.env.DEV) {
+        console.log('🔧 Dev mode: Input is off, skipping')
+      }
       return
     }
 
     // Pick a random test phrase
     const testPhrase = TEST_PHRASES[Math.floor(Math.random() * TEST_PHRASES.length)]
-    console.log(`🔧 Dev mode: Testing in "${inputMode}" mode with phrase: "${testPhrase}"`)
+    if (import.meta.env.DEV) {
+      console.log(`🔧 Dev mode: Testing in "${inputMode}" mode with phrase: "${testPhrase}"`)
+    }
 
     setLoading(true)
 
@@ -320,9 +326,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
           sendProsodicAudio(testAudio),
           sendLexicalText(testPhrase),
         ])
-        console.log(
-          `🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}% (reliable: ${lexicalResponse.reliable}), Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}% (reliable: ${prosodicResponse.reliable})`
-        )
+        if (import.meta.env.DEV) {
+          console.log(
+            `🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}% (reliable: ${lexicalResponse.reliable}), Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}% (reliable: ${prosodicResponse.reliable})`
+          )
+        }
         setDetectionResult({
           lexical: lexicalResponse.value,
           prosodic: prosodicResponse.value,
@@ -332,9 +340,11 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       } else {
         // Text mode: call only lexical endpoint
         const response = await sendLexicalText(testPhrase)
-        console.log(
-          `🔧 Dev mode: Result - Lexical: ${(response.value * 100).toFixed(1)}% (reliable: ${response.reliable})`
-        )
+        if (import.meta.env.DEV) {
+          console.log(
+            `🔧 Dev mode: Result - Lexical: ${(response.value * 100).toFixed(1)}% (reliable: ${response.reliable})`
+          )
+        }
         setDetectionResult({
           lexical: response.value,
           prosodic: 0,
@@ -343,7 +353,9 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
         })
       }
     } catch (error) {
-      console.error('🔧 Dev mode: API call failed:', error)
+      if (import.meta.env.DEV) {
+        console.error('🔧 Dev mode: API call failed:', error)
+      }
       reset()
     }
   }

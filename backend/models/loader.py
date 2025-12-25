@@ -5,6 +5,12 @@ Handles both lexical (text-based) and prosodic (audio-based) models.
 Security: Uses RestrictedUnpickler to only allow trusted scikit-learn and numpy
 classes during deserialization, preventing arbitrary code execution from malicious
 pickle files.
+
+Future Considerations:
+    - Consider using joblib for model serialization (safer than pickle, designed for sklearn)
+    - Consider ONNX format for cross-platform model deployment (already used for Wav2Vec2)
+    - When retraining models, prefer joblib.dump() over pickle.dump() for better security
+    - See: https://scikit-learn.org/stable/modules/model_persistence.html#security-maintainability-limitations
 """
 
 import logging
@@ -37,75 +43,79 @@ ONNX_MODEL_PATH = os.path.join(os.path.dirname(PROSODIC_MODEL_PATH), 'wav2vec2.o
 # Allowlist of trusted modules for model loading
 # SECURITY: Only explicitly listed modules are allowed - no wildcards or prefixes.
 # If a new sklearn module is needed, add it here after security review.
+#
+# Documentation for each module group:
 TRUSTED_MODULES = frozenset(
     [
         # -------------------------------------------------------------------------
         # scikit-learn modules (explicitly enumerated for security)
         # -------------------------------------------------------------------------
-        # Core pipeline
-        'sklearn.pipeline',
-        'sklearn._config',
-        'sklearn.base',
-        # Feature extraction (TF-IDF)
-        'sklearn.feature_extraction.text',
-        'sklearn.feature_extraction._hash',
-        'sklearn.feature_extraction._stop_words',
-        # Linear models (LogisticRegression)
-        'sklearn.linear_model',
-        'sklearn.linear_model._logistic',
-        'sklearn.linear_model._base',
-        # SVM (LinearSVC, used in ensemble)
-        'sklearn.svm',
-        'sklearn.svm._base',
-        'sklearn.svm._classes',
-        # Ensemble models (VotingClassifier, etc.)
-        'sklearn.ensemble',
-        'sklearn.ensemble._voting',
-        'sklearn.ensemble._base',
-        'sklearn.ensemble._forest',
-        'sklearn.ensemble._gb',
-        # Calibration (CalibratedClassifierCV wraps SVC)
-        'sklearn.calibration',
-        # Naive Bayes
-        'sklearn.naive_bayes',
-        # Preprocessing (StandardScaler for prosodic model)
-        'sklearn.preprocessing',
-        'sklearn.preprocessing._data',
-        'sklearn.preprocessing._label',
-        # Utils (internal helpers)
-        'sklearn.utils',
-        'sklearn.utils._bunch',
-        'sklearn.utils._tags',
-        'sklearn.utils._param_validation',
-        'sklearn.utils.metadata_routing',
+        # Core pipeline - Required for Pipeline objects that chain transformers/estimators
+        'sklearn.pipeline',  # Pipeline class (TF-IDF -> LogisticRegression)
+        'sklearn._config',  # Global sklearn configuration
+        'sklearn.base',  # Base classes (BaseEstimator, TransformerMixin)
+        # Feature extraction (TF-IDF) - Used by lexical model for text vectorization
+        'sklearn.feature_extraction.text',  # TfidfVectorizer class
+        'sklearn.feature_extraction._hash',  # HashingVectorizer internals
+        'sklearn.feature_extraction._stop_words',  # Stop word lists
+        # Linear models (LogisticRegression) - Primary classifier for both models
+        'sklearn.linear_model',  # LogisticRegression class
+        'sklearn.linear_model._logistic',  # LogisticRegression implementation
+        'sklearn.linear_model._base',  # Base linear model classes
+        # SVM (LinearSVC) - Used in ensemble models (if any)
+        'sklearn.svm',  # Support Vector Machine classes
+        'sklearn.svm._base',  # Base SVM classes
+        'sklearn.svm._classes',  # SVM classifier implementations
+        # Ensemble models - Used if models use VotingClassifier or similar
+        'sklearn.ensemble',  # Ensemble meta-estimators
+        'sklearn.ensemble._voting',  # VotingClassifier
+        'sklearn.ensemble._base',  # Base ensemble classes
+        'sklearn.ensemble._forest',  # RandomForest (if used)
+        'sklearn.ensemble._gb',  # GradientBoosting (if used)
+        # Calibration - Used if models use CalibratedClassifierCV
+        'sklearn.calibration',  # Probability calibration
+        # Naive Bayes - Alternative classifier (if used)
+        'sklearn.naive_bayes',  # Naive Bayes classifiers
+        # Preprocessing (StandardScaler) - Used by prosodic model for feature scaling
+        'sklearn.preprocessing',  # StandardScaler, MinMaxScaler, etc.
+        'sklearn.preprocessing._data',  # Data preprocessing implementations
+        'sklearn.preprocessing._label',  # Label preprocessing
+        # Utils (internal helpers) - Required for sklearn internals
+        'sklearn.utils',  # Utility functions
+        'sklearn.utils._bunch',  # Bunch class (dict-like object)
+        'sklearn.utils._tags',  # Model tags/metadata
+        'sklearn.utils._param_validation',  # Parameter validation
+        'sklearn.utils.metadata_routing',  # Metadata routing (sklearn 1.3+)
         # -------------------------------------------------------------------------
         # numpy (required by sklearn for arrays)
         # -------------------------------------------------------------------------
-        'numpy',
-        'numpy.core',
-        'numpy.core.multiarray',
-        'numpy.core.numeric',
-        'numpy._core',
-        'numpy._core.multiarray',
-        'numpy.dtypes',
-        'numpy.random',
-        'numpy.random._pickle',
+        # All numpy modules needed for array serialization/deserialization
+        'numpy',  # Main numpy module
+        'numpy.core',  # Core numpy functionality
+        'numpy.core.multiarray',  # Multi-dimensional arrays
+        'numpy.core.numeric',  # Numeric operations
+        'numpy._core',  # New numpy core (numpy 2.0+)
+        'numpy._core.multiarray',  # New multiarray (numpy 2.0+)
+        'numpy.dtypes',  # Data types
+        'numpy.random',  # Random number generation (used by sklearn)
+        'numpy.random._pickle',  # Random state pickling
         # -------------------------------------------------------------------------
         # scipy sparse matrices (used by TF-IDF vectorizer)
         # -------------------------------------------------------------------------
-        'scipy.sparse',
-        'scipy.sparse._csr',
-        'scipy.sparse._csc',
-        'scipy.sparse._arrays',
-        'scipy.sparse._matrix',
+        # TF-IDF returns sparse matrices (CSR format) for memory efficiency
+        'scipy.sparse',  # Sparse matrix base classes
+        'scipy.sparse._csr',  # Compressed Sparse Row format
+        'scipy.sparse._csc',  # Compressed Sparse Column format
+        'scipy.sparse._arrays',  # Sparse array implementations
+        'scipy.sparse._matrix',  # Sparse matrix base
         # -------------------------------------------------------------------------
         # Python builtins (safe types: dict, list, tuple, set, etc.)
         # -------------------------------------------------------------------------
-        'builtins',
-        'collections',
-        # copy_reg for reconstructors
-        'copy_reg',
-        '_codecs',
+        # Required for basic Python data structures in pickle files
+        'builtins',  # Built-in types (dict, list, tuple, set, str, int, float, etc.)
+        'collections',  # Collections (OrderedDict, defaultdict, etc.)
+        'copy_reg',  # Pickle reconstructors (Python 2 compatibility)
+        '_codecs',  # Codec registry (for string encoding)
     ]
 )
 

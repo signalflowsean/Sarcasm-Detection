@@ -49,7 +49,9 @@ export function trackModelPerformance(metrics: ModelMetrics) {
     const trimmed = existing.slice(-100)
     localStorage.setItem('moonshine_metrics', JSON.stringify(trimmed))
   } catch (error) {
-    console.error('Failed to store telemetry:', error)
+    if (import.meta.env.MODE === 'development') {
+      console.error('Failed to store telemetry:', error)
+    }
   }
 }
 
@@ -60,7 +62,7 @@ export function trackModelPerformance(metrics: ModelMetrics) {
  */
 export function viewMetrics(): ModelMetrics[] | undefined {
   if (import.meta.env.MODE !== 'development') {
-    console.warn('Metrics only available in dev mode')
+    // Silently return in production (no console output)
     return
   }
 
@@ -68,24 +70,28 @@ export function viewMetrics(): ModelMetrics[] | undefined {
     const metrics = JSON.parse(localStorage.getItem('moonshine_metrics') || '[]') as ModelMetrics[]
 
     if (metrics.length === 0) {
-      console.log(
-        'No metrics collected yet. Use the app to record speech and metrics will be tracked.'
-      )
+      if (import.meta.env.MODE === 'development') {
+        console.log(
+          'No metrics collected yet. Use the app to record speech and metrics will be tracked.'
+        )
+      }
       return []
     }
 
     // Display as table for easy comparison
-    console.table(
-      metrics.map(m => ({
-        Model: m.modelName,
-        'Load Time (s)': (m.loadTimeMs / 1000).toFixed(2),
-        'Cache Hit': m.cacheHit ? '✓' : '✗',
-        'Network (Mbps)': m.networkSpeedEstimate?.toFixed(1) || 'N/A',
-        'Transcript Len': m.transcriptLength,
-        Success: m.success ? '✓' : '✗',
-        Time: new Date(m.timestamp).toLocaleTimeString(),
-      }))
-    )
+    if (import.meta.env.MODE === 'development') {
+      console.table(
+        metrics.map(m => ({
+          Model: m.modelName,
+          'Load Time (s)': (m.loadTimeMs / 1000).toFixed(2),
+          'Cache Hit': m.cacheHit ? '✓' : '✗',
+          'Network (Mbps)': m.networkSpeedEstimate?.toFixed(1) || 'N/A',
+          'Transcript Len': m.transcriptLength,
+          Success: m.success ? '✓' : '✗',
+          Time: new Date(m.timestamp).toLocaleTimeString(),
+        }))
+      )
+    }
 
     // Summary statistics
     const byModel = metrics.reduce(
@@ -105,19 +111,23 @@ export function viewMetrics(): ModelMetrics[] | undefined {
       >
     )
 
-    console.log('\n📊 Summary by Model:')
-    Object.entries(byModel).forEach(([model, stats]) => {
-      const avgLoadTime = (stats.totalLoadTime / stats.count / 1000).toFixed(2)
-      const cacheRate = ((stats.cacheHits / stats.count) * 100).toFixed(0)
-      const successRate = ((stats.successes / stats.count) * 100).toFixed(0)
-      console.log(
-        `${model}: ${stats.count} samples, avg load ${avgLoadTime}s, ${cacheRate}% cached, ${successRate}% success`
-      )
-    })
+    if (import.meta.env.MODE === 'development') {
+      console.log('\n📊 Summary by Model:')
+      Object.entries(byModel).forEach(([model, stats]) => {
+        const avgLoadTime = (stats.totalLoadTime / stats.count / 1000).toFixed(2)
+        const cacheRate = ((stats.cacheHits / stats.count) * 100).toFixed(0)
+        const successRate = ((stats.successes / stats.count) * 100).toFixed(0)
+        console.log(
+          `${model}: ${stats.count} samples, avg load ${avgLoadTime}s, ${cacheRate}% cached, ${successRate}% success`
+        )
+      })
+    }
 
     return metrics
   } catch (error) {
-    console.error('Failed to retrieve metrics:', error)
+    if (import.meta.env.MODE === 'development') {
+      console.error('Failed to retrieve metrics:', error)
+    }
     return []
   }
 }
@@ -127,12 +137,14 @@ export function viewMetrics(): ModelMetrics[] | undefined {
  */
 export function clearMetrics() {
   if (import.meta.env.MODE !== 'development') {
-    console.warn('Metrics only available in dev mode')
+    // Silently return in production (no console output)
     return
   }
 
   localStorage.removeItem('moonshine_metrics')
-  console.log('✓ Metrics cleared')
+  if (import.meta.env.MODE === 'development') {
+    console.log('✓ Metrics cleared')
+  }
 }
 
 /**

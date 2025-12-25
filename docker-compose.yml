@@ -1,3 +1,20 @@
+# ============================================================================
+# Docker Compose Configuration - LOCAL DEVELOPMENT ONLY
+# ============================================================================
+# ⚠️  WARNING: This configuration is for LOCAL TESTING ONLY
+# 
+# This docker-compose.yml uses production-like settings but with permissive
+# CORS (http://localhost) for local development convenience.
+# 
+# DO NOT use this configuration in production environments!
+# 
+# For production deployments (Railway, AWS, etc.):
+#   1. Set CORS_ORIGINS to your actual frontend domain(s)
+#   2. Use HTTPS URLs only (e.g., https://yourdomain.com)
+#   3. Never use http://localhost in production
+#   4. See README.md "Deployment (Railway)" section for production setup
+# ============================================================================
+
 services:
   backend:
     build:
@@ -8,10 +25,25 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # ⚠️  SECURITY WARNING: FLASK_ENV=production enables strict CORS checks
+      # The CORS_ORIGINS below is ONLY for local Docker testing
       - FLASK_ENV=production
       - API_DELAY_SECONDS=0
-      # Set CORS_ORIGINS to restrict allowed origins in production (comma-separated)
-      # - CORS_ORIGINS=https://yourdomain.com
+      # ⚠️  CORS_ORIGINS SECURITY WARNING:
+      # This value (http://localhost) is ONLY for local Docker Compose testing.
+      # 
+      # In production, you MUST override this with your actual frontend domain:
+      #   - Railway: Set CORS_ORIGINS in Railway dashboard environment variables
+      #   - Example: CORS_ORIGINS=https://sarcasm-detector.com,https://www.sarcasm-detector.com
+      # 
+      # NEVER deploy with http://localhost in production - it allows any origin
+      # to make requests to your API, creating a security vulnerability.
+      #
+      # To override for local testing with a custom domain:
+      #   1. Create a .env file in the project root
+      #   2. Add: CORS_ORIGINS=http://your-local-domain.test
+      #   3. Docker Compose will automatically load .env file
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost}
     healthcheck:
       test:
         [

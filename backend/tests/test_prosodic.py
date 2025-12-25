@@ -64,3 +64,37 @@ def test_prosodic_response_structure(client):
     assert isinstance(result.get('id'), str)
     assert isinstance(result.get('value'), (int, float))
     assert isinstance(result.get('reliable'), bool)
+
+
+def test_prosodic_expected_valueerror_returns_fallback(client):
+    """Prosodic endpoint should return fallback score for expected ValueError (audio decode failure)."""
+    # Create a file that will fail to decode (invalid audio format)
+    invalid_audio_bytes = b'This is not audio data'
+    data = {'audio': (invalid_audio_bytes, 'test.wav', 'audio/wav')}
+    response = client.post('/api/prosodic', data=data, content_type='multipart/form-data')
+
+    # Should return 200 with fallback score (not 500)
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result['value'] == 0.5  # Fallback score
+    assert result['reliable'] is False
+
+
+def test_prosodic_unexpected_error_raises_500(client, monkeypatch):
+    """Prosodic endpoint should return 500 for unexpected errors."""
+
+    # Mock extract_embedding to raise an unexpected error
+    def mock_extract_embedding(*args, **kwargs):
+        raise KeyError('Unexpected error that should not be caught')
+
+    from audio import processing
+
+    monkeypatch.setattr(processing, 'extract_embedding', mock_extract_embedding)
+
+    data = {'audio': (create_mock_wav_audio(), 'test.wav', 'audio/wav')}
+    response = client.post('/api/prosodic', data=data, content_type='multipart/form-data')
+
+    # Should return 500 for unexpected errors (not fallback)
+    assert response.status_code == 500
+    result = response.get_json()
+    assert 'error' in result

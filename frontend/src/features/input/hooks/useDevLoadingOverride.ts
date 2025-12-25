@@ -35,9 +35,11 @@ export function useDevLoadingOverride(): boolean {
 
         e.preventDefault()
         sharedOverrideState = !sharedOverrideState
-        console.log(
-          `🔧 Dev mode: Loading spinner ${sharedOverrideState ? 'shown' : 'hidden'} (press J again to toggle)`
-        )
+        if (import.meta.env.DEV) {
+          console.log(
+            `🔧 Dev mode: Loading spinner ${sharedOverrideState ? 'shown' : 'hidden'} (press J again to toggle)`
+          )
+        }
         // Notify all listeners
         listeners.forEach(listener => listener(sharedOverrideState))
       }

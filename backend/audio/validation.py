@@ -20,12 +20,16 @@ from errors import UserError
 logger = logging.getLogger(__name__)
 
 
-def validate_audio_file(audio_file) -> tuple:
+def validate_audio_file(audio_file, request=None) -> tuple:
     """
     Validates an uploaded audio file for type, size, and content.
 
+    Performance: Checks Content-Length header first to avoid reading large files
+    into memory. Falls back to seeking method if Content-Length is unavailable.
+
     Args:
         audio_file: FileStorage object from Flask request.files.
+        request: Optional Flask request object for accessing Content-Length header.
 
     Returns:
         tuple: (is_valid: bool, error_message: str or None)
@@ -58,10 +62,35 @@ def validate_audio_file(audio_file) -> tuple:
                 f'[VALIDATION] Unexpected content-type: {content_type} for file: {filename}'
             )
 
-    # Check file size
+    # PERFORMANCE: Early rejection using Content-Length header (if available)
+    # For multipart/form-data, Content-Length includes boundaries, so it's an upper bound.
+    # This allows early rejection of obviously too-large requests before processing.
+    if request is not None:
+        content_length = request.headers.get('Content-Length')
+        if content_length:
+            try:
+                request_size = int(content_length)
+                # Content-Length for multipart includes boundaries (~200-500 bytes overhead)
+                # So if request is significantly larger than max, we can reject early
+                # Use a small buffer (1MB) to account for multipart overhead
+                early_reject_threshold = MAX_AUDIO_SIZE_BYTES + (1024 * 1024)  # Max + 1MB buffer
+                if request_size > early_reject_threshold:
+                    logger.warning(
+                        f'[VALIDATION] Request too large (Content-Length): {request_size} bytes '
+                        f'(max: {MAX_AUDIO_SIZE_BYTES})'
+                    )
+                    return False, UserError.AUDIO_TOO_LARGE
+                logger.debug(f'[VALIDATION] Content-Length check passed: {request_size} bytes')
+            except (ValueError, TypeError):
+                # Invalid Content-Length header - continue with file size check
+                logger.debug('[VALIDATION] Invalid Content-Length header, skipping early check')
+
+    # Check actual file size by seeking to end
+    # This is efficient for FileStorage objects (doesn't read entire file into memory)
+    # FileStorage uses a temporary file or BytesIO, so seeking is fast
     audio_file.seek(0, 2)  # Seek to end
     file_size = audio_file.tell()
-    audio_file.seek(0)  # Reset to beginning
+    audio_file.seek(0)  # Reset to beginning for content validation
 
     if file_size == 0:
         return False, UserError.AUDIO_EMPTY
