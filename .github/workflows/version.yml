@@ -20,6 +20,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          token: ${{ github.token }}
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
@@ -61,9 +62,12 @@ jobs:
 
       - name: Commit version update
         if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git add frontend/package.json package.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Comment on PR
