@@ -17,23 +17,17 @@ const EXAMPLE_PHRASES = {
 }
 
 const ExamplePhrases = ({ onSelect, disabled = false }: ExamplePhrasesProps) => {
-  const handleClick = (phrase: string) => {
-    if (!disabled) {
-      onSelect(phrase)
-    }
-  }
-
   return (
     <div className="example-phrases" data-testid="example-phrases">
       <div className="example-phrases__section">
         <span className="example-phrases__label">Try a sarcastic example:</span>
         <div className="example-phrases__list">
-          {EXAMPLE_PHRASES.sarcastic.map((phrase, index) => (
+          {EXAMPLE_PHRASES.sarcastic.map(phrase => (
             <button
-              key={`sarcastic-${index}`}
+              key={phrase}
               type="button"
               className="example-phrases__chip"
-              onClick={() => handleClick(phrase)}
+              onClick={() => onSelect(phrase)}
               disabled={disabled}
               aria-label={`Use example: ${phrase}`}
             >
@@ -45,12 +39,12 @@ const ExamplePhrases = ({ onSelect, disabled = false }: ExamplePhrasesProps) => 
       <div className="example-phrases__section">
         <span className="example-phrases__label">Or a sincere example:</span>
         <div className="example-phrases__list">
-          {EXAMPLE_PHRASES.sincere.map((phrase, index) => (
+          {EXAMPLE_PHRASES.sincere.map(phrase => (
             <button
-              key={`sincere-${index}`}
+              key={phrase}
               type="button"
               className="example-phrases__chip"
-              onClick={() => handleClick(phrase)}
+              onClick={() => onSelect(phrase)}
               disabled={disabled}
               aria-label={`Use example: ${phrase}`}
             >

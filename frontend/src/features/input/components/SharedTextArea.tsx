@@ -24,7 +24,7 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
       className = '',
       shouldFlash = false,
       rows = 4,
-      id = 'shared-textarea',
+      id,
       name = 'shared-textarea',
       'aria-describedby': ariaDescribedBy,
       'aria-label': ariaLabel,
