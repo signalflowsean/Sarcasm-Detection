@@ -13,6 +13,9 @@ exclude = [
     ".venv",
     "venv",
     "*.pyc",
+    "../.github",
+    "*.yml",
+    "*.yaml",
 ]
 
 [tool.ruff.lint]

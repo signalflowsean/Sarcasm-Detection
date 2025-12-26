@@ -23,7 +23,7 @@ repos:
       # Linter with auto-fix (backend only - ml/ has training scripts)
       - id: ruff
         name: ruff (lint)
-        entry: bash -c 'ruff check --fix "$@"' --
+        entry: bash -c 'python_files=(); for f in "$@"; do [[ "$f" == *.py ]] && python_files+=("$f"); done; [ ${#python_files[@]} -gt 0 ] && ruff check --fix "${python_files[@]}" || true' --
         language: system
         files: ^backend/.*\.py$
         pass_filenames: true

@@ -62,7 +62,7 @@ def test_prosodic_response_structure(client):
 
     # Check all required fields exist
     assert isinstance(result.get('id'), str)
-    assert isinstance(result.get('value'), int | float)
+    assert isinstance(result.get('value'), (int, float))
     assert isinstance(result.get('reliable'), bool)
 
 
