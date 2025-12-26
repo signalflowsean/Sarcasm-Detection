@@ -2188,7 +2188,7 @@
 }
 
 .getting-started__model {
-  font-size: var(--font-size-getting-started-model);
+  font-size: clamp(0.64rem, 1.5vw, 0.86rem);
   padding-left: clamp(1.125rem, 1.875vw, 1.875rem);
   position: relative;
   line-height: 1.7;
