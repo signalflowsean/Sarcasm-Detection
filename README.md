@@ -41,6 +41,15 @@ The Sarcasm Detector analyzes input through two detection modes:
 
 ## Quick Start
 
+### Prerequisites
+
+- **Python 3.11** (required for backend)
+  - The backend requires Python 3.11 to match CI/CD and production environments
+  - If using [pyenv](https://github.com/pyenv/pyenv), the `.python-version` file in `backend/` will automatically set the correct version
+  - Verify your Python version: `python3 --version` (should be 3.11.x)
+- **Node.js 20+** (for frontend and e2e tests)
+- **npm** or **yarn**
+
 ### Install (One-Time Setup)
 
 ```bash
@@ -51,12 +60,14 @@ npm run install:all
 Or install individually:
 
 ```bash
-npm run install:backend  # Python venv + dependencies
+npm run install:backend  # Python venv + dependencies (requires Python 3.11)
 npm run install:frontend # Frontend npm packages
 npm run install:e2e      # E2E test dependencies
 ```
 
 > **Note:** Git hooks are automatically configured during installation via the `prepare` script. This sets up Husky to run `lint-staged` on pre-commit, which will automatically lint and format your staged files before committing. No manual setup required!
+
+> **Python Version:** The backend requires Python 3.11. If you're using pyenv, ensure Python 3.11 is installed (`pyenv install 3.11`) and the `.python-version` file in `backend/` will automatically activate it. If your system Python is not 3.11, you may need to recreate the virtual environment: `cd backend && rm -rf venv && python3.11 -m venv venv && source venv/bin/activate && pip install -r requirements.txt`
 
 ### Development (Recommended)
 
@@ -246,6 +257,7 @@ Health check endpoint for container orchestration.
 | -------------- | ------------------------------------------- |
 | Frontend       | React 19, TypeScript, Vite, React Router    |
 | Backend        | Flask, Flask-CORS, Flask-Limiter, Gunicorn  |
+| Python         | Python 3.11 (required)                      |
 | ML (Lexical)   | scikit-learn (TF-IDF + Logistic Regression) |
 | ML (Prosodic)  | Wav2Vec2 (ONNX Runtime) + scikit-learn      |
 | Testing        | Vitest, Playwright, pytest                  |

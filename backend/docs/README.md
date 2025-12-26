@@ -2,6 +2,28 @@
 
 This directory contains technical documentation for the Sarcasm Detection backend.
 
+## Python Version Requirements
+
+**Python 3.11 is required** for the backend. This matches the CI/CD environment and production Docker containers.
+
+- The `.python-version` file in the backend directory specifies Python 3.11 for pyenv users
+- The `runtime.txt` file specifies Python 3.11 for platform compatibility
+- CI/CD workflows use Python 3.11
+- Docker containers use `python:3.11-slim`
+
+If you're using pyenv, ensure Python 3.11 is installed:
+
+```bash
+pyenv install 3.11
+cd backend  # .python-version will automatically activate 3.11
+```
+
+To verify your Python version:
+
+```bash
+python3 --version  # Should show Python 3.11.x
+```
+
 ## Lock Ordering Validation
 
 Documentation for the lock ordering validation system that prevents deadlock bugs:
