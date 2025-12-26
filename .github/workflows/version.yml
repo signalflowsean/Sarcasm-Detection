@@ -11,12 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on PRs, not on pushes to main
     if: github.event.pull_request.head.repo.full_name == github.repository
+    # Grant permissions to write to repository
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
