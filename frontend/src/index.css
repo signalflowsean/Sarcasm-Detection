@@ -118,7 +118,7 @@
     /* Z-index layering system
      * Use these variables to ensure consistent layering across the app
      * Lower values = behind, higher values = in front
-     * 
+     *
      * Hierarchy:
      * - Base content (0)
      * - Elevated elements (1-10)
@@ -1843,7 +1843,7 @@
     padding: 0 0.5rem;
     border-radius: 1.5rem;
     /* Steel/chrome track background */
-    background: 
+    background:
       /* Subtle machined texture */
       repeating-linear-gradient(
         90deg,
@@ -2572,6 +2572,11 @@ body:has(.audio-recorder__modal) .detector-jack {
     /* On desktop, vertically center the rotary knob */
     align-items: center;
     grid-template-rows: 1fr; /* Single row for rotary knob */
+    flex: 1 1 50%; /* Desktop: 50/50 split with display-wrapper */
+  }
+
+  .meter__display-wrapper {
+    flex: 1 1 50%; /* Desktop: 50/50 split with controls */
   }
 
   .input-container {

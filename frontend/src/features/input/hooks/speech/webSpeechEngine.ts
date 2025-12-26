@@ -244,9 +244,16 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
       const currentRecognition = recognition
       if (currentRecognition) {
         try {
-          currentRecognition.stop()
+          // Use abort() for immediate cleanup and microphone release
+          // stop() is graceful but may delay cleanup
+          currentRecognition.abort()
         } catch {
-          // May already be stopped
+          // If abort fails, try stop() as fallback
+          try {
+            currentRecognition.stop()
+          } catch {
+            // May already be stopped
+          }
         }
       }
       // Reset state atomically

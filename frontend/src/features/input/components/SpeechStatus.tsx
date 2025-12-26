@@ -139,16 +139,15 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
     shouldShow && (status === 'loading' || status === 'error') ? STATUS_CONFIG[status] : null
 
   return (
-    <div
+    <output
       className="speech-status speech-status--container"
-      role="status"
       aria-live="polite"
       aria-atomic="true"
       data-testid="speech-status"
       style={{
         // Desktop: Reserve space even when hidden to prevent layout shifts
         // Mobile: Overlay positioning (no reserved space to save room)
-        minHeight: !isMobileOrTablet && !shouldShow ? '1.5rem' : undefined,
+        minHeight: isMobileOrTablet ? undefined : '1.5rem',
         padding: shouldShow ? undefined : '0',
       }}
     >
@@ -174,7 +173,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
           )}
         </div>
       )}
-    </div>
+    </output>
   )
 }
 
