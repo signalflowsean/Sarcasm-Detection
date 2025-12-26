@@ -66,7 +66,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
     }
   }
 
-  const hasText = text.trim()
+  const hasText = text.trim().length > 0
   const sendLabel = isSending ? 'Sending...' : hasText ? 'Send to Detector' : 'Type Text First'
 
   // Flash the send button when text is ready but not sending
