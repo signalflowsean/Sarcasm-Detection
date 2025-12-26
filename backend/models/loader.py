@@ -6,6 +6,9 @@ Security: Uses RestrictedUnpickler to only allow trusted scikit-learn and numpy
 classes during deserialization, preventing arbitrary code execution from malicious
 pickle files.
 
+Lock Ordering: Implements runtime lock ordering validation to prevent deadlock.
+See docs/LOCK_ORDERING.md for details on the lock hierarchy and usage patterns.
+
 Future Considerations:
     - Consider using joblib for model serialization (safer than pickle, designed for sklearn)
     - Consider ONNX format for cross-platform model deployment (already used for Wav2Vec2)
@@ -17,8 +20,9 @@ import logging
 import os
 import pickle
 import threading
+from contextlib import contextmanager
 
-from config import LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
+from config import FLASK_ENV, LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -189,12 +193,13 @@ class RestrictedUnpickler(pickle.Unpickler):
         )
 
 
-def secure_load_pickle(filepath: str):
+def secure_load_pickle(filepath: str, skip_path_validation: bool = False):
     """
     Securely load a pickle file using RestrictedUnpickler.
 
     Args:
         filepath: Path to the pickle file
+        skip_path_validation: If True, skip path validation (for testing only)
 
     Returns:
         The unpickled object
@@ -208,20 +213,47 @@ def secure_load_pickle(filepath: str):
     if not filepath or not isinstance(filepath, str):
         raise ValueError('Invalid filepath: must be a non-empty string')
 
-    # SECURITY: Check for path traversal attempts and validate absolute paths
-    # First check for path traversal sequences
-    if '..' in filepath:
-        logger.error(f'[SECURITY] Blocked path traversal attempt: {filepath}')
-        raise ValueError('Invalid filepath: path traversal detected')
+    # Skip path validation if explicitly requested (for testing)
+    if not skip_path_validation:
+        # SECURITY: Check for path traversal attempts and validate absolute paths
+        # Check for actual path traversal patterns: /../, ../ at start, ..\ (Windows), or standalone ..
+        # This allows legitimate filenames containing .. (e.g., "my..file.txt")
+        if (
+            '/../' in filepath
+            or filepath.startswith('../')
+            or filepath.startswith('..\\')
+            or '\\..\\' in filepath
+            or filepath == '..'
+        ):
+            logger.error(f'[SECURITY] Blocked path traversal attempt: {filepath}')
+            raise ValueError('Invalid filepath: path traversal detected')
 
-    # For absolute paths, validate they're within expected model directory
-    # This prevents loading arbitrary files from the filesystem
-    if filepath.startswith('/'):
-        resolved_path = os.path.realpath(filepath)
-        expected_dir = os.path.realpath(os.path.dirname(PROSODIC_MODEL_PATH))
-        if not resolved_path.startswith(expected_dir + os.sep) and resolved_path != expected_dir:
-            logger.error(f'[SECURITY] Blocked absolute path outside model directory: {filepath}')
-            raise ValueError('Invalid filepath: path outside allowed directory')
+        # For absolute paths, validate they're within expected model directory
+        # This prevents loading arbitrary files from the filesystem
+        if os.path.isabs(filepath):
+            resolved_path = os.path.realpath(filepath)
+            expected_dir = os.path.realpath(os.path.dirname(PROSODIC_MODEL_PATH))
+
+            # Use os.path.commonpath() for robust path validation
+            # This properly handles all edge cases including:
+            # - Files within subdirectories: /models/subdir/file.pkl
+            # - Files at root of models dir: /models/file.pkl
+            # - Path traversal attempts: /models/../etc/passwd
+            try:
+                common = os.path.commonpath([resolved_path, expected_dir])
+                if common != expected_dir:
+                    logger.error(
+                        f'[SECURITY] Blocked absolute path outside model directory: {filepath} '
+                        f'(resolved: {resolved_path}, expected dir: {expected_dir})'
+                    )
+                    raise ValueError('Invalid filepath: path outside allowed directory')
+            except ValueError as e:
+                # commonpath raises ValueError if paths are on different drives (Windows)
+                logger.error(
+                    f'[SECURITY] Blocked absolute path on different drive: {filepath} '
+                    f'(resolved: {resolved_path}, expected dir: {expected_dir})'
+                )
+                raise ValueError('Invalid filepath: path outside allowed directory') from e
 
     # Context manager ensures file is closed even if exception occurs during unpickling
     try:
@@ -265,15 +297,198 @@ def validate_sklearn_model(model, model_name: str) -> bool:
 
 
 # ============================================================================
+# Lock Ordering Validation (Development Mode)
+# ============================================================================
+#
+# To prevent deadlock, locks must be acquired in a consistent order.
+# This system validates lock ordering at runtime in development mode.
+#
+# Lock Order Hierarchy (must acquire in this order):
+#   1. _lexical_model_lock (lowest priority)
+#   2. _prosodic_model_lock (medium priority)
+#   3. _onnx_session_lock (highest priority)
+#
+# Valid patterns:
+#   - Acquire only one lock (any lock)
+#   - Acquire prosodic, then onnx (nested)
+#   - Acquire lexical alone, prosodic alone, or onnx alone
+#
+# Invalid patterns (will raise LockOrderingError in dev mode):
+#   - Acquire onnx, then prosodic (reverse order - deadlock risk!)
+#   - Acquire onnx, then lexical (reverse order - deadlock risk!)
+#   - Acquire prosodic, then lexical (reverse order - deadlock risk!)
+#
+# Performance: Validation only runs in development mode (FLASK_ENV != 'production')
+# In production, validation is disabled for performance.
+# ============================================================================
+
+# Enable lock ordering validation in development mode only
+_ENABLE_LOCK_ORDERING_VALIDATION = FLASK_ENV != 'production'
+
+# Thread-local storage to track which locks each thread currently holds
+# Each thread gets its own set of held locks to avoid interference
+_thread_local = threading.local()
+
+
+class LockOrderingError(RuntimeError):
+    """
+    Raised when locks are acquired in the wrong order, creating deadlock risk.
+
+    This error indicates a bug in the code that could cause deadlock in production.
+    Fix by reordering lock acquisitions to follow the documented hierarchy.
+    """
+
+    pass
+
+
+class OrderedLock:
+    """
+    A lock wrapper that validates lock ordering to prevent deadlock.
+
+    Tracks lock acquisitions per thread and raises LockOrderingError if locks
+    are acquired in the wrong order (only in development mode).
+
+    Usage:
+        lock = OrderedLock(threading.Lock(), name="my_lock", order=1)
+        with lock:
+            # Critical section
+            pass
+    """
+
+    def __init__(self, lock: threading.Lock, name: str, order: int):
+        """
+        Initialize an ordered lock.
+
+        Args:
+            lock: The underlying threading.Lock to wrap
+            name: Human-readable name for error messages
+            order: Priority in lock hierarchy (lower numbers acquired first)
+        """
+        self._lock = lock
+        self._name = name
+        self._order = order
+
+    @property
+    def name(self) -> str:
+        """Get the lock name for debugging."""
+        return self._name
+
+    @property
+    def order(self) -> int:
+        """Get the lock's position in the hierarchy."""
+        return self._order
+
+    def _get_held_locks(self) -> list['OrderedLock']:
+        """Get the list of locks currently held by this thread."""
+        if not hasattr(_thread_local, 'held_locks'):
+            _thread_local.held_locks = []
+        return _thread_local.held_locks
+
+    def _validate_lock_order(self) -> None:
+        """
+        Validate that acquiring this lock doesn't violate lock ordering.
+
+        Raises:
+            LockOrderingError: If acquiring this lock would violate ordering
+        """
+        if not _ENABLE_LOCK_ORDERING_VALIDATION:
+            return  # Skip validation in production
+
+        held_locks = self._get_held_locks()
+
+        # Check if we're acquiring locks in the wrong order
+        for held_lock in held_locks:
+            if held_lock._order > self._order:
+                # We're trying to acquire a lower-order lock while holding a higher-order lock
+                # This is a lock ordering violation that can cause deadlock
+                error_msg = (
+                    f'\n'
+                    f'============================================================\n'
+                    f'LOCK ORDERING VIOLATION DETECTED\n'
+                    f'============================================================\n'
+                    f'Attempting to acquire locks in wrong order!\n'
+                    f'\n'
+                    f'Currently holding: {held_lock.name} (order={held_lock.order})\n'
+                    f'Trying to acquire: {self._name} (order={self._order})\n'
+                    f'\n'
+                    f'This violates the required lock ordering and can cause deadlock.\n'
+                    f'\n'
+                    f'Required lock order (lowest to highest):\n'
+                    f'  1. _lexical_model_lock (order=1)\n'
+                    f'  2. _prosodic_model_lock (order=2)\n'
+                    f'  3. _onnx_session_lock (order=3)\n'
+                    f'\n'
+                    f'Fix: Reorder your lock acquisitions to follow this hierarchy.\n'
+                    f'============================================================\n'
+                )
+                logger.error(error_msg)
+                raise LockOrderingError(error_msg)
+
+    def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+        """
+        Acquire the lock with ordering validation.
+
+        Args:
+            blocking: Whether to block waiting for the lock
+            timeout: Maximum time to wait for lock (-1 = infinite)
+
+        Returns:
+            True if lock acquired, False otherwise
+
+        Raises:
+            LockOrderingError: If lock ordering is violated
+        """
+        self._validate_lock_order()
+
+        # Acquire the underlying lock
+        acquired = self._lock.acquire(blocking=blocking, timeout=timeout)
+
+        # Track that we're holding this lock
+        if acquired and _ENABLE_LOCK_ORDERING_VALIDATION:
+            held_locks = self._get_held_locks()
+            held_locks.append(self)
+
+        return acquired
+
+    def release(self) -> None:
+        """Release the lock and remove from held locks."""
+        self._lock.release()
+
+        # Remove from held locks
+        if _ENABLE_LOCK_ORDERING_VALIDATION:
+            held_locks = self._get_held_locks()
+            if self in held_locks:
+                held_locks.remove(self)
+
+    def __enter__(self):
+        """Context manager entry - acquire lock."""
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - release lock."""
+        self.release()
+        return False
+
+
+# ============================================================================
 # Model State (module-level singletons)
 # ============================================================================
 
 # Thread locks to prevent race conditions during model loading
 # CRITICAL: Flask apps run in multi-threaded environments (gunicorn workers)
 # Multiple requests could trigger concurrent model loading without locks
-_lexical_model_lock = threading.Lock()
-_prosodic_model_lock = threading.Lock()
-_onnx_session_lock = threading.Lock()
+#
+# Lock Ordering (to prevent deadlock):
+#   1. _lexical_model_lock (order=1, lowest priority)
+#   2. _prosodic_model_lock (order=2, medium priority)
+#   3. _onnx_session_lock (order=3, highest priority)
+#
+# Valid: prosodic -> onnx (used by load_prosodic_models)
+# Invalid: onnx -> prosodic (would cause deadlock!)
+_lexical_model_lock = OrderedLock(threading.Lock(), '_lexical_model_lock', order=1)
+_prosodic_model_lock = OrderedLock(threading.Lock(), '_prosodic_model_lock', order=2)
+_onnx_session_lock = OrderedLock(threading.Lock(), '_onnx_session_lock', order=3)
 
 _lexical_model = None
 _prosodic_model = None
@@ -290,6 +505,56 @@ try:
 except ImportError as e:
     logger.warning(f'Could not import ONNX Runtime: {e}')
     logger.warning('Prosodic endpoint will return mock data')
+
+
+# ============================================================================
+# Lock Ordering Utilities (for testing and debugging)
+# ============================================================================
+
+
+def get_held_locks() -> list[tuple[str, int]]:
+    """
+    Get the list of locks currently held by this thread.
+
+    Returns:
+        List of (lock_name, lock_order) tuples for all held locks.
+        Empty list if validation is disabled or no locks held.
+    """
+    if not _ENABLE_LOCK_ORDERING_VALIDATION:
+        return []
+
+    if not hasattr(_thread_local, 'held_locks'):
+        return []
+
+    return [(lock.name, lock.order) for lock in _thread_local.held_locks]
+
+
+@contextmanager
+def enable_lock_ordering_validation(enabled: bool = True):
+    """
+    Temporarily enable or disable lock ordering validation.
+
+    This is useful for testing lock ordering violations without changing
+    the global FLASK_ENV setting.
+
+    Args:
+        enabled: Whether to enable validation
+
+    Example:
+        with enable_lock_ordering_validation(True):
+            # Lock ordering will be validated here
+            with _prosodic_model_lock:
+                pass
+    """
+    global _ENABLE_LOCK_ORDERING_VALIDATION
+
+    old_value = _ENABLE_LOCK_ORDERING_VALIDATION
+    _ENABLE_LOCK_ORDERING_VALIDATION = enabled
+
+    try:
+        yield
+    finally:
+        _ENABLE_LOCK_ORDERING_VALIDATION = old_value
 
 
 # ============================================================================

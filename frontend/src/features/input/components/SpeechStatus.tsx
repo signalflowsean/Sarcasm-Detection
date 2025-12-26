@@ -1,6 +1,7 @@
 import { MEDIA_QUERIES } from '../../../breakpoints'
 import { useMediaQuery } from '../hooks'
 import type { SpeechStatus as SpeechStatusType } from '../hooks/speech'
+import { isDev } from '../utils/env'
 
 type Props = {
   status: SpeechStatusType
@@ -20,7 +21,7 @@ type StatusConfig = {
  */
 function getCurrentModelName(): string {
   // In dev mode, check for model override
-  if (import.meta.env.MODE === 'development') {
+  if (isDev()) {
     const override = localStorage.getItem('moonshine_model_override')
     if (override) {
       return override.replace('model/', '')
@@ -133,7 +134,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
   // In dev mode, allow showing loading spinner even when not recording (for testing)
   const shouldShow =
     (isRecording && status !== 'idle' && status !== 'listening') ||
-    (import.meta.env.DEV && status === 'loading')
+    (isDev() && status === 'loading')
   const config =
     shouldShow && (status === 'loading' || status === 'error') ? STATUS_CONFIG[status] : null
 

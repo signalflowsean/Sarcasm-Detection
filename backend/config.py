@@ -2,10 +2,13 @@
 Configuration, constants, and logging setup for Sarcasm Detection API.
 """
 
+from __future__ import annotations
+
 import ipaddress
 import logging
 import os
 import re
+from urllib.parse import urlparse
 
 # ============================================================================
 # Environment Configuration
@@ -34,6 +37,96 @@ logger = logging.getLogger(__name__)
 # Railway Production Example:
 #   CORS_ORIGINS=https://sarcasm-detector.com
 #   (or comma-separated: https://sarcasm-detector.com,https://www.sarcasm-detector.com)
+
+
+def _is_localhost_origin(origin: str) -> bool:
+    """
+    Check if an origin is a valid localhost origin.
+
+    SECURITY: Precisely validates localhost origins to prevent bypass attacks.
+    Rejects domains like "mylocalhost.com" or "localhost.attacker.com".
+
+    Valid localhost origins include:
+    - http://localhost or http://localhost:port
+    - http://127.0.0.1 or http://127.0.0.1:port
+    - http://[::1] or http://[::1]:port (IPv6 localhost)
+
+    Args:
+        origin: The origin URL to check
+
+    Returns:
+        True if the origin is a valid localhost origin, False otherwise
+    """
+    try:
+        parsed = urlparse(origin)
+        hostname = parsed.hostname  # This properly extracts hostname without port
+
+        if not hostname:
+            return False
+
+        # Check for exact matches only
+        # hostname is already lowercase and has brackets removed for IPv6
+        return hostname in ('localhost', '127.0.0.1', '::1')
+    except (ValueError, AttributeError):
+        return False
+
+
+def _is_valid_origin_format(origin: str) -> bool:
+    """
+    Validate origin URL format, supporting domains and IP addresses.
+
+    SECURITY: CORS origins must NOT include paths, query strings, or fragments.
+    Only protocol, host, and optional port are allowed.
+
+    Supports:
+    - Domain names: https://example.com, https://sub.example.com:3000
+    - IPv4 addresses: https://192.168.1.100, http://10.0.0.1:8080
+    - IPv6 addresses: https://[2001:db8::1], https://[::1]:3000
+
+    Args:
+        origin: The origin URL to validate
+
+    Returns:
+        True if the origin format is valid, False otherwise
+    """
+    try:
+        parsed = urlparse(origin)
+
+        # Must have http or https scheme
+        if parsed.scheme not in ('http', 'https'):
+            return False
+
+        # Must have a hostname
+        if not parsed.hostname:
+            return False
+
+        # Must NOT have path (other than empty or '/'), query, or fragment
+        # SECURITY: Paths in CORS origins are a security vulnerability
+        if parsed.path and parsed.path != '/':
+            return False
+        if parsed.query or parsed.fragment:
+            return False
+
+        hostname = parsed.hostname
+
+        # Try to validate as IP address (IPv4 or IPv6)
+        try:
+            ipaddress.ip_address(hostname)
+            return True  # Valid IP address
+        except ValueError:
+            pass  # Not an IP, try domain validation
+
+        # Validate as domain name with TLD
+        # Domain pattern: alphanumeric with hyphens, at least one dot, valid TLD
+        domain_pattern = re.compile(
+            r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+'  # Subdomains
+            r'[a-zA-Z]{2,}$'  # TLD (at least 2 letters)
+        )
+
+        return bool(domain_pattern.match(hostname))
+
+    except (ValueError, AttributeError):
+        return False
 
 
 def _validate_cors_origins(raw_origins: str | None, is_production: bool) -> str | None:
@@ -66,36 +159,27 @@ def _validate_cors_origins(raw_origins: str | None, is_production: bool) -> str 
     origins_list = [origin.strip() for origin in raw_origins.split(',') if origin.strip()]
     validated_origins = []
 
-    # Basic URL validation pattern
-    # SECURITY: CORS origins must NOT include paths - only protocol, domain, and optional port
-    # Allowing paths in CORS origins is a security vulnerability that could allow
-    # attackers to bypass CORS restrictions by specifying paths
-    url_pattern = re.compile(
-        r'^https?://'  # http:// or https://
-        r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+'  # Domain
-        r'[a-zA-Z]{2,}'  # TLD
-        r'(?::\d+)?$'  # Optional port (NO PATH ALLOWED)
-    )
-
     for origin in origins_list:
-        # Allow localhost in development only
-        if not is_production and ('localhost' in origin.lower() or origin.startswith('http://')):
+        # Allow localhost in development only (with precise hostname validation)
+        # SECURITY: Use exact hostname matching to prevent bypass via domains like "mylocalhost.com"
+        if not is_production and (_is_localhost_origin(origin) or origin.startswith('http://')):
             validated_origins.append(origin)
             continue
 
         # In production, validate URL format
         if is_production:
-            if 'localhost' in origin.lower() or origin.startswith('http://'):
-                logger.warning(
-                    f'[SECURITY] CORS origin contains localhost or HTTP-only: "{origin}". '
-                    'This is unsafe for production.'
+            if _is_localhost_origin(origin) or origin.startswith('http://'):
+                raise ValueError(
+                    f'[SECURITY] CORS origin "{origin}" contains localhost or HTTP-only. '
+                    'This is not allowed in production. Use HTTPS with a proper domain name.'
                 )
-                # Don't add it, but continue processing other origins
-                continue
 
-            if not url_pattern.match(origin):
-                logger.warning(f'[SECURITY] Invalid CORS origin format: "{origin}", skipping')
-                continue
+            if not _is_valid_origin_format(origin):
+                raise ValueError(
+                    f'[SECURITY] Invalid CORS origin format: "{origin}". '
+                    'Expected format: https://domain.com, https://192.168.1.100, or https://[::1] '
+                    '(with optional :port). Paths, query strings, and fragments are not allowed.'
+                )
 
         validated_origins.append(origin)
 
@@ -215,6 +299,12 @@ def _validate_rate_limit_storage(storage_uri: str, default: str) -> str:
     - redis://host:port (distributed)
     - redis://host:port/db (with database number)
 
+    NOTE: Redis support is currently OPTIONAL and unused by default.
+    - The 'redis' Python package is not in requirements.txt
+    - Defaults to memory:// storage (single-process)
+    - Redis validation code is maintained for future scalability needs
+    - To enable Redis: pip install redis, set RATE_LIMIT_STORAGE env var
+
     Args:
         storage_uri: Storage URI to validate
         default: Default value to use if validation fails
@@ -271,7 +361,10 @@ def _validate_rate_limit_storage(storage_uri: str, default: str) -> str:
         if db:
             try:
                 db_num = int(db)
-                if db_num < 0 or db_num > 15:  # Redis supports 0-15 databases by default
+                # Redis supports 0-15 databases by default (configurable via 'databases' in redis.conf)
+                # This validation assumes standard Redis configuration (16 databases)
+                # For non-standard setups with more databases, this limit would need adjustment
+                if db_num < 0 or db_num > 15:
                     logger.warning(
                         f'[SECURITY] Invalid Redis database number: {db_num}, using default: {default}'
                     )
@@ -305,7 +398,10 @@ _raw_rate_limit_prosodic = os.environ.get('RATE_LIMIT_PROSODIC', '10 per minute'
 RATE_LIMIT_PROSODIC = _validate_rate_limit_string(_raw_rate_limit_prosodic, '10 per minute')
 
 # Storage backend for rate limiting
-# Options: 'memory' (default, single-process), 'redis://host:port' (distributed)
+# Options: 'memory://' (default, single-process), 'redis://host:port' (distributed)
+# NOTE: Redis is currently OPTIONAL - defaults to memory:// (sufficient for most deployments)
+# Redis support is maintained for future horizontal scaling needs
+# To enable: pip install redis, then set RATE_LIMIT_STORAGE=redis://host:port
 _raw_rate_limit_storage = os.environ.get('RATE_LIMIT_STORAGE', 'memory://')
 RATE_LIMIT_STORAGE = _validate_rate_limit_storage(_raw_rate_limit_storage, 'memory://')
 

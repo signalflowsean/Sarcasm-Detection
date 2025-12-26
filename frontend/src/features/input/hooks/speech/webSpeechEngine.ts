@@ -15,18 +15,19 @@
  * - May have privacy implications (sends audio to cloud)
  */
 
+import { isDev } from '../../utils/env'
 import type { SpeechEngine, SpeechEngineCallbacks } from './types'
 
 const LOG_PREFIX = '[WebSpeech]'
 
 function log(...args: unknown[]) {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.log(LOG_PREFIX, ...args)
   }
 }
 
 function logError(...args: unknown[]) {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.error(LOG_PREFIX, ...args)
   }
 }

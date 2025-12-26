@@ -74,14 +74,14 @@ def validate_audio_file(audio_file, request=None) -> tuple:
                 # Python int() can handle arbitrarily large integers, but we need to validate
                 # reasonable bounds to prevent DoS attacks
                 request_size = int(content_length)
-                
+
                 # SECURITY: Reject negative Content-Length (malicious or corrupted header)
                 if request_size < 0:
                     logger.warning(
                         f'[VALIDATION SECURITY] Negative Content-Length header: {request_size}'
                     )
                     return False, UserError.AUDIO_INVALID_CONTENT
-                
+
                 # SECURITY: Reject extremely large values that could cause integer overflow
                 # or memory exhaustion (max 64-bit signed integer is ~9 exabytes)
                 # Use a reasonable upper bound: 100GB (100 * 1024^3 bytes)
@@ -91,11 +91,12 @@ def validate_audio_file(audio_file, request=None) -> tuple:
                         f'[VALIDATION SECURITY] Content-Length too large (potential DoS): {request_size} bytes'
                     )
                     return False, UserError.AUDIO_TOO_LARGE
-                
+
                 # Content-Length for multipart includes boundaries (~200-500 bytes overhead)
-                # So if request is significantly larger than max, we can reject early
-                # Use a small buffer (1MB) to account for multipart overhead
-                early_reject_threshold = MAX_AUDIO_SIZE_BYTES + (1024 * 1024)  # Max + 1MB buffer
+                # plus some form field metadata. Use a conservative 4KB buffer which is sufficient
+                # for multipart boundaries and field names while detecting actual oversized files.
+                MULTIPART_OVERHEAD_BUFFER = 4 * 1024  # 4KB - sufficient for multipart boundaries
+                early_reject_threshold = MAX_AUDIO_SIZE_BYTES + MULTIPART_OVERHEAD_BUFFER
                 if request_size > early_reject_threshold:
                     logger.warning(
                         f'[VALIDATION] Request too large (Content-Length): {request_size} bytes '

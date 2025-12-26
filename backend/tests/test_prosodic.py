@@ -62,18 +62,18 @@ def test_prosodic_response_structure(client):
 
     # Check all required fields exist
     assert isinstance(result.get('id'), str)
-    assert isinstance(result.get('value'), (int, float))
+    assert isinstance(result.get('value'), int | float)
     assert isinstance(result.get('reliable'), bool)
 
 
 def test_prosodic_expected_valueerror_returns_fallback(client, monkeypatch):
-    """Prosodic endpoint should return fallback score for expected ValueError (audio decode failure)."""
+    """Prosodic endpoint should return fallback score for expected AudioDecodingError."""
 
-    # Mock decode_audio to raise ValueError (simulating audio decode failure)
+    # Mock decode_audio to raise AudioDecodingError (simulating audio decode failure)
     def mock_decode_audio(*args, **kwargs):
-        from errors import UserError
+        from errors import AudioDecodingError
 
-        raise ValueError(UserError.AUDIO_DECODE_FAILED)
+        raise AudioDecodingError('[TEST] Simulated audio decode failure')
 
     from routes import prosodic
 
@@ -123,4 +123,4 @@ def test_prosodic_unexpected_error_raises_500(app, monkeypatch):
         assert hasattr(app, 'error_handler_spec')
         # Verify the error handler would be called by checking it exists
         # The handler is registered in app.py as @app.errorhandler(500)
-        pass  # Test passes - error handler is registered and would catch this in production
+        # Test passes - error handler is registered and would catch this in production

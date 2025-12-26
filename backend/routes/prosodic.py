@@ -13,7 +13,7 @@ from flask import Blueprint, jsonify, request
 
 from audio import decode_audio, extract_embedding, preprocess_audio, validate_audio_file
 from config import API_DELAY_SECONDS, RATE_LIMIT_PROSODIC, TARGET_SAMPLE_RATE
-from errors import UserError
+from errors import AudioDecodingError, AudioValidationError, ModelUnavailableError, UserError
 from extensions import limiter
 from models import prosodic_predict
 
@@ -78,10 +78,12 @@ def prosodic_detection():
         # This prevents potential memory exhaustion if file was modified between validation and read
         audio_bytes = audio_file.read(file_size)
 
-        # SECURITY: Verify we didn't read more than expected (indicates file was modified)
-        if len(audio_bytes) > file_size:
+        # SECURITY: Verify we read at least as many bytes as expected.
+        # If we read fewer bytes than the validated file size, the file may have been
+        # truncated or modified between validation and read, or the file handle may be corrupt.
+        if len(audio_bytes) < file_size:
             logger.error(
-                f'[PROSODIC SECURITY] Read more bytes than expected: {len(audio_bytes)} > {file_size}'
+                f'[PROSODIC SECURITY] Read fewer bytes than expected: {len(audio_bytes)} < {file_size}'
             )
             return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
 
@@ -98,15 +100,8 @@ def prosodic_detection():
                     f'[PROSODIC] Read fewer bytes than expected: {len(audio_bytes)} < {file_size}'
                 )
 
-        # Reset file position for any potential retries (defense in depth)
-        audio_file.seek(0)
     except OSError as e:
         logger.error(f'[PROSODIC ERROR] Failed to read audio file: {type(e).__name__}: {e}')
-        # Try to reset file position even after read error
-        try:
-            audio_file.seek(0)
-        except Exception:
-            pass  # Ignore seek errors if file is already corrupted
         return jsonify({'error': UserError.AUDIO_PROCESSING_FAILED}), 400
     except MemoryError as e:
         # CRITICAL: Handle memory exhaustion explicitly
@@ -163,44 +158,28 @@ def prosodic_detection():
         # Predict sarcasm score (returns score and whether it's a real prediction)
         score, is_real = prosodic_predict(embedding)
 
-    except ValueError as e:
-        # Expected error: Audio decode/processing failures (decode_audio raises ValueError)
+    except AudioDecodingError as e:
+        # Expected error: Audio decode/processing failures
         # These are user input issues or format problems - return fallback score
-        error_msg = str(e)
-        logger.warning(
-            f'[PROSODIC] Audio processing failed (expected error): {type(e).__name__}: {error_msg}'
-        )
-        # Check if it's a sanitized user error message
-        if error_msg in (
-            UserError.AUDIO_DECODE_FAILED,
-            UserError.AUDIO_PROCESSING_FAILED,
-            UserError.MODEL_UNAVAILABLE,
-        ):
-            # User-friendly error already sanitized
-            logger.info('[PROSODIC FALLBACK] Using fallback score due to audio processing error')
-        else:
-            # Unexpected ValueError - log but still use fallback
-            logger.error(f'[PROSODIC] Unexpected ValueError: {error_msg}')
+        logger.warning(f'[PROSODIC] Audio decoding failed (expected error): {e.internal_message}')
+        logger.info('[PROSODIC FALLBACK] Using fallback score due to audio decoding error')
         score = 0.5
         is_real = False
 
-    except RuntimeError as e:
-        # Expected error: Model unavailable (extract_embedding raises RuntimeError)
+    except AudioValidationError as e:
+        # Expected error: Audio validation failures (too short, empty, invalid format)
+        # Return error to user - these are not recoverable with fallback
+        logger.warning(f'[PROSODIC] Audio validation failed: {e.internal_message}')
+        return jsonify({'error': e.user_message}), 400
+
+    except ModelUnavailableError as e:
+        # Expected error: Model unavailable or inference failure
         # This is an expected service degradation - return fallback score
-        error_msg = str(e)
-        if UserError.MODEL_UNAVAILABLE in error_msg:
-            logger.warning('[PROSODIC] Model unavailable (expected): Using fallback score')
-            score = 0.5
-            is_real = False
-        else:
-            # Unexpected RuntimeError - log and use fallback instead of crashing
-            # This prevents 500 errors for unexpected but recoverable runtime issues
-            logger.error(
-                f'[PROSODIC] Unexpected RuntimeError: {type(e).__name__}: {error_msg}. '
-                'Using fallback score to prevent service disruption.'
-            )
-            score = 0.5
-            is_real = False
+        logger.warning(
+            f'[PROSODIC] Model unavailable (expected): {e.internal_message}. Using fallback score'
+        )
+        score = 0.5
+        is_real = False
 
     except Exception as e:
         # Unexpected error: Something went wrong that we didn't anticipate

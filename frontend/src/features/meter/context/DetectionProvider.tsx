@@ -1,4 +1,5 @@
 import { sendLexicalText, sendProsodicAudio } from '@/features/input/apiService'
+import { isDev } from '@/features/input/utils/env'
 import React, { createContext, useEffect, useRef, useState } from 'react'
 import { useWhichInput } from '../hooks/useWhichInput'
 import type { DetectionStateType } from '../utils/meterConstants'
@@ -285,18 +286,18 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   }
 
   // DEV MODE ONLY: Trigger a test detection by calling real endpoints
-  // Only available in development builds (gated by import.meta.env.DEV)
+  // Only available in development builds (gated by isDev())
   // Behavior depends on current input mode:
   // - 'audio': calls both prosodic and lexical endpoints
   // - 'text': calls only lexical endpoint
   // - 'off': does nothing
   const triggerTestDetection = async () => {
     // Fail fast: entire function is dev-only
-    if (!import.meta.env.DEV) return
+    if (!isDev()) return
 
     // Don't trigger if already in a detection cycle
     if (isLoading || state !== DetectionState.IDLE) {
-      if (import.meta.env.DEV) {
+      if (isDev()) {
         console.log('🔧 Dev mode: Detection already in progress, skipping')
       }
       return
@@ -304,7 +305,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
 
     // Don't trigger in 'off' mode
     if (inputMode === 'off') {
-      if (import.meta.env.DEV) {
+      if (isDev()) {
         console.log('🔧 Dev mode: Input is off, skipping')
       }
       return
@@ -312,7 +313,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
 
     // Pick a random test phrase
     const testPhrase = TEST_PHRASES[Math.floor(Math.random() * TEST_PHRASES.length)]
-    if (import.meta.env.DEV) {
+    if (isDev()) {
       console.log(`🔧 Dev mode: Testing in "${inputMode}" mode with phrase: "${testPhrase}"`)
     }
 
@@ -326,7 +327,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
           sendProsodicAudio(testAudio),
           sendLexicalText(testPhrase),
         ])
-        if (import.meta.env.DEV) {
+        if (isDev()) {
           console.log(
             `🔧 Dev mode: Result - Lexical: ${(lexicalResponse.value * 100).toFixed(1)}% (reliable: ${lexicalResponse.reliable}), Prosodic: ${(prosodicResponse.value * 100).toFixed(1)}% (reliable: ${prosodicResponse.reliable})`
           )
@@ -340,7 +341,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       } else {
         // Text mode: call only lexical endpoint
         const response = await sendLexicalText(testPhrase)
-        if (import.meta.env.DEV) {
+        if (isDev()) {
           console.log(
             `🔧 Dev mode: Result - Lexical: ${(response.value * 100).toFixed(1)}% (reliable: ${response.reliable})`
           )
@@ -353,7 +354,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
         })
       }
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (isDev()) {
         console.error('🔧 Dev mode: API call failed:', error)
       }
       reset()
@@ -364,7 +365,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   // Only registered in development builds to avoid leaking dev functionality
   useEffect(() => {
     // Skip entirely in production builds
-    if (!import.meta.env.DEV) return
+    if (!isDev()) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only trigger on 'h' key, ignore if typing in an input
@@ -374,7 +375,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    if (import.meta.env.DEV) console.log('🔧 Dev mode enabled: Press "h" to trigger test detection')
+    if (isDev()) console.log('🔧 Dev mode enabled: Press "h" to trigger test detection')
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)

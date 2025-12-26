@@ -24,6 +24,8 @@ describe('ModelSelector', () => {
   it('should not render in production mode', () => {
     // Mock production mode
     vi.stubEnv('MODE', 'production')
+    vi.stubEnv('DEV', false)
+    vi.stubEnv('PROD', true)
 
     const { container } = render(<ModelSelector />)
     expect(container.firstChild).toBeNull()
@@ -32,6 +34,8 @@ describe('ModelSelector', () => {
   it('should render in development mode', () => {
     // Mock development mode
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
+    vi.stubEnv('PROD', false)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
 
     render(<ModelSelector />)
@@ -42,6 +46,7 @@ describe('ModelSelector', () => {
 
   it('should show all available model options', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
 
     render(<ModelSelector />)
@@ -54,6 +59,7 @@ describe('ModelSelector', () => {
 
   it('should use env default when no localStorage override', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/tiny')
 
     render(<ModelSelector />)
@@ -64,6 +70,7 @@ describe('ModelSelector', () => {
 
   it('should use localStorage override over env default', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
     localStorage.setItem('moonshine_model_override', 'model/tiny')
 
@@ -75,6 +82,7 @@ describe('ModelSelector', () => {
 
   it('should fall back to model/base if env is not set', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     // Don't set VITE_MOONSHINE_MODEL
 
     render(<ModelSelector />)
@@ -85,6 +93,7 @@ describe('ModelSelector', () => {
 
   it('should show auto-reload message', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
 
     render(<ModelSelector />)
 
@@ -93,6 +102,7 @@ describe('ModelSelector', () => {
 
   it('should auto-reload page after model change', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
 
     render(<ModelSelector />)
@@ -117,6 +127,7 @@ describe('ModelSelector', () => {
 
   it('should dismiss when dismiss button is clicked', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
 
     const { container } = render(<ModelSelector />)
@@ -135,6 +146,7 @@ describe('ModelSelector', () => {
 
   it('should not render if dismissed in localStorage', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     localStorage.setItem('moonshine_model_selector_dismissed', 'true')
 
     const { container } = render(<ModelSelector />)
@@ -144,6 +156,7 @@ describe('ModelSelector', () => {
 
   it('should minimize when minimize button is clicked', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
 
     render(<ModelSelector />)
@@ -165,6 +178,7 @@ describe('ModelSelector', () => {
 
   it('should expand when minimized button is clicked', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     vi.stubEnv('VITE_MOONSHINE_MODEL', 'model/base')
     localStorage.setItem('moonshine_model_selector_minimized', 'true')
 
@@ -185,6 +199,7 @@ describe('ModelSelector', () => {
 
   it('should render minimized version if minimized in localStorage', () => {
     vi.stubEnv('MODE', 'development')
+    vi.stubEnv('DEV', true)
     localStorage.setItem('moonshine_model_selector_minimized', 'true')
 
     render(<ModelSelector />)

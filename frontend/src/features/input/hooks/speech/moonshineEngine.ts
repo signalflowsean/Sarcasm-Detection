@@ -16,19 +16,20 @@
  */
 
 import * as Moonshine from '@moonshine-ai/moonshine-js'
+import { isDev } from '../../utils/env'
 import type { SpeechEngine, SpeechEngineCallbacks } from './types'
 import { INITIALIZATION_CANCELLED_ERROR } from './types'
 
 const LOG_PREFIX = '[Moonshine]'
 
 function log(...args: unknown[]) {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.log(LOG_PREFIX, ...args)
   }
 }
 
 function logError(...args: unknown[]) {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.error(LOG_PREFIX, ...args)
   }
 }
@@ -40,7 +41,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
   const getModelPath = (): string => {
     // In dev mode, check for model override
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       const override = localStorage.getItem('moonshine_model_override')
       if (override) return override
     }

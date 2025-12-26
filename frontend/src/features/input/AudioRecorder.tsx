@@ -8,6 +8,7 @@ import { useAudioRecorder } from './hooks/useAudioRecorder'
 import { useDevLoadingOverride } from './hooks/useDevLoadingOverride'
 import { useWaveform } from './hooks/useWaveform'
 import { formatDuration } from './utils'
+import { isDev } from './utils/env'
 
 type AudioRecorderProps = {
   onClose?: () => void
@@ -294,7 +295,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       : 0
 
   // Apply dev mode loading override (works even when not recording)
-  const displaySpeechStatus = import.meta.env.DEV && devLoadingOverride ? 'loading' : speechStatus
+  const displaySpeechStatus = isDev() && devLoadingOverride ? 'loading' : speechStatus
 
   return (
     <>

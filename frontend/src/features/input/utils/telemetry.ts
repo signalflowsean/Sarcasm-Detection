@@ -12,6 +12,8 @@
  * 4. Review the table to compare model performance
  */
 
+import { isDev } from './env'
+
 export interface ModelMetrics {
   /** Which model was used (e.g., 'model/tiny', 'model/base') */
   modelName: string
@@ -38,7 +40,7 @@ export interface ModelMetrics {
  */
 export function trackModelPerformance(metrics: ModelMetrics) {
   // Only track in dev mode
-  if (import.meta.env.MODE !== 'development') {
+  if (!isDev()) {
     return
   }
 
@@ -49,7 +51,7 @@ export function trackModelPerformance(metrics: ModelMetrics) {
     const trimmed = existing.slice(-100)
     localStorage.setItem('moonshine_metrics', JSON.stringify(trimmed))
   } catch (error) {
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.error('Failed to store telemetry:', error)
     }
   }
@@ -61,7 +63,7 @@ export function trackModelPerformance(metrics: ModelMetrics) {
  * @returns Array of metrics or undefined if not in dev mode
  */
 export function viewMetrics(): ModelMetrics[] | undefined {
-  if (import.meta.env.MODE !== 'development') {
+  if (!isDev()) {
     console.warn('Metrics only available in dev mode')
     return
   }
@@ -70,7 +72,7 @@ export function viewMetrics(): ModelMetrics[] | undefined {
     const metrics = JSON.parse(localStorage.getItem('moonshine_metrics') || '[]') as ModelMetrics[]
 
     if (metrics.length === 0) {
-      if (import.meta.env.MODE === 'development') {
+      if (isDev()) {
         console.log(
           'No metrics collected yet. Use the app to record speech and metrics will be tracked.'
         )
@@ -79,7 +81,7 @@ export function viewMetrics(): ModelMetrics[] | undefined {
     }
 
     // Display as table for easy comparison
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.table(
         metrics.map(m => ({
           Model: m.modelName,
@@ -111,7 +113,7 @@ export function viewMetrics(): ModelMetrics[] | undefined {
       >
     )
 
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.log('\n📊 Summary by Model:')
       Object.entries(byModel).forEach(([model, stats]) => {
         const avgLoadTime = (stats.totalLoadTime / stats.count / 1000).toFixed(2)
@@ -125,7 +127,7 @@ export function viewMetrics(): ModelMetrics[] | undefined {
 
     return metrics
   } catch (error) {
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.error('Failed to retrieve metrics:', error)
     }
     return []
@@ -136,13 +138,13 @@ export function viewMetrics(): ModelMetrics[] | undefined {
  * Clear all collected metrics (dev mode only)
  */
 export function clearMetrics() {
-  if (import.meta.env.MODE !== 'development') {
+  if (!isDev()) {
     console.warn('Metrics only available in dev mode')
     return
   }
 
   localStorage.removeItem('moonshine_metrics')
-  if (import.meta.env.MODE === 'development') {
+  if (isDev()) {
     console.log('✓ Metrics cleared')
   }
 }
@@ -164,7 +166,7 @@ export function getNetworkSpeedEstimate(): number | undefined {
 }
 
 // Expose metrics functions globally in dev mode for easy console access
-if (import.meta.env.MODE === 'development') {
+if (isDev()) {
   // @ts-expect-error - Adding to window for dev convenience
   window.viewMoonshineMetrics = viewMetrics
   // @ts-expect-error - Adding to window for dev convenience

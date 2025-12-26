@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDev } from '../utils/env'
 
 /**
  * ModelSelector - Dev-mode only dropdown for testing different Moonshine models
@@ -29,7 +30,7 @@ export function ModelSelector() {
     setSelectedModel(newModel)
     localStorage.setItem('moonshine_model_override', newModel)
 
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.log(`Model changed to ${newModel}. Reloading...`)
     }
 
@@ -55,7 +56,7 @@ export function ModelSelector() {
   }
 
   // Don't render in production (after hooks are called)
-  if (import.meta.env.MODE !== 'development') {
+  if (!isDev()) {
     return null
   }
 

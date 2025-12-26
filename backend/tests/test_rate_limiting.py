@@ -36,7 +36,7 @@ def test_rate_limit_key_with_x_forwarded_for(app):
         environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
-        assert key == '192.168.1.100'
+        assert key == 'ip:192.168.1.100'
 
 
 def test_rate_limit_key_with_multiple_ips(app):
@@ -48,7 +48,7 @@ def test_rate_limit_key_with_multiple_ips(app):
         environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
-        assert key == '10.0.0.50'  # Should use first IP
+        assert key == 'ip:10.0.0.50'  # Should use first IP
 
 
 def test_rate_limit_key_with_x_real_ip(app):
@@ -60,7 +60,7 @@ def test_rate_limit_key_with_x_real_ip(app):
         environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
-        assert key == '172.16.0.100'
+        assert key == 'ip:172.16.0.100'
 
 
 def test_rate_limit_key_priority(app):
@@ -72,7 +72,7 @@ def test_rate_limit_key_priority(app):
         environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
-        assert key == '192.168.1.100'  # X-Forwarded-For should win
+        assert key == 'ip:192.168.1.100'  # X-Forwarded-For should win
 
 
 def test_rate_limit_key_fallback_to_remote_addr(app):
@@ -82,7 +82,7 @@ def test_rate_limit_key_fallback_to_remote_addr(app):
     ):
         key = get_rate_limit_key()
         # Should use request.remote_addr
-        assert key == '127.0.0.1'
+        assert key == 'ip:127.0.0.1'
 
 
 def test_rate_limit_key_invalid_ip_in_header(app):
@@ -105,4 +105,34 @@ def test_rate_limit_key_whitespace_handling(app):
         environ_base={'REMOTE_ADDR': '127.0.0.1'},
     ):
         key = get_rate_limit_key()
-        assert key == '192.168.1.100'  # Should strip whitespace
+        assert key == 'ip:192.168.1.100'  # Should strip whitespace
+
+
+def test_rate_limit_key_no_remote_addr(app):
+    """Test rate limiting key uses endpoint-based key when remote_addr is missing."""
+    with app.test_request_context(
+        '/api/lexical', method='POST', environ_base={'REMOTE_ADDR': None}
+    ):
+        key = get_rate_limit_key()
+        assert key == 'endpoint:/api/lexical'
+        # Verify consistent format (should start with endpoint: prefix)
+        assert key.startswith('endpoint:')
+
+
+def test_rate_limit_key_format_consistency(app):
+    """Test that all rate limit keys use consistent prefix format."""
+    # Test IP-based key format
+    with app.test_request_context(
+        '/api/lexical', method='POST', environ_base={'REMOTE_ADDR': '127.0.0.1'}
+    ):
+        key = get_rate_limit_key()
+        assert key.startswith('ip:'), f'IP-based key should start with "ip:" but got: {key}'
+
+    # Test endpoint-based key format
+    with app.test_request_context(
+        '/api/prosodic', method='POST', environ_base={'REMOTE_ADDR': None}
+    ):
+        key = get_rate_limit_key()
+        assert key.startswith(
+            'endpoint:'
+        ), f'Endpoint-based key should start with "endpoint:" but got: {key}'

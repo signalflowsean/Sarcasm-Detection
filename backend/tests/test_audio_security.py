@@ -64,3 +64,19 @@ def test_validate_path_nested_directories():
 
         resolved = _validate_path_in_directory(nested_dir, tmpdir)
         assert resolved.startswith(os.path.realpath(tmpdir))
+
+
+def test_validate_path_legitimate_double_dots():
+    """Test that legitimate filenames with consecutive dots are accepted."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Legitimate filename with consecutive dots (not path traversal)
+        valid_path = os.path.join(tmpdir, 'my..file.txt')
+
+        # Should not raise an error - consecutive dots in filename are valid
+        resolved = _validate_path_in_directory(valid_path, tmpdir)
+        assert resolved.startswith(os.path.realpath(tmpdir))
+
+        # Test with multiple consecutive dots
+        valid_path2 = os.path.join(tmpdir, 'file...with...dots.txt')
+        resolved2 = _validate_path_in_directory(valid_path2, tmpdir)
+        assert resolved2.startswith(os.path.realpath(tmpdir))

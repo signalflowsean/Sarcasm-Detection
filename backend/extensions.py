@@ -113,9 +113,16 @@ def get_rate_limit_key():
     1. X-Forwarded-For header (first IP in chain) - ONLY if from trusted proxy
     2. X-Real-IP header - ONLY if from trusted proxy
     3. request.remote_addr - direct connection (fallback)
+    4. Endpoint-based key - when no IP is available (grouped by endpoint)
+
+    Key Format:
+    - All keys use a consistent prefix format for clarity and consistency
+    - IP-based keys: "ip:<address>" (e.g., "ip:192.168.1.100")
+    - Endpoint-based keys: "endpoint:<path>" (e.g., "endpoint:/api/lexical")
+    - This ensures uniform key types for rate limiting storage backends
 
     Returns:
-        str: Client IP address for rate limiting
+        str: Consistent rate limiting key with prefix indicating key type
     """
     remote_addr = request.remote_addr
     # SECURITY: Never use 'unknown' as fallback - this allows rate limit bypass
@@ -125,7 +132,7 @@ def get_rate_limit_key():
     if not remote_addr:
         # Use endpoint path as rate limit key (all requests to same endpoint share limit)
         # This prevents rate limit bypass while still applying limits to requests without IP
-        endpoint_key = f'no-ip-{request.path}'
+        endpoint_key = f'endpoint:{request.path}'
         logger.warning(
             f'[RATE LIMIT SECURITY] Request has no remote_addr, using endpoint-based key: {endpoint_key}'
         )
@@ -146,7 +153,7 @@ def get_rate_limit_key():
                 logger.debug(
                     f'[RATE LIMIT] Using X-Forwarded-For IP: {first_ip} (from trusted proxy: {remote_addr})'
                 )
-                return first_ip
+                return f'ip:{first_ip}'
             else:
                 logger.warning(f'[RATE LIMIT] Invalid IP in X-Forwarded-For: {first_ip}')
 
@@ -158,7 +165,7 @@ def get_rate_limit_key():
                 logger.debug(
                     f'[RATE LIMIT] Using X-Real-IP: {real_ip} (from trusted proxy: {remote_addr})'
                 )
-                return real_ip
+                return f'ip:{real_ip}'
             else:
                 logger.warning(f'[RATE LIMIT] Invalid IP in X-Real-IP: {real_ip}')
     else:
@@ -171,7 +178,7 @@ def get_rate_limit_key():
 
     # Fallback to direct connection IP (development or no proxy)
     logger.debug(f'[RATE LIMIT] Using remote_addr: {remote_addr}')
-    return remote_addr
+    return f'ip:{remote_addr}'
 
 
 # ============================================================================

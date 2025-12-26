@@ -118,7 +118,7 @@ def test_secure_load_pickle_blocks_malicious_file():
 
     try:
         with pytest.raises(pickle.UnpicklingError, match='Untrusted module blocked'):
-            secure_load_pickle(temp_path)
+            secure_load_pickle(temp_path, skip_path_validation=True)
     finally:
         import os
 
@@ -134,7 +134,7 @@ def test_secure_load_pickle_allows_trusted_file():
         temp_path = f.name
 
     try:
-        model = secure_load_pickle(temp_path)
+        model = secure_load_pickle(temp_path, skip_path_validation=True)
         assert model is not None
         assert hasattr(model, 'predict')
     finally:

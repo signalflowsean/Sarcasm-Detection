@@ -8,6 +8,8 @@
  * Or type: version() in console for formatted output
  */
 
+import { isDev } from './features/input/utils/env'
+
 // Import version from package.json (Vite handles this at build time)
 const VERSION = __APP_VERSION__
 const BUILD_TIME = __BUILD_TIME__
@@ -21,7 +23,7 @@ export interface AppVersion {
 export const appVersion: AppVersion = {
   version: VERSION,
   buildTime: BUILD_TIME,
-  environment: import.meta.env.DEV ? 'development' : 'production',
+  environment: isDev() ? 'development' : 'production',
 }
 
 // Expose to window for console access
@@ -36,7 +38,7 @@ window.__APP_VERSION__ = appVersion
 
 // Helper function for pretty console output (dev mode only)
 window.version = () => {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.log(
       `%c🎭 Sarcasm Detector v${appVersion.version}%c\n` +
         `Environment: ${appVersion.environment}\n` +
@@ -48,7 +50,7 @@ window.version = () => {
 }
 
 // Log version on startup (only in production to avoid noise in dev)
-if (!import.meta.env.DEV) {
+if (!isDev()) {
   console.log(`🎭 Sarcasm Detector v${appVersion.version} (${appVersion.environment})`)
 }
 

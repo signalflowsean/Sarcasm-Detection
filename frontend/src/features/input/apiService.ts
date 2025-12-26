@@ -129,7 +129,7 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
   }
 
   if (!response.ok) {
-    let errorMessage = 'Request failed'
+    let errorMessage: string
     try {
       // Try to parse JSON error response
       const errorData: unknown = await response.json()
@@ -185,7 +185,7 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
   }
 
   if (!response.ok) {
-    let errorMessage = 'Request failed'
+    let errorMessage: string
     try {
       // Try to parse JSON error response
       const errorData: unknown = await response.json()
