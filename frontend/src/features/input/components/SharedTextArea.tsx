@@ -8,6 +8,8 @@ type SharedTextAreaProps = {
   className?: string
   shouldFlash?: boolean
   rows?: number
+  id?: string
+  name?: string
   'aria-describedby'?: string
   'aria-label'?: string
 }
@@ -22,6 +24,8 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
       className = '',
       shouldFlash = false,
       rows = 4,
+      id,
+      name = 'shared-textarea',
       'aria-describedby': ariaDescribedBy,
       'aria-label': ariaLabel,
     },
@@ -33,6 +37,8 @@ const SharedTextArea = React.forwardRef<HTMLTextAreaElement, SharedTextAreaProps
     return (
       <textarea
         ref={ref}
+        id={id}
+        name={name}
         className={`shared-textarea ${className} ${shouldFlash ? 'should-flash' : ''}`}
         value={value}
         onChange={handleChange}

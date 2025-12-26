@@ -167,6 +167,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
           : Promise.resolve({ id: NO_TEXT_RESPONSE_ID, value: 0, reliable: true }),
       ])
       // Pass both values to detection provider, including reliability info
+      // setDetectionResult will handle resetting loading state
       setDetectionResult({
         lexical: lexicalResponse.value,
         prosodic: prosodicResponse.value,

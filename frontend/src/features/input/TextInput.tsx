@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useDetection } from '../meter/hooks/useDetection'
 import { sendLexicalText } from './apiService'
+import ExamplePhrases from './components/ExamplePhrases'
 import SharedTextArea from './components/SharedTextArea'
 import { isMacPlatform, isMobileBrowser } from './utils'
 
@@ -31,6 +32,7 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
     try {
       const response = await sendLexicalText(payload)
       // Pass lexical value to detection provider (prosodic stays at 0 for text mode)
+      // setDetectionResult will handle resetting loading state
       setDetectionResult({
         lexical: response.value,
         prosodic: 0,
@@ -64,6 +66,19 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
     }
   }
 
+  const hasText = text.trim().length > 0
+  const sendLabel = isSending ? 'Sending...' : hasText ? 'Send to Detector' : 'Type Text First'
+
+  // Flash the send button when text is ready but not sending
+  const shouldFlash = hasText && !isSending
+
+  const handleExampleSelect = (phrase: string) => {
+    setText(phrase)
+    if (!hasEverTyped) {
+      setHasEverTyped(true)
+    }
+  }
+
   return (
     <div className="text-input" onKeyDown={onKeyDown} data-testid="text-input">
       <SharedTextArea
@@ -73,18 +88,17 @@ const TextInput = ({ onClose }: TextInputProps = {}) => {
         shouldFlash={!hasEverTyped}
         disabled={isSending}
       />
+      <ExamplePhrases onSelect={handleExampleSelect} disabled={isSending} />
       <div className="text-input__controls">
         <button
           type="button"
-          className={`text-input__send-btn ${text.trim() && !isSending && !isMobile ? 'text-input__send-btn--with-shortcut' : ''}`}
+          className={`text-input__send-btn ${hasText && !isSending && !isMobile ? 'text-input__send-btn--with-shortcut' : ''} ${shouldFlash ? 'text-input__send-btn--flash' : ''}`}
           onClick={handleSend}
-          disabled={!text.trim() || isSending}
+          disabled={!hasText || isSending}
           data-testid="text-send-button"
         >
-          <span className="text-input__send-btn__label">
-            {isSending ? 'Sending...' : 'Send to Detector'}
-          </span>
-          {text.trim() && !isSending && !isMobile && (
+          <span className="text-input__send-btn__label">{sendLabel}</span>
+          {hasText && !isSending && !isMobile && (
             <kbd
               className="text-input__send-btn__shortcut"
               aria-label={`Keyboard shortcut: ${modifierKey} + Enter`}

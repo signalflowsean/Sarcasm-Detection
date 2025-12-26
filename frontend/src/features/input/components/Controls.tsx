@@ -25,12 +25,7 @@ const Controls = ({
   sending,
   isRecording,
 }: Props) => {
-  let sendLabel = 'Send to Detector'
-  if (!canSend) {
-    sendLabel = 'Record Audio First'
-  } else if (sending) {
-    sendLabel = 'Sending…'
-  }
+  const sendLabel = sending ? 'Sending...' : canSend ? 'Send to Detector' : 'Record Audio First'
 
   // Detect platform for keyboard shortcut display
   const isMac = isMacPlatform()

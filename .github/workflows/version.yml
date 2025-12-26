@@ -11,12 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on PRs, not on pushes to main
     if: github.event.pull_request.head.repo.full_name == github.repository
+    # Grant permissions to write to repository
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
@@ -58,9 +62,12 @@ jobs:
 
       - name: Commit version update
         if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git add frontend/package.json package.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Comment on PR
