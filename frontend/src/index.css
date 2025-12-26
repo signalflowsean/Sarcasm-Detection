@@ -83,6 +83,26 @@
 
     /* TODO: Extract magic numbers into CSS variables — see README.md "CSS Variables Cleanup" */
 
+    /* Font size scale - use these for consistent sizing */
+    --font-size-xs: clamp(0.64rem, 1.5vw, 0.9rem);
+    --font-size-sm: clamp(0.71rem, 1.35vw, 0.83rem);
+    --font-size-base: clamp(0.77rem, 1.5vw, 1.03rem);
+    --font-size-md: clamp(0.85rem, 1.5vw, 1.08rem);
+    --font-size-lg: clamp(0.9rem, 2.625vw, 2rem);
+    --font-size-xl: clamp(1rem, 2.625vw, 1.875rem);
+
+    /* Getting started specific font sizes */
+    --font-size-getting-started-title: clamp(0.83rem, 2.625vw, 1.875rem);
+    --font-size-getting-started-intro: clamp(0.675rem, 1.875vw, 1.05rem);
+    --font-size-getting-started-description: clamp(0.64rem, 1.5vw, 0.9rem);
+    --font-size-getting-started-model: clamp(0.64rem, 1.5vw, 0.86rem);
+    --font-size-getting-started-cta: clamp(0.64rem, 1.5vw, 0.9rem);
+
+    /* Text input font sizes */
+    --font-size-textarea-base: clamp(0.85rem, 1.35vw, 1rem);
+    --font-size-textarea-mobile: 1.03rem;
+    --font-size-textarea-modal: clamp(1.01rem, 2.625vw, 1.275rem);
+
     --clr-primary: #fff;
     --clr-secondary: #0a0908;
     --clr-tertiary: #1a1816;
@@ -105,6 +125,21 @@
 
     --min-col-width: 18.75rem;
     --border-radius-primary: 0.28rem;
+
+    /* Spacing scale */
+    --space-micro: 0.375rem; /* 6px */
+    --space-small: 0.56rem; /* 9px */
+    --space-base: 0.75rem; /* 12px */
+    --space-medium: 0.94rem; /* 15px */
+    --space-large: 1.125rem; /* 18px */
+    --space-xl: 1.5rem; /* 24px */
+    --space-2xl: 1.875rem; /* 30px */
+
+    /* Border radius scale */
+    --radius-tiny: 0.19rem; /* kbd */
+    --radius-small: 0.28rem; /* same as --border-radius-primary */
+    --radius-medium: 0.45rem; /* buttons */
+    --radius-large: 0.56rem; /* cards, modals */
 
     --meter-level-thickness: 0.47em;
     --meter-tick-width: 0.094em;
@@ -157,7 +192,7 @@
     display: grid;
     place-items: center;
     grid-template-columns: 2fr 3fr; /* Detector is larger and more prominent */
-    gap: 1.5rem;
+    gap: var(--space-xl);
     background-color: var(--clr-secondary);
   }
 }
@@ -166,7 +201,7 @@
   /* Audio Recorder */
   .audio-recorder {
     display: grid;
-    gap: 0.75rem;
+    gap: var(--space-base);
     align-items: start;
     width: 100%;
     max-width: 100%;
@@ -178,7 +213,7 @@
   .audio-recorder__mic-wrapper {
     display: grid;
     justify-items: center;
-    gap: 0.75rem;
+    gap: var(--space-base);
   }
 
   .audio-recorder__mic {
@@ -311,8 +346,7 @@
       box-shadow 160ms ease;
   }
   .audio-recorder__mic:disabled .audio-recorder__mic__power {
-    background: #374151;
-    box-shadow: none;
+    display: none;
   }
   .audio-recorder__mic.is-recording .audio-recorder__mic__power {
     background: #ef4444; /* on */
@@ -358,9 +392,9 @@
 
   .audio-recorder__waveform {
     position: relative;
-    border-radius: 0.56rem;
+    border-radius: var(--radius-large);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.25));
-    padding: 0.94rem;
+    padding: var(--space-medium);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     overflow: hidden;
     touch-action: none; /* enable scrubbing on touch devices inside modal */
@@ -423,7 +457,7 @@
 
   .audio-recorder__controls {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-base);
     justify-content: center;
     /* TODO: haven't decided on this */
     /* flex-wrap: wrap; */
@@ -432,7 +466,7 @@
 
   .audio-btn {
     padding: 0.6rem 1.125rem;
-    border-radius: 0.45rem;
+    border-radius: var(--radius-medium);
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: #2a2a2a;
     color: #fff; /* Always white text on dark buttons for proper contrast */
@@ -479,8 +513,8 @@
   .audio-btn--with-shortcut {
     display: flex;
     align-items: center;
-    gap: 0.56rem;
-    padding-right: 0.75rem;
+    gap: var(--space-small);
+    padding-right: var(--space-base);
   }
 
   .audio-btn--danger.audio-btn--with-shortcut {
@@ -504,7 +538,7 @@
     /* Component-specific sizing */
     font-size: 0.56rem;
     padding: 0.19rem 0.375rem;
-    border-radius: 0.19rem;
+    border-radius: var(--radius-tiny);
 
     /* Component-specific appearance variations */
     background: rgba(0, 0, 0, 0.3);
@@ -734,7 +768,7 @@
 
   .close-btn {
     padding: 0.49rem;
-    border-radius: 0.56rem;
+    border-radius: var(--radius-large);
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
     color: #fff; /* Always white text on dark buttons for proper contrast */
@@ -814,7 +848,7 @@
   .audio-recorder__modal .audio-btn {
     padding: 0.75rem 1.5rem;
     font-size: clamp(1.01rem, 2.625vw, 1.2rem);
-    border-radius: 0.56rem;
+    border-radius: var(--radius-large);
   }
 
   .audio-recorder__modal .audio-recorder__controls {
@@ -823,13 +857,13 @@
 
   .audio-recorder__modal .audio-recorder__error {
     font-size: clamp(0.94rem, 2.25vw, 1.125rem);
-    padding: 0.75rem;
+    padding: var(--space-base);
   }
 
   .audio-recorder__modal .speech-status {
     font-size: clamp(0.875rem, 2vw, 1rem);
     padding: 0.625rem 0.875rem;
-    margin-top: 0.75rem;
+    margin-top: var(--space-base);
   }
 
   /* Make modal content larger - Text Input */
@@ -2117,7 +2151,7 @@
   gap: clamp(0.56rem, 1.5vw, 1.125rem);
   overflow-wrap: break-word;
   word-wrap: break-word;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to allow text to wrap properly */
 }
 
 .getting-started * {
@@ -2159,7 +2193,11 @@
 }
 
 .getting-started__model {
-  font-size: clamp(0.64rem, 1.5vw, 0.86rem);
+  font-size: clamp(
+    0.77rem,
+    1.5vw,
+    1.03rem
+  ); /* ~20% increase: 0.64rem * 1.2 = 0.768rem, 0.86rem * 1.2 = 1.032rem */
   padding-left: clamp(1.125rem, 1.875vw, 1.875rem);
   position: relative;
   line-height: 1.7;
@@ -2180,7 +2218,7 @@
   text-align: center;
   font-style: italic;
   opacity: 0.95;
-  margin-top: clamp(0.375rem, 1.125vw, 0.75rem);
+  margin-top: clamp(var(--space-micro), 1.125vw, var(--space-base));
 }
 
 /* Text Input */
@@ -2191,6 +2229,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  gap: 1.125rem; /* Space between sections: textarea, example phrases, controls, error */
   max-height: 100%;
   overflow: hidden;
 }
@@ -2204,7 +2243,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   color: #fff; /* Always white text on dark background for proper contrast */
-  font-size: clamp(0.71rem, 1.35vw, 0.83rem);
+  font-size: clamp(0.85rem, 1.35vw, 1rem); /* Increased for better readability */
   resize: vertical;
   line-height: 1.6;
   transition: border-color 0.2s ease;
@@ -2244,7 +2283,7 @@
 .text-input__controls {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.75rem;
+  /* margin-top removed - now handled by parent gap */
 }
 .text-input__send-btn {
   width: 100%;
@@ -2299,14 +2338,86 @@
   opacity: 0.4;
 }
 
+@keyframes text-input-send-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    border-color: rgba(59, 130, 246, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 15px 3px rgba(59, 130, 246, 0.4);
+    border-color: rgba(59, 130, 246, 0.9);
+  }
+}
+
+.text-input__send-btn--flash {
+  animation: text-input-send-pulse 1.5s ease-in-out infinite;
+}
+
 .text-input__error {
-  margin-top: 0.75rem;
+  /* margin-top removed - now handled by parent gap */
   padding: 0.56rem;
   background: rgba(255, 0, 0, 0.1);
   border: 1px solid rgba(255, 0, 0, 0.3);
   border-radius: 6px;
   color: #ff6b6b;
   font-size: 0.675rem;
+}
+
+/* Example Phrases */
+.example-phrases {
+  /* margin-top removed - now handled by parent gap */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.example-phrases__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.example-phrases__label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+}
+
+.example-phrases__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.example-phrases__chip {
+  padding: 0.375rem 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.example-phrases__chip:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.example-phrases__chip:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.example-phrases__chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Mobile launcher pulsate */
@@ -2593,11 +2704,33 @@ body:has(.audio-recorder__modal) .detector-jack {
     gap: clamp(1.31rem, 2.25vw, 2.25rem);
   }
 
+  /* Desktop: Slightly increase getting-started text sizes for better readability */
+  /* Reduced max values to prevent overflow at larger viewport widths */
+  .getting-started__title {
+    font-size: clamp(0.9rem, 2.625vw, 1.75rem); /* Reduced max from 2rem to prevent cutoff */
+  }
+
+  .getting-started__intro {
+    font-size: clamp(0.74rem, 1.875vw, 1.05rem); /* Reduced max to prevent cutoff */
+  }
+
+  .getting-started__description {
+    font-size: clamp(0.7rem, 1.5vw, 0.95rem); /* Reduced max to prevent cutoff */
+  }
+
+  .getting-started__model {
+    font-size: clamp(0.85rem, 1.5vw, 1.05rem); /* Reduced max to prevent cutoff */
+  }
+
+  .getting-started__cta {
+    font-size: clamp(0.7rem, 1.5vw, 0.95rem); /* Reduced max to prevent cutoff */
+  }
+
   .shared-textarea,
   .text-input__textarea {
     min-height: 105px;
     padding: 1.125rem;
-    font-size: 0.86rem;
+    font-size: 1.03rem;
     line-height: 1.65;
   }
 
@@ -2760,7 +2893,11 @@ body:has(.audio-recorder__modal) .detector-jack {
   .getting-started__description,
   .getting-started__model,
   .getting-started__cta {
-    font-size: clamp(0.79rem, 2.44vw, 0.975rem);
+    font-size: clamp(
+      0.948rem,
+      2.44vw,
+      1.17rem
+    ); /* 20% increase: 0.79rem * 1.2 = 0.948rem, 0.975rem * 1.2 = 1.17rem */
   }
 
   .input-container {
@@ -2840,7 +2977,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   .mobile-input-controls {
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Evenly distribute rows vertically */
+    justify-content: space-between; /* Space between main elements */
     width: 100%;
     height: 100%; /* Fill grid cell height */
     padding: 0.75rem;
@@ -2851,13 +2988,17 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Textarea spans full width */
   .mobile-input-controls__textarea {
     width: 100%;
+    flex: 1; /* Take equal space with audio-row */
+    display: flex;
+    /* align-items: stretch; Stretch to fill height */
+    padding: 0.5rem 0;
   }
 
   .mobile-input-controls__textarea .shared-textarea {
     min-height: 3rem;
-    max-height: 4rem;
+    height: 100%;
     resize: none;
-    font-size: 0.875rem;
+    font-size: 1.03rem;
   }
 
   /* Audio row: mic, waveform, play, trash in a single row */
@@ -2867,6 +3008,8 @@ body:has(.audio-recorder__modal) .detector-jack {
     gap: 0.5rem;
     width: 100%;
     height: 3rem;
+    flex: 1; /* Take equal space with textarea */
+    justify-content: center; /* Center horizontally */
   }
 
   .mobile-input-controls__audio-row .audio-recorder__mic {
@@ -2889,18 +3032,18 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   .mobile-input-controls__waveform-wrapper .audio-recorder__waveform {
-    min-height: 2.5rem;
-    height: 2.5rem;
+    min-height: 3rem;
+    height: 3rem;
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
   }
 
   .mobile-input-controls__waveform-wrapper .audio-recorder__waveform canvas {
-    height: 2rem;
+    height: 2.5rem;
   }
 
   .mobile-input-controls__waveform-wrapper .audio-recorder__waveform__empty {
-    font-size: 0.845rem; /* 30% increase from 0.65rem */
+    font-size: 1.03rem;
   }
 
   .mobile-input-controls__duration {
@@ -2975,6 +3118,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Send button - positioned adjacent to cable jack */
   .mobile-input-controls__send {
     margin-inline: 2.5rem;
+    flex-shrink: 0; /* Don't shrink - naturally sits at bottom with space-between */
   }
 
   .mobile-input-controls__send-btn {
@@ -2998,7 +3142,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Mobile & Tablet: Increase "Send to Detector" font size by 20% */
   @media (max-width: 1439px) {
     .mobile-input-controls__send-btn {
-      font-size: 0.96rem; /* 20% increase from 0.8rem */
+      font-size: 1.25rem;
     }
   }
 
@@ -3124,7 +3268,7 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Vintage brass plaque effect */
   background: linear-gradient(145deg, rgba(42, 37, 32, 0.95) 0%, rgba(26, 24, 22, 0.95) 100%);
   padding: 0.75rem 1.31rem;
-  border-radius: 0.28rem;
+  border-radius: var(--radius-small);
   border: 2px solid rgba(212, 175, 55, 0.4);
   text-shadow:
     0 2px 0 rgba(0, 0, 0, 0.6),
@@ -3195,6 +3339,13 @@ body:has(.audio-recorder__modal) .detector-jack {
   line-height: 1.7;
 }
 
+/* Mobile: Prevent overflow in modal textarea */
+@media (max-width: 1439px) {
+  .audio-recorder__modal.audio-recorder__modal .shared-textarea {
+    font-size: 1.03rem; /* Match mobile textarea size to prevent overflow */
+  }
+}
+
 /* Text input send button in modals */
 .audio-recorder__modal.audio-recorder__modal .text-input__send-btn {
   padding: 0.75rem 1.5rem;
@@ -3222,11 +3373,40 @@ body:has(.audio-recorder__modal) .detector-jack {
   font-size: clamp(1.125rem, 3vw, 1.425rem);
 }
 
+/* Mobile: Hide getting-started__intro in modal (rotary knob instruction not applicable on mobile) */
+@media (max-width: 1439px) {
+  .audio-recorder__modal.audio-recorder__modal .getting-started__intro {
+    display: none;
+  }
+}
+
 .audio-recorder__modal.audio-recorder__modal .getting-started__description,
 .audio-recorder__modal.audio-recorder__modal .getting-started__model,
 .audio-recorder__modal.audio-recorder__modal .getting-started__cta {
   font-size: clamp(1.01rem, 2.625vw, 1.275rem);
   line-height: 1.7;
+}
+
+/* Desktop: Increase modal getting-started__model font size */
+@media (min-width: 1440px) {
+  .audio-recorder__modal.audio-recorder__modal .getting-started__model {
+    font-size: clamp(
+      1.21rem,
+      2.625vw,
+      1.53rem
+    ); /* ~20% increase: 1.01rem * 1.2 = 1.212rem, 1.275rem * 1.2 = 1.53rem */
+  }
+}
+
+/* Mobile: Increase getting-started__model font size by 20% in modal */
+@media (max-width: 1439px) {
+  .audio-recorder__modal.audio-recorder__modal .getting-started__model {
+    font-size: clamp(
+      1.212rem,
+      2.625vw,
+      1.53rem
+    ); /* 20% increase: 1.01rem * 1.2 = 1.212rem, 1.275rem * 1.2 = 1.53rem */
+  }
 }
 
 /* ================================================

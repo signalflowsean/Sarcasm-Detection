@@ -4,7 +4,7 @@ Health check and version endpoints for container orchestration.
 
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Version info - update when releasing new versions
 API_VERSION = '1.0.0'
 # Build time is set at container start (or use current time if not set)
-BUILD_TIME = os.environ.get('BUILD_TIME', datetime.now(UTC).isoformat())
+BUILD_TIME = os.environ.get('BUILD_TIME', datetime.now(timezone.utc).isoformat())
 
 
 @bp.route('/api/health', methods=['GET'])

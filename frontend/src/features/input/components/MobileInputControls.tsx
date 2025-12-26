@@ -244,6 +244,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       setLoading(true)
       try {
         const response = await sendLexicalText(trimmedText)
+        // setDetectionResult will handle resetting loading state
         setDetectionResult({
           lexical: response.value,
           prosodic: 0,
@@ -271,6 +272,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             ? sendLexicalText(fullTranscript)
             : Promise.resolve({ id: NO_TEXT_RESPONSE_ID, value: 0, reliable: true }),
         ])
+        // setDetectionResult will handle resetting loading state
         setDetectionResult({
           lexical: lexicalResponse.value,
           prosodic: prosodicResponse.value,
@@ -298,17 +300,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     discardRecording,
     setError,
   ])
-
-  // Keyboard shortcut for send (on the container)
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault()
-        handleSend()
-      }
-    },
-    [handleSend]
-  )
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Global keyboard shortcuts
@@ -395,6 +386,17 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     onMicClick,
   ])
 
+  // Keyboard shortcut for send (on the container)
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        handleSend()
+      }
+    },
+    [handleSend]
+  )
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Derived values for rendering
   // ─────────────────────────────────────────────────────────────────────────────
@@ -415,16 +417,28 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
     ? (state.transcript + ' ' + state.interimTranscript).trim()
     : text
 
-  const textareaPlaceholder = isProsodic
-    ? speechStatus === 'loading'
-      ? 'Loading speech model...'
-      : 'Transcription will appear here...'
-    : 'Type something here and send it to the detector...'
+  const textareaPlaceholder = (() => {
+    if (isProsodic) {
+      return speechStatus === 'loading'
+        ? 'Loading speech model...'
+        : 'Transcription will appear here...'
+    }
+    return 'Type something here and send it to the detector...'
+  })()
 
   // Can send logic
   const canSendLexical = !!text.trim() && !isSending
   const canSendProsodic = !!state.audioBlob && !isSending
   const canSend = isLexical ? canSendLexical : canSendProsodic
+
+  // Send button label logic
+  const sendLabel = isSending
+    ? 'Sending...'
+    : canSend
+      ? 'Send to Detector'
+      : isLexical
+        ? 'Type Text First'
+        : 'Record Audio First'
 
   return (
     <div
@@ -521,7 +535,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           disabled={!canSend}
           data-testid="mobile-send-button"
         >
-          <span>{isSending ? 'Sending...' : 'Send to Detector'}</span>
+          <span>{sendLabel}</span>
           {canSend && !isMobile && (
             <kbd className="mobile-input-controls__shortcut">{modifierKey}+↵</kbd>
           )}
@@ -529,7 +543,14 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
       </div>
 
       {/* Hidden audio element for playback */}
-      <audio ref={audioRef} src={state.audioUrl ?? undefined} preload="metadata" />
+      <audio
+        ref={audioRef}
+        src={state.audioUrl ?? undefined}
+        preload="metadata"
+        aria-label="Audio playback"
+      >
+        <track kind="captions" />
+      </audio>
 
       {/* Speech status (loading/error for speech-to-text model) */}
       <SpeechStatus

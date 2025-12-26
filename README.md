@@ -697,15 +697,17 @@ The frontend is configured with a custom domain (`sarcasm-detector.com`).
 
 Extract hardcoded "magic numbers" into CSS custom properties for maintainability:
 
-**Spacing** (padding, margin, gap):
+**Spacing** (padding, margin, gap): ✅ **Variables defined** — `--space-micro`, `--space-small`, `--space-base`, `--space-medium`, `--space-large`, `--space-xl`, `--space-2xl`
 
 - `0.375rem` (6px) — micro | `0.56rem` (9px) — small | `0.75rem` (12px) — base
 - `0.94rem` (15px) — medium | `1.125rem` (18px) — large | `1.5rem` (24px) — xl | `1.875rem` (30px) — 2xl
+- **Status**: Variables added to `:root`, initial migration completed (~15 instances replaced). ~96 instances remain throughout the file.
 
-**Border Radii:**
+**Border Radii:** ✅ **Variables defined** — `--radius-tiny`, `--radius-small`, `--radius-medium`, `--radius-large`
 
 - `0.19rem` — tiny (kbd) | `0.28rem` — small (already `--border-radius-primary`)
 - `0.45rem` — medium (buttons) | `0.56rem` — large (cards, modals)
+- **Status**: Variables added to `:root`, initial migration completed (8 instances replaced).
 
 **Animation Durations:**
 
