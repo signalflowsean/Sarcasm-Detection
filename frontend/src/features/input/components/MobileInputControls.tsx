@@ -547,7 +547,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
         ref={audioRef}
         src={state.audioUrl ?? undefined}
         preload="metadata"
-        aria-label="Audio playback"
+        aria-hidden="true"
       />
 
       {/* Speech status (loading/error for speech-to-text model) */}
