@@ -4,7 +4,7 @@ Health check and version endpoints for container orchestration.
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 
 from flask import Blueprint, jsonify
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Version info - update when releasing new versions
 API_VERSION = '1.0.0'
 # Build time is set at container start (or use current time if not set)
-BUILD_TIME = os.environ.get('BUILD_TIME', datetime.now(timezone.utc).isoformat())
+BUILD_TIME = os.environ.get('BUILD_TIME', datetime.now(datetime.UTC).isoformat())
 
 
 @bp.route('/api/health', methods=['GET'])
@@ -32,19 +32,19 @@ def health_check():
     except Exception as e:
         logger.error(f'[HEALTH] Error checking lexical model: {type(e).__name__}: {e}')
         lexical_loaded = False
-    
+
     try:
         prosodic_loaded = get_prosodic_model() is not None
     except Exception as e:
         logger.error(f'[HEALTH] Error checking prosodic model: {type(e).__name__}: {e}')
         prosodic_loaded = False
-    
+
     try:
         onnx_loaded = get_onnx_session() is not None
     except Exception as e:
         logger.error(f'[HEALTH] Error checking ONNX session: {type(e).__name__}: {e}')
         onnx_loaded = False
-    
+
     return jsonify(
         {
             'status': 'healthy',
