@@ -3,12 +3,12 @@ import type { ModelMetrics } from './telemetry'
 
 // Mock import.meta.env at module level
 // @ts-expect-error - Accessing import.meta.env for testing
-const originalMode = import.meta.env.MODE
+const originalDev = import.meta.env.DEV
 
 // Helper to set the mode for tests
 function setTestMode(mode: 'development' | 'production') {
   // @ts-expect-error - Mocking import.meta.env for testing
-  import.meta.env.MODE = mode
+  import.meta.env.DEV = mode === 'development'
 }
 
 // Dynamic imports to respect mocked environment
@@ -57,7 +57,7 @@ describe('telemetry', () => {
   afterEach(() => {
     // Restore original mode
     // @ts-expect-error - Restoring original import.meta.env
-    import.meta.env.MODE = originalMode
+    import.meta.env.DEV = originalDev
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })

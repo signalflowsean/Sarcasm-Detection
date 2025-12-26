@@ -1,5 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useRafInterval } from '../hooks'
+import { isDev } from '../utils/env'
 
 type Nullable<T> = T | null
 
@@ -334,7 +335,7 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
       } catch (err) {
         // Log but don't show user-facing error - peaks are optional for enhanced waveform
         // The recording/playback still works without them
-        if (import.meta.env.DEV) console.error('Failed to compute waveform peaks:', err)
+        if (isDev()) console.error('Failed to compute waveform peaks:', err)
       }
     },
     [getDecodingAudioContext, drawPeaks]

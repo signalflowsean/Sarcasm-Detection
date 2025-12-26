@@ -322,7 +322,7 @@ def main():
     texts, labels = add_conversational_examples(texts, labels)
 
     print(f"   Total samples: {len(texts):,}")
-    print(f"   Sarcastic: {sum(labels):,} ({sum(labels)/len(labels)*100:.1f}%)")
+    print(f"   Sarcastic: {sum(labels):,} ({sum(labels) / len(labels) * 100:.1f}%)")
 
     # Split data
     X_train, X_test, y_train, y_test = train_test_split(
@@ -405,7 +405,7 @@ def main():
     )
 
     print("\n🎯 Test Results:")
-    print(f"   Accuracy: {test_acc:.4f} ({test_acc*100:.2f}%)")
+    print(f"   Accuracy: {test_acc:.4f} ({test_acc * 100:.2f}%)")
     print(f"   F1 Score: {test_f1:.4f}")
 
     print("\n   Classification Report:")
@@ -482,7 +482,7 @@ def main():
     print("✅ TRAINING COMPLETE!")
     print("=" * 60)
     print(f"\nModel saved to: {MODEL_OUTPUT_DIR}")
-    print(f"Test Accuracy: {test_acc:.4f} ({test_acc*100:.2f}%)")
+    print(f"Test Accuracy: {test_acc:.4f} ({test_acc * 100:.2f}%)")
     print("\nTo use this model in the backend, update the loader to use transformers.")
 
 

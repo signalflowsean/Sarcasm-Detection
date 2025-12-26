@@ -1,6 +1,5 @@
-import { MEDIA_QUERIES } from '../../../breakpoints'
-import { useMediaQuery } from '../hooks'
 import type { SpeechStatus } from '../hooks/speech'
+import { isMobileBrowser } from '../utils'
 import Controls from './Controls'
 import MicButton from './MicButton'
 import SharedTextArea from './SharedTextArea'
@@ -60,7 +59,7 @@ const RecorderContent = ({
   onDiscard,
   onSend,
 }: Props) => {
-  const isMobile = useMediaQuery(MEDIA_QUERIES.isMobile)
+  const isMobile = isMobileBrowser()
   const transcriptDescriptionId = 'transcript-description'
   const transcriptDescription =
     'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
@@ -70,6 +69,7 @@ const RecorderContent = ({
     speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
 
   // Use mobile-appropriate messaging for the empty waveform state
+  // Consistent with keyboard shortcut visibility (both use isMobileBrowser())
   const emptyMessage = isMobile ? 'Tap Microphone to Record' : 'Click Microphone to Record'
 
   return (

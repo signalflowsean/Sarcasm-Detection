@@ -41,6 +41,15 @@ The Sarcasm Detector analyzes input through two detection modes:
 
 ## Quick Start
 
+### Prerequisites
+
+- **Python 3.11** (required for backend)
+  - The backend requires Python 3.11 to match CI/CD and production environments
+  - If using [pyenv](https://github.com/pyenv/pyenv), the `.python-version` file in `backend/` will automatically set the correct version
+  - Verify your Python version: `python3 --version` (should be 3.11.x)
+- **Node.js 20+** (for frontend and e2e tests)
+- **npm** or **yarn**
+
 ### Install (One-Time Setup)
 
 ```bash
@@ -51,12 +60,14 @@ npm run install:all
 Or install individually:
 
 ```bash
-npm run install:backend  # Python venv + dependencies
+npm run install:backend  # Python venv + dependencies (requires Python 3.11)
 npm run install:frontend # Frontend npm packages
 npm run install:e2e      # E2E test dependencies
 ```
 
 > **Note:** Git hooks are automatically configured during installation via the `prepare` script. This sets up Husky to run `lint-staged` on pre-commit, which will automatically lint and format your staged files before committing. No manual setup required!
+
+> **Python Version:** The backend requires Python 3.11. If you're using pyenv, ensure Python 3.11 is installed (`pyenv install 3.11`) and the `.python-version` file in `backend/` will automatically activate it. If your system Python is not 3.11, you may need to recreate the virtual environment: `cd backend && rm -rf venv && python3.11 -m venv venv && source venv/bin/activate && pip install -r requirements.txt`
 
 ### Development (Recommended)
 
@@ -125,6 +136,9 @@ Sarcasm-Detection/
 │   ├── tests/                 # E2E test specs
 │   └── playwright.config.ts   # Playwright configuration
 │
+├── scripts/                    # Utility scripts
+│   └── version.js            # Version increment script
+│
 ├── ml/                         # Machine learning training pipelines
 │   ├── lexical/               # Text-based sarcasm detection
 │   │   ├── train_sklearn_model.py  # TF-IDF + LogReg (production)
@@ -137,6 +151,12 @@ Sarcasm-Detection/
 │   │   ├── inference.py           # Test utility
 │   │   └── README.md              # Detailed documentation
 │   └── README.md              # ML overview
+│
+├── .github/                    # GitHub configuration
+│   └── workflows/             # GitHub Actions workflows
+│       ├── ci.yml             # CI pipeline (linting, tests, Docker builds)
+│       ├── e2e.yml            # End-to-end test workflow
+│       └── version.yml        # Auto-version increment on PR
 │
 ├── docker-compose.yml         # Multi-container orchestration
 └── README.md                  # This file
@@ -237,6 +257,7 @@ Health check endpoint for container orchestration.
 | -------------- | ------------------------------------------- |
 | Frontend       | React 19, TypeScript, Vite, React Router    |
 | Backend        | Flask, Flask-CORS, Flask-Limiter, Gunicorn  |
+| Python         | Python 3.11 (required)                      |
 | ML (Lexical)   | scikit-learn (TF-IDF + Logistic Regression) |
 | ML (Prosodic)  | Wav2Vec2 (ONNX Runtime) + scikit-learn      |
 | Testing        | Vitest, Playwright, pytest                  |
@@ -252,6 +273,8 @@ Health check endpoint for container orchestration.
 | --------------------- | --------------- | ----------------------------------------------------------------------------- |
 | `API_DELAY_SECONDS`   | `2.0`           | Artificial delay for showcasing loading animations (set to `0` in production) |
 | `FLASK_ENV`           | `production`    | Flask environment mode                                                        |
+| `FFMPEG_TIMEOUT`      | `30`            | FFmpeg conversion timeout in seconds (prevents hanging on corrupted files)    |
+| `PRELOAD_MODELS`      | `true`          | Preload ML models at startup (set to `false` for faster dev startup)          |
 | `RATE_LIMIT_ENABLED`  | `true`          | Enable/disable rate limiting                                                  |
 | `RATE_LIMIT_DEFAULT`  | `60 per minute` | Default rate limit for all endpoints                                          |
 | `RATE_LIMIT_LEXICAL`  | `30 per minute` | Rate limit for text analysis endpoint                                         |
@@ -365,6 +388,50 @@ npm install  # From project root (runs prepare script automatically)
 cd frontend && npm install  # From frontend directory
 ```
 
+### Version Management
+
+The project uses automated semantic versioning that increments on each new Pull Request.
+
+**Automatic Versioning:**
+
+- When a new PR is opened, the version is automatically incremented (patch version: `1.0.0` → `1.0.1`)
+- The version change is committed back to the PR branch
+- A comment is posted on the PR showing the version change
+- The version is stored in `frontend/package.json` and exposed in the app via `src/version.ts`
+
+**Manual Versioning:**
+
+You can also manually increment versions using npm scripts:
+
+```bash
+# Increment patch version (default: 1.0.0 → 1.0.1)
+npm run version
+# or
+npm run version:patch
+
+# Increment minor version (1.0.0 → 1.1.0)
+npm run version:minor
+
+# Increment major version (1.0.0 → 2.0.0)
+npm run version:major
+```
+
+The versioning script (`scripts/version.js`) updates both `frontend/package.json` and the root `package.json` (if it has a version field). The version is injected at build time via Vite and accessible in the browser console:
+
+```javascript
+// In browser console
+window.__APP_VERSION__; // Full version object
+window.version(); // Pretty formatted output
+```
+
+**GitHub Actions Workflow:**
+
+The `.github/workflows/version.yml` workflow handles automatic versioning:
+
+- Triggers on PR open (not on updates to avoid duplicate increments)
+- Requires write permissions to commit back to the PR branch
+- Uses the default `GITHUB_TOKEN` (should work automatically for same-repo PRs)
+
 ### Mobile Testing
 
 Since prosodic detection is the core use case, testing on actual mobile devices is critical. Mobile browsers require **HTTPS for microphone access**, so use one of these methods:
@@ -449,6 +516,14 @@ See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for
 
 You can run the full application locally using Docker Compose. This mirrors the production environment but **does not support hot reload** — use the [manual development setup](#manual-development-setup) if you need hot reload during development.
 
+⚠️ **SECURITY WARNING:** The `docker-compose.yml` configuration is **for local testing only**. It uses `CORS_ORIGINS=http://localhost` which is permissive and **should never be used in production**.
+
+**For production deployments:**
+
+- Always override `CORS_ORIGINS` with your actual frontend domain(s)
+- Use HTTPS URLs only (e.g., `https://yourdomain.com`)
+- See [Deployment (Railway)](#deployment-railway) section for production setup
+
 ```bash
 # Build and start all services
 docker-compose up --build
@@ -470,6 +545,20 @@ docker-compose up --build
 docker-compose up --build frontend
 docker-compose up --build backend
 ```
+
+### Customizing CORS for Local Testing
+
+If you need to test with a custom domain locally (e.g., using a local domain like `sarcasm.local`):
+
+1. Create a `.env` file in the project root:
+
+   ```bash
+   CORS_ORIGINS=http://sarcasm.local
+   ```
+
+2. Docker Compose will automatically load the `.env` file and override the default `http://localhost` value.
+
+**Remember:** This is still for local testing only. Production deployments must use HTTPS and your actual domain.
 
 ### Build Arguments
 
@@ -549,6 +638,7 @@ Configure these in the Railway dashboard for each service:
 |----------|-------------|
 | `API_DELAY_SECONDS` | Set to `0` for production |
 | `FLASK_ENV` | Set to `production` |
+| `CORS_ORIGINS` | **REQUIRED** - Comma-separated list of allowed frontend origins (e.g., `https://sarcasm-detector.com`). Cannot be `*` in production. |
 
 #### Changing Moonshine Model in Production
 

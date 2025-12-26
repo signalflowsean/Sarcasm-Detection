@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { isDev } from '../../utils/env'
 import { createMoonshineEngine } from './moonshineEngine'
 import type { SpeechEngine, SpeechStatus, TranscriptUpdate } from './types'
 import { INITIALIZATION_CANCELLED_ERROR } from './types'
@@ -21,7 +22,7 @@ export type { SpeechStatus, TranscriptUpdate }
 const LOG_PREFIX = '[SpeechRecognition]'
 
 function log(...args: unknown[]) {
-  if (import.meta.env.DEV) {
+  if (isDev()) {
     console.log(LOG_PREFIX, ...args)
   }
 }
@@ -170,7 +171,7 @@ export function useSpeechRecognition({
           // Both engines failed - provide user-friendly message with technical details in dev
           const webSpeechError = err instanceof Error ? err.message : 'Unknown error'
 
-          if (import.meta.env.DEV) {
+          if (isDev()) {
             // In development, include technical details for debugging
             const errorParts = ['Speech recognition failed.']
             if (moonshineError) {
@@ -189,7 +190,7 @@ export function useSpeechRecognition({
         engineRef.current = null
         setActiveEngine(null)
         // Both engines unavailable - provide user-friendly message with technical details in dev
-        if (import.meta.env.DEV) {
+        if (isDev()) {
           // In development, include technical details for debugging
           const errorParts = ['Speech recognition is not available in this browser.']
           if (moonshineError) {
@@ -232,7 +233,7 @@ export function useSpeechRecognition({
     stopSpeechRecognition,
     speechStatus,
     resetSpeechStatus,
-    ...(import.meta.env.DEV
+    ...(isDev()
       ? {
           /**
            * The name of the currently active engine (MoonshineJS or Web Speech API).

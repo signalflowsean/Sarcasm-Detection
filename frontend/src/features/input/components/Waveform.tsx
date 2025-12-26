@@ -1,7 +1,5 @@
 import { forwardRef, useRef } from 'react'
-import { MEDIA_QUERIES } from '../../../breakpoints'
-import { useMediaQuery } from '../hooks'
-import { clamp01 } from '../utils'
+import { clamp01, isMobileBrowser } from '../utils'
 
 type Props = {
   label?: string
@@ -25,10 +23,12 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
   },
   ref
 ) {
-  const isMobile = useMediaQuery(MEDIA_QUERIES.isMobile)
+  const isMobile = isMobileBrowser()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Use mobile-appropriate messaging for the empty waveform state
+  // Use mobile-appropriate messaging for the empty waveform state.
+  // This uses the same mobile detection as keyboard shortcut visibility
+  // to ensure consistent UX across all mobile-specific UI adaptations.
   const defaultEmptyMessage = isMobile ? 'Tap Microphone to Record' : 'Click Microphone to Record'
 
   const isScrubbingRef = useRef(false)

@@ -21,14 +21,26 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
   }
 
   return (
-    <div
+    <output
       className={statusClass}
-      role="status"
-      style={{ visibility: shouldShow ? 'visible' : 'hidden' }}
+      style={{
+        visibility: shouldShow ? 'visible' : 'hidden',
+        // Reserve space even when hidden to prevent layout shifts
+        minHeight: '1.5rem',
+      }}
     >
-      {statusText}
-      <span className="audio-recorder__status__duration">{duration}</span>
-    </div>
+      {shouldShow ? (
+        <>
+          {statusText}
+          <span className="audio-recorder__status__duration">{duration}</span>
+        </>
+      ) : (
+        // Render invisible placeholder to maintain consistent height
+        <span aria-hidden="true" style={{ opacity: 0 }}>
+          Recording… 0:00
+        </span>
+      )}
+    </output>
   )
 }
 

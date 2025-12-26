@@ -20,12 +20,16 @@ from errors import UserError
 logger = logging.getLogger(__name__)
 
 
-def validate_audio_file(audio_file) -> tuple:
+def validate_audio_file(audio_file, request=None) -> tuple:
     """
     Validates an uploaded audio file for type, size, and content.
 
+    Performance: Checks Content-Length header first to avoid reading large files
+    into memory. Falls back to seeking method if Content-Length is unavailable.
+
     Args:
         audio_file: FileStorage object from Flask request.files.
+        request: Optional Flask request object for accessing Content-Length header.
 
     Returns:
         tuple: (is_valid: bool, error_message: str or None)
@@ -58,10 +62,58 @@ def validate_audio_file(audio_file) -> tuple:
                 f'[VALIDATION] Unexpected content-type: {content_type} for file: {filename}'
             )
 
-    # Check file size
+    # PERFORMANCE: Early rejection using Content-Length header (if available)
+    # For multipart/form-data, Content-Length includes boundaries, so it's an upper bound.
+    # This allows early rejection of obviously too-large requests before processing.
+    # SECURITY: Validate Content-Length to prevent DoS attacks via negative or overflow values
+    if request is not None:
+        content_length = request.headers.get('Content-Length')
+        if content_length:
+            try:
+                # SECURITY: Check for negative values and integer overflow
+                # Python int() can handle arbitrarily large integers, but we need to validate
+                # reasonable bounds to prevent DoS attacks
+                request_size = int(content_length)
+
+                # SECURITY: Reject negative Content-Length (malicious or corrupted header)
+                if request_size < 0:
+                    logger.warning(
+                        f'[VALIDATION SECURITY] Negative Content-Length header: {request_size}'
+                    )
+                    return False, UserError.AUDIO_INVALID_CONTENT
+
+                # SECURITY: Reject extremely large values that could cause integer overflow
+                # or memory exhaustion (max 64-bit signed integer is ~9 exabytes)
+                # Use a reasonable upper bound: 100GB (100 * 1024^3 bytes)
+                MAX_REASONABLE_CONTENT_LENGTH = 100 * 1024 * 1024 * 1024  # 100GB
+                if request_size > MAX_REASONABLE_CONTENT_LENGTH:
+                    logger.warning(
+                        f'[VALIDATION SECURITY] Content-Length too large (potential DoS): {request_size} bytes'
+                    )
+                    return False, UserError.AUDIO_TOO_LARGE
+
+                # Content-Length for multipart includes boundaries (~200-500 bytes overhead)
+                # plus some form field metadata. Use a conservative 4KB buffer which is sufficient
+                # for multipart boundaries and field names while detecting actual oversized files.
+                MULTIPART_OVERHEAD_BUFFER = 4 * 1024  # 4KB - sufficient for multipart boundaries
+                early_reject_threshold = MAX_AUDIO_SIZE_BYTES + MULTIPART_OVERHEAD_BUFFER
+                if request_size > early_reject_threshold:
+                    logger.warning(
+                        f'[VALIDATION] Request too large (Content-Length): {request_size} bytes '
+                        f'(max: {MAX_AUDIO_SIZE_BYTES})'
+                    )
+                    return False, UserError.AUDIO_TOO_LARGE
+                logger.debug(f'[VALIDATION] Content-Length check passed: {request_size} bytes')
+            except (ValueError, TypeError, OverflowError):
+                # Invalid Content-Length header (non-numeric, overflow, etc.) - continue with file size check
+                logger.debug('[VALIDATION] Invalid Content-Length header, skipping early check')
+
+    # Check actual file size by seeking to end
+    # This is efficient for FileStorage objects (doesn't read entire file into memory)
+    # FileStorage uses a temporary file or BytesIO, so seeking is fast
     audio_file.seek(0, 2)  # Seek to end
     file_size = audio_file.tell()
-    audio_file.seek(0)  # Reset to beginning
+    audio_file.seek(0)  # Reset to beginning for content validation
 
     if file_size == 0:
         return False, UserError.AUDIO_EMPTY

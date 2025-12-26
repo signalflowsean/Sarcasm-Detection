@@ -7,6 +7,7 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
 import { useWaveform } from '../hooks/useWaveform'
 import { formatDuration, isMacPlatform, isMobileBrowser } from '../utils'
+import { isDev } from '../utils/env'
 import DiscardButton from './DiscardButton'
 import MicButton from './MicButton'
 import PlayButton from './PlayButton'
@@ -532,7 +533,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       {/* Speech status (loading/error for speech-to-text model) */}
       <SpeechStatus
-        status={import.meta.env.DEV && devLoadingOverride ? 'loading' : speechStatus}
+        status={isDev() && devLoadingOverride ? 'loading' : speechStatus}
         isRecording={state.isRecording}
         onDismiss={resetSpeechStatus}
       />

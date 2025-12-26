@@ -343,9 +343,9 @@ def main():
     print("=" * 60)
     print(f"   Total samples: {len(all_texts):,}")
     print(
-        f"   Sarcastic: {sum(all_labels):,} ({sum(all_labels)/len(all_labels)*100:.1f}%)"
+        f"   Sarcastic: {sum(all_labels):,} ({sum(all_labels) / len(all_labels) * 100:.1f}%)"
     )
-    print(f"   Not Sarcastic: {len(all_labels)-sum(all_labels):,}")
+    print(f"   Not Sarcastic: {len(all_labels) - sum(all_labels):,}")
 
     # Split
     X_train, X_test, y_train, y_test = train_test_split(
@@ -369,7 +369,7 @@ def main():
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
 
-    print(f"\n📊 Final Test Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+    print(f"\n📊 Final Test Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
     print("\n   Classification Report:")
     print(
         classification_report(
@@ -426,7 +426,7 @@ def main():
         print(f"   {marker} {emoji} [{prob:.3f}] '{text[:50]}' (expected: {expected})")
 
     print(
-        f"\n   Conversational accuracy: {correct}/{len(test_cases)} ({correct/len(test_cases)*100:.0f}%)"
+        f"\n   Conversational accuracy: {correct}/{len(test_cases)} ({correct / len(test_cases) * 100:.0f}%)"
     )
 
     print("\n" + "=" * 60)

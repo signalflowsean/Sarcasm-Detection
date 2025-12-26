@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isDev } from '../utils/env'
 
 // Shared state across all hook instances
 let sharedOverrideState = false
@@ -15,7 +16,7 @@ export function useDevLoadingOverride(): boolean {
   const [override, setOverride] = useState(sharedOverrideState)
 
   useEffect(() => {
-    if (!import.meta.env.DEV) return
+    if (!isDev()) return
 
     // Register this component's setter
     const updateState = (value: boolean) => setOverride(value)
@@ -35,9 +36,11 @@ export function useDevLoadingOverride(): boolean {
 
         e.preventDefault()
         sharedOverrideState = !sharedOverrideState
-        console.log(
-          `🔧 Dev mode: Loading spinner ${sharedOverrideState ? 'shown' : 'hidden'} (press J again to toggle)`
-        )
+        if (isDev()) {
+          console.log(
+            `🔧 Dev mode: Loading spinner ${sharedOverrideState ? 'shown' : 'hidden'} (press J again to toggle)`
+          )
+        }
         // Notify all listeners
         listeners.forEach(listener => listener(sharedOverrideState))
       }

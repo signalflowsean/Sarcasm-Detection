@@ -6,6 +6,7 @@ import GettingStarted from './GettingStarted'
 import TextInput from './TextInput'
 import { ModelSelector } from './components/ModelSelector'
 import { useMediaQuery } from './hooks'
+import { isDev } from './utils/env'
 
 const InputContainer = () => {
   const { value } = useWhichInput()
@@ -37,7 +38,7 @@ const InputContainer = () => {
         }
       } catch (error) {
         // Fallback if transition fails
-        if (import.meta.env.DEV) console.warn('View Transition failed:', error)
+        if (isDev()) console.warn('View Transition failed:', error)
         setDisplayValue(value)
       }
     }

@@ -5,7 +5,7 @@
     "install:all": "npm run install:backend && npm run install:frontend && npm run install:e2e",
     "install:backend": "run-script-os",
     "install:backend:win32": "cd backend && python -m venv venv && venv\\Scripts\\pip install -r requirements.txt",
-    "install:backend:darwin:linux": "cd backend && python3 -m venv venv && venv/bin/pip install -r requirements.txt",
+    "install:backend:darwin:linux": "cd backend && PYTHON_CMD=$(scripts/check-python-version.sh) && $PYTHON_CMD -m venv venv && venv/bin/pip install -r requirements.txt",
     "install:frontend": "cd frontend && npm install",
     "install:e2e": "cd e2e && npm install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -14,7 +14,11 @@
     "dev:backend:darwin:linux": "backend/venv/bin/python backend/app.py",
     "dev:frontend": "cd frontend && npm run dev",
     "e2e": "cd e2e && npm test",
-    "e2e:docker": "sh e2e/run-docker-e2e.sh"
+    "e2e:docker": "sh e2e/run-docker-e2e.sh",
+    "version": "node scripts/version.js",
+    "version:patch": "node scripts/version.js patch",
+    "version:minor": "node scripts/version.js minor",
+    "version:major": "node scripts/version.js major"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

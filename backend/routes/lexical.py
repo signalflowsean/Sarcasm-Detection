@@ -14,6 +14,8 @@ from config import API_DELAY_SECONDS, MAX_TEXT_LENGTH, RATE_LIMIT_LEXICAL
 from errors import UserError
 from extensions import limiter
 from models import lexical_predict
+from models.loader import load_lexical_model
+from text import sanitize_text
 
 bp = Blueprint('lexical', __name__)
 logger = logging.getLogger(__name__)
@@ -36,11 +38,41 @@ def lexical_detection():
     """
     data = request.get_json()
 
+    # CRITICAL: Handle case where get_json() returns None (e.g., invalid JSON or wrong Content-Type)
+    if data is None:
+        return jsonify({'error': UserError.TEXT_MISSING}), 400
+
     if not data or 'text' not in data:
         return jsonify({'error': UserError.TEXT_MISSING}), 400
 
     text = data['text']
-    if not isinstance(text, str) or not text.strip():
+    # SECURITY: Validate text is a string before calling methods on it
+    if not isinstance(text, str):
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
+
+    # SECURITY: Check if text is empty before sanitization
+    if not text.strip():
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
+
+    # Sanitize text input: normalize Unicode, remove control characters
+    # This prevents issues with malformed input while preserving legitimate text
+    # SECURITY: Wrap sanitization in try-except to handle any unexpected errors
+    try:
+        original_length = len(text)
+        text = sanitize_text(text)
+        sanitized_length = len(text)
+    except Exception as e:
+        logger.error(f'[LEXICAL ERROR] Text sanitization failed: {type(e).__name__}: {e}')
+        return jsonify({'error': UserError.TEXT_INVALID}), 400
+
+    if original_length != sanitized_length:
+        logger.debug(
+            f'[LEXICAL] Text sanitized: {original_length} -> {sanitized_length} chars '
+            f'(removed {original_length - sanitized_length} problematic character(s))'
+        )
+
+    # Re-check if text is empty after sanitization
+    if not text.strip():
         return jsonify({'error': UserError.TEXT_INVALID}), 400
 
     if len(text) > MAX_TEXT_LENGTH:
@@ -48,11 +80,24 @@ def lexical_detection():
         logger.warning(f'[LEXICAL] Text too long: {len(text)} chars (max: {MAX_TEXT_LENGTH})')
         return jsonify({'error': UserError.TEXT_TOO_LONG}), 400
 
+    # Ensure model is loaded before prediction
+    # This prevents errors if model failed to load at startup
+    if not load_lexical_model():
+        logger.warning('[LEXICAL] Model not available, using fallback score')
+        return jsonify({'id': str(uuid.uuid4()), 'value': 0.5, 'reliable': False})
+
     # Artificial delay to showcase loading animations
     if API_DELAY_SECONDS > 0:
         time.sleep(API_DELAY_SECONDS)
 
     # Returns (score, is_real_prediction)
-    score, is_real = lexical_predict(text)
+    try:
+        score, is_real = lexical_predict(text)
+    except Exception as e:
+        # Unexpected error during prediction - log internally, return fallback
+        logger.error(f'[LEXICAL ERROR] Unexpected error during prediction: {type(e).__name__}: {e}')
+        # Return fallback score (0.5 = uncertain) instead of crashing
+        score = 0.5
+        is_real = False
 
     return jsonify({'id': str(uuid.uuid4()), 'value': score, 'reliable': is_real})

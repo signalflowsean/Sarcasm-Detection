@@ -59,3 +59,39 @@ def test_lexical_text_too_long_returns_400(client):
     response = client.post('/api/lexical', json={'text': long_text})
 
     assert response.status_code == 400
+
+
+def test_lexical_sanitizes_text_with_control_chars(client):
+    """Lexical endpoint should sanitize text with control characters."""
+    # Text with null bytes and control characters should be sanitized
+    text_with_control = 'Hello\x00World\x07Test'
+    response = client.post('/api/lexical', json={'text': text_with_control})
+
+    # Should succeed (sanitized text is valid)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'value' in data
+    assert 0.0 <= data['value'] <= 1.0
+
+
+def test_lexical_sanitizes_text_with_zero_width_chars(client):
+    """Lexical endpoint should sanitize text with zero-width characters."""
+    # Text with zero-width characters should be sanitized
+    text_with_zw = 'Hello\u200b\u200c\u200dWorld'
+    response = client.post('/api/lexical', json={'text': text_with_zw})
+
+    # Should succeed (sanitized text is valid)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'value' in data
+
+
+def test_lexical_preserves_emojis_and_special_chars(client):
+    """Lexical endpoint should preserve emojis and special Unicode characters."""
+    text_with_emoji = 'Hello 😀 world! Café résumé'
+    response = client.post('/api/lexical', json={'text': text_with_emoji})
+
+    # Should succeed and preserve the text
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'value' in data

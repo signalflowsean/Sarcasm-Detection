@@ -311,10 +311,14 @@ export function useAudioRecorder({
   const stopRecording = useCallback(() => {
     if (!state.isRecording) return
 
+    // Stop speech recognition FIRST to release any microphone access it may have
+    stopSpeechRecognition()
+
     const mr = mediaRecorderRef.current
     if (mr && mr.state !== 'inactive') mr.stop()
     mediaRecorderRef.current = null
 
+    // Stop MediaStream tracks after speech recognition is stopped
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(t => t.stop())
       mediaStreamRef.current = null
@@ -322,7 +326,6 @@ export function useAudioRecorder({
 
     cleanupWaveform()
     stopTimer()
-    stopSpeechRecognition()
     setState(s => ({ ...s, isRecording: false }))
     isStartingRecordingRef.current = false
   }, [state.isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition])
@@ -340,10 +343,14 @@ export function useAudioRecorder({
 
     // Stop recording if active
     if (state.isRecording) {
+      // Stop speech recognition FIRST to release any microphone access it may have
+      stopSpeechRecognition()
+
       const mr = mediaRecorderRef.current
       if (mr && mr.state !== 'inactive') mr.stop()
       mediaRecorderRef.current = null
 
+      // Stop MediaStream tracks after speech recognition is stopped
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop())
         mediaStreamRef.current = null
@@ -351,7 +358,6 @@ export function useAudioRecorder({
 
       cleanupWaveform()
       stopTimer()
-      stopSpeechRecognition()
     }
 
     if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)

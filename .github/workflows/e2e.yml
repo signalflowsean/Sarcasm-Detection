@@ -54,11 +54,21 @@ jobs:
           export FLASK_ENV=testing
           export RATE_LIMIT_ENABLED=false
           export API_DELAY_SECONDS=0
-          python -c "from app import app; app.run(host='0.0.0.0', port=5000, debug=False)" &
+          export PRELOAD_MODELS=false
+          python -c "from app import app; app.run(host='0.0.0.0', port=5000, debug=False)" > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          echo "Backend process started (PID: $BACKEND_PID)"
+          sleep 2
+          if ! ps -p $BACKEND_PID > /dev/null; then
+            echo "Backend process died immediately. Logs:"
+            cat /tmp/backend.log || true
+            exit 1
+          fi
         env:
           FLASK_ENV: testing
           RATE_LIMIT_ENABLED: "false"
           API_DELAY_SECONDS: "0"
+          PRELOAD_MODELS: "false"
 
       - name: Start frontend dev server
         working-directory: frontend
@@ -69,11 +79,36 @@ jobs:
       - name: Wait for servers
         run: |
           echo "Waiting for backend..."
-          timeout 60 bash -c 'until curl -s http://localhost:5000/api/health > /dev/null; do sleep 1; done'
-          echo "Backend is ready!"
+          for i in {1..120}; do
+            if curl -s http://localhost:5000/api/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            if [ $i -eq 120 ]; then
+              echo "Backend failed to start after 120 seconds"
+              echo "Checking if backend process is running..."
+              ps aux | grep python || true
+              echo "Checking backend logs..."
+              cat /tmp/backend.log 2>/dev/null || echo "No backend logs found"
+              curl -v http://localhost:5000/api/health || true
+              exit 1
+            fi
+            echo "Attempt $i/120: Backend not ready yet, waiting..."
+            sleep 1
+          done
           echo "Waiting for frontend..."
-          timeout 60 bash -c 'until curl -s http://localhost:5173 > /dev/null; do sleep 1; done'
-          echo "Frontend is ready!"
+          for i in {1..120}; do
+            if curl -s http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            if [ $i -eq 120 ]; then
+              echo "Frontend failed to start after 120 seconds"
+              exit 1
+            fi
+            echo "Attempt $i/120: Frontend not ready yet, waiting..."
+            sleep 1
+          done
 
       - name: Run Playwright tests (includes accessibility)
         working-directory: e2e

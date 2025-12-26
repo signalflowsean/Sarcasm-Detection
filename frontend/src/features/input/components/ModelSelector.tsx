@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDev } from '../utils/env'
 
 /**
  * ModelSelector - Dev-mode only dropdown for testing different Moonshine models
@@ -17,11 +18,19 @@ export function ModelSelector() {
     return localStorage.getItem('moonshine_model_override') || envDefault
   })
 
+  const [isDismissed, setIsDismissed] = useState(() => {
+    return localStorage.getItem('moonshine_model_selector_dismissed') === 'true'
+  })
+
+  const [isMinimized, setIsMinimized] = useState(() => {
+    return localStorage.getItem('moonshine_model_selector_minimized') === 'true'
+  })
+
   const handleChange = (newModel: string) => {
     setSelectedModel(newModel)
     localStorage.setItem('moonshine_model_override', newModel)
 
-    if (import.meta.env.MODE === 'development') {
+    if (isDev()) {
       console.log(`Model changed to ${newModel}. Reloading...`)
     }
 
@@ -31,9 +40,61 @@ export function ModelSelector() {
     }, 300)
   }
 
+  const handleDismiss = () => {
+    setIsDismissed(true)
+    localStorage.setItem('moonshine_model_selector_dismissed', 'true')
+  }
+
+  const handleMinimize = () => {
+    setIsMinimized(true)
+    localStorage.setItem('moonshine_model_selector_minimized', 'true')
+  }
+
+  const handleExpand = () => {
+    setIsMinimized(false)
+    localStorage.setItem('moonshine_model_selector_minimized', 'false')
+  }
+
   // Don't render in production (after hooks are called)
-  if (import.meta.env.MODE !== 'development') {
+  if (!isDev()) {
     return null
+  }
+
+  // Don't render if dismissed
+  if (isDismissed) {
+    return null
+  }
+
+  // Render minimized version
+  if (isMinimized) {
+    return (
+      <button
+        onClick={handleExpand}
+        style={{
+          position: 'fixed',
+          bottom: '1rem',
+          left: '1rem',
+          backgroundColor: '#ffeb3b',
+          color: '#000',
+          padding: '0.5rem',
+          borderRadius: '0.5rem',
+          border: '2px solid #fbc02d',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          fontSize: '1rem',
+          cursor: 'pointer',
+          fontFamily: 'monospace',
+          minWidth: '2.5rem',
+          minHeight: '2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        title="Expand Model Selector"
+      >
+        🛠️
+      </button>
+    )
   }
 
   return (
@@ -53,10 +114,50 @@ export function ModelSelector() {
         fontFamily: 'monospace',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}
+      >
         <label htmlFor="model-selector" style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
           🛠️ Dev: Model Override
         </label>
+        <div style={{ display: 'flex', gap: '0.25rem', marginLeft: 'auto' }}>
+          <button
+            onClick={handleMinimize}
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid #fbc02d',
+              borderRadius: '0.25rem',
+              color: '#000',
+              cursor: 'pointer',
+              padding: '0.125rem 0.375rem',
+              fontSize: '0.75rem',
+              fontFamily: 'monospace',
+              lineHeight: '1',
+            }}
+            title="Minimize"
+          >
+            −
+          </button>
+          <button
+            onClick={handleDismiss}
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid #fbc02d',
+              borderRadius: '0.25rem',
+              color: '#000',
+              cursor: 'pointer',
+              padding: '0.125rem 0.375rem',
+              fontSize: '0.75rem',
+              fontFamily: 'monospace',
+              lineHeight: '1',
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <select
           id="model-selector"
           value={selectedModel}
