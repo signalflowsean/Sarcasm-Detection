@@ -71,7 +71,7 @@ def load_audio(audio_path: str | None) -> np.ndarray:
         waveform = waveform_tensor.squeeze(0).numpy()
 
     print(
-        f"Audio loaded: {len(waveform)} samples ({len(waveform)/SAMPLE_RATE:.2f} seconds)"
+        f"Audio loaded: {len(waveform)} samples ({len(waveform) / SAMPLE_RATE:.2f} seconds)"
     )
     return waveform.astype(np.float32)
 

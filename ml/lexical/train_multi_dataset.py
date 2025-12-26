@@ -300,7 +300,7 @@ def train_model(X_train, y_train, X_test, y_test):
     accuracy = accuracy_score(y_test, y_pred)
 
     print("\n📊 Model Performance:")
-    print(f"   Test Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+    print(f"   Test Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
     print("\n   Classification Report:")
     print(
         classification_report(
@@ -362,10 +362,10 @@ def main():
 
     print(f"\n   Total: {len(all_texts):,} samples")
     print(
-        f"   Sarcastic: {sum(all_labels):,} ({sum(all_labels)/len(all_labels)*100:.1f}%)"
+        f"   Sarcastic: {sum(all_labels):,} ({sum(all_labels) / len(all_labels) * 100:.1f}%)"
     )
     print(
-        f"   Not Sarcastic: {len(all_labels)-sum(all_labels):,} ({(1-sum(all_labels)/len(all_labels))*100:.1f}%)"
+        f"   Not Sarcastic: {len(all_labels) - sum(all_labels):,} ({(1 - sum(all_labels) / len(all_labels)) * 100:.1f}%)"
     )
 
     # Split data

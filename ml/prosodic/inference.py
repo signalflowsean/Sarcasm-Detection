@@ -60,7 +60,7 @@ def load_audio(audio_path: str, verbose: bool = False) -> tuple:
 
     if verbose:
         print(
-            f"  Original: {waveform.shape[1]} samples at {sr}Hz ({waveform.shape[1]/sr:.2f}s)"
+            f"  Original: {waveform.shape[1]} samples at {sr}Hz ({waveform.shape[1] / sr:.2f}s)"
         )
 
     # Convert to mono
@@ -80,7 +80,7 @@ def load_audio(audio_path: str, verbose: bool = False) -> tuple:
 
     if verbose:
         print(
-            f"  Processed: {len(waveform)} samples ({len(waveform)/TARGET_SAMPLE_RATE:.2f}s)"
+            f"  Processed: {len(waveform)} samples ({len(waveform) / TARGET_SAMPLE_RATE:.2f}s)"
         )
 
     return waveform

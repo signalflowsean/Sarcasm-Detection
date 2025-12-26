@@ -85,7 +85,7 @@ def tune_hyperparameters(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
         best_params: Dictionary of best hyperparameters
         best_score: Best cross-validation score
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Hyperparameter Tuning ({n_folds}-fold GridSearchCV)")
     print("=" * 60)
 
@@ -135,7 +135,9 @@ def tune_hyperparameters(X: np.ndarray, y: np.ndarray, n_folds: int = 5):
         cw = row["param_classifier__class_weight"]
         score = row["mean_test_score"]
         std = row["std_test_score"]
-        print(f"  C={C:<5} class_weight={str(cw):<10} → F1={score:.4f} (±{std*2:.4f})")
+        print(
+            f"  C={C:<5} class_weight={str(cw):<10} → F1={score:.4f} (±{std * 2:.4f})"
+        )
 
     return grid_search.best_params_, grid_search.best_score_
 
@@ -157,7 +159,7 @@ def evaluate_with_cross_validation(
     Returns:
         Dictionary of mean scores
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Cross-Validation Evaluation ({n_folds}-fold)")
     print("=" * 60)
 
@@ -189,16 +191,16 @@ def evaluate_with_cross_validation(
     print(f"\nUsing C={C}, class_weight={class_weight}")
     print(f"\nMetrics across {n_folds} folds:")
     print(
-        f"  Accuracy:         {accuracy_scores.mean():.4f} (±{accuracy_scores.std()*2:.4f})"
+        f"  Accuracy:         {accuracy_scores.mean():.4f} (±{accuracy_scores.std() * 2:.4f})"
     )
     print(
-        f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (±{f1_weighted_scores.std()*2:.4f})"
+        f"  Weighted F1:      {f1_weighted_scores.mean():.4f} (±{f1_weighted_scores.std() * 2:.4f})"
     )
     print(
-        f"  Macro F1:         {f1_macro_scores.mean():.4f} (±{f1_macro_scores.std()*2:.4f})"
+        f"  Macro F1:         {f1_macro_scores.mean():.4f} (±{f1_macro_scores.std() * 2:.4f})"
     )
     print(
-        f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (±{roc_auc_scores.std()*2:.4f})"
+        f"  ROC-AUC:          {roc_auc_scores.mean():.4f} (±{roc_auc_scores.std() * 2:.4f})"
     )
 
     return {
@@ -224,7 +226,7 @@ def train_final_model(
     Returns:
         Trained pipeline (scaler + classifier)
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Training Final Model")
     print("=" * 60)
 
@@ -283,8 +285,10 @@ def evaluate_holdout(
         C: Regularization parameter (inverse of regularization strength)
         class_weight: Weights for classes (None or 'balanced')
     """
-    print(f"\n{'='*60}")
-    print(f"Hold-out Evaluation ({int((1-test_size)*100)}/{int(test_size*100)} split)")
+    print(f"\n{'=' * 60}")
+    print(
+        f"Hold-out Evaluation ({int((1 - test_size) * 100)}/{int(test_size * 100)} split)"
+    )
     print("=" * 60)
 
     # Split data
@@ -333,8 +337,8 @@ def evaluate_holdout(
 
     print("\nConfusion Matrix:")
     cm = confusion_matrix(y_test, y_pred)
-    print(f"  [[TN={cm[0,0]:3d}  FP={cm[0,1]:3d}]")
-    print(f"   [FN={cm[1,0]:3d}  TP={cm[1,1]:3d}]]")
+    print(f"  [[TN={cm[0, 0]:3d}  FP={cm[0, 1]:3d}]")
+    print(f"   [FN={cm[1, 0]:3d}  TP={cm[1, 1]:3d}]]")
 
 
 def test_predictions(pipeline: Pipeline, df: pd.DataFrame, n_samples: int = 5):
@@ -346,7 +350,7 @@ def test_predictions(pipeline: Pipeline, df: pd.DataFrame, n_samples: int = 5):
         df: DataFrame with utterances and embeddings
         n_samples: Number of samples to show per class
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Sample Predictions")
     print("=" * 60)
 
@@ -435,7 +439,7 @@ def main():
     test_predictions(pipeline, df)
 
     # Save model to backend folder
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Saving Model")
     print("=" * 60)
 

@@ -288,7 +288,7 @@ def evaluate_model(model, X_test, y_test, model_name="Model"):
     accuracy = accuracy_score(y_test, y_pred)
 
     print(f"\n📊 {model_name} Results:")
-    print(f"   Test Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+    print(f"   Test Accuracy: {accuracy:.4f} ({accuracy * 100:.2f}%)")
     print("\n   Classification Report:")
     print(
         classification_report(
@@ -310,7 +310,9 @@ def cross_validate_model(pipeline, X, y, model_name="Model"):
     cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     scores = cross_val_score(pipeline, X, y, cv=cv, scoring="accuracy", n_jobs=-1)
 
-    print(f"   {model_name}: CV Accuracy = {scores.mean():.4f} (±{scores.std()*2:.4f})")
+    print(
+        f"   {model_name}: CV Accuracy = {scores.mean():.4f} (±{scores.std() * 2:.4f})"
+    )
     return scores.mean()
 
 
@@ -331,9 +333,9 @@ def main():
 
     print("\n📊 Dataset Statistics:")
     print(f"   Total samples: {len(sentences):,}")
-    print(f"   Sarcastic: {sum(labels):,} ({sum(labels)/len(labels)*100:.1f}%)")
+    print(f"   Sarcastic: {sum(labels):,} ({sum(labels) / len(labels) * 100:.1f}%)")
     print(
-        f"   Not Sarcastic: {len(labels)-sum(labels):,} ({(1-sum(labels)/len(labels))*100:.1f}%)"
+        f"   Not Sarcastic: {len(labels) - sum(labels):,} ({(1 - sum(labels) / len(labels)) * 100:.1f}%)"
     )
 
     # Split data
@@ -523,7 +525,7 @@ def main():
     print("\n📊 All Results (sorted by accuracy):")
     for name, acc in sorted_results:
         marker = "👑" if name == sorted_results[0][0] else "  "
-        print(f"   {marker} {name}: {acc:.4f} ({acc*100:.2f}%)")
+        print(f"   {marker} {name}: {acc:.4f} ({acc * 100:.2f}%)")
 
     # Determine best model
     best_name, best_acc = sorted_results[0]

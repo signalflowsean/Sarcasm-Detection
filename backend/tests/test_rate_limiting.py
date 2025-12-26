@@ -133,6 +133,6 @@ def test_rate_limit_key_format_consistency(app):
         '/api/prosodic', method='POST', environ_base={'REMOTE_ADDR': None}
     ):
         key = get_rate_limit_key()
-        assert key.startswith(
-            'endpoint:'
-        ), f'Endpoint-based key should start with "endpoint:" but got: {key}'
+        assert key.startswith('endpoint:'), (
+            f'Endpoint-based key should start with "endpoint:" but got: {key}'
+        )

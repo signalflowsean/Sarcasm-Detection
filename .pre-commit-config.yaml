@@ -16,16 +16,26 @@ repos:
         args: ["--maxkb=1000"]
 
   # Python - Ruff (linting + formatting)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.2
+  # Using local hooks to ensure we use the system ruff version (pinned in requirements-dev.txt)
+  # This prevents version mismatches between pre-commit hook and CI
+  - repo: local
     hooks:
       # Linter with auto-fix (backend only - ml/ has training scripts)
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-        files: ^backend/
+        name: ruff (lint)
+        entry: bash -c 'ruff check --fix "$@"' --
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: true
+        args: [--exit-non-zero-on-fix]
       # Formatter (both backend and ml)
+      # Uses system ruff (pinned in requirements-dev.txt) for consistency with CI
       - id: ruff-format
-        files: ^backend/|^ml/
+        name: ruff (format)
+        entry: bash -c 'ruff format "$@"' --
+        language: system
+        files: ^backend/.*\.py$|^ml/.*\.py$
+        pass_filenames: true
 
   # Frontend - ESLint + Prettier (via lint-staged for speed)
   - repo: local

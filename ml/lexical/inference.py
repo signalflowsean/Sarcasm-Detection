@@ -89,7 +89,7 @@ def main():
         text_preview = (
             result["text"][:60] + "..." if len(result["text"]) > 60 else result["text"]
         )
-        print(f"[{result['score']:.3f}] \"{text_preview}\"")
+        print(f'[{result["score"]:.3f}] "{text_preview}"')
         print(f"         → {result['label']}")
         print()
 
