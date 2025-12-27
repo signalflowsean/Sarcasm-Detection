@@ -499,6 +499,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             state.isRecording &&
             state.autoStopCountdown !== null &&
             state.autoStopCountdown !== undefined &&
+            state.autoStopCountdown > 0 &&
             state.autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS && (
               <div
                 className="mobile-input-controls__countdown-overlay"

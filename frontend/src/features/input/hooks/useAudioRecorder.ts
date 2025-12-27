@@ -142,11 +142,20 @@ export function useAudioRecorder({
   const lastTranscriptUpdateRef = useRef<number>(0)
   const silenceDetectionIntervalRef = useRef<number | null>(null)
   const stopRecordingRef = useRef<(() => void) | null>(null)
+  const isMountedRef = useRef<boolean>(true)
 
   // Keep isRecordingRef in sync with state
   useEffect(() => {
     isRecordingRef.current = state.isRecording
   }, [state.isRecording])
+
+  // Ensure isMountedRef is set correctly on mount
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // ─────────────────────────────────────────────────────────────────────────
   // Cleanup blob URL on unmount
@@ -196,6 +205,9 @@ export function useAudioRecorder({
 
     // Check for silence periodically (every 100ms for smooth countdown)
     const checkSilence = () => {
+      // Don't execute if component is unmounted
+      if (!isMountedRef.current) return
+
       const now = performance.now()
       const timeSinceLastUpdate = now - lastTranscriptUpdateRef.current
       const timeUntilAutoStop = AUTO_STOP_SILENCE_THRESHOLD_MS - timeSinceLastUpdate
@@ -390,7 +402,10 @@ export function useAudioRecorder({
 
     cleanupWaveform()
     stopTimer()
-    setState(s => ({ ...s, isRecording: false }))
+    // Only update state if component is still mounted (safety check)
+    if (isMountedRef.current) {
+      setState(s => ({ ...s, isRecording: false }))
+    }
     isStartingRecordingRef.current = false
   }, [state.isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition, stopSilenceDetection])
 
@@ -587,15 +602,16 @@ export function useAudioRecorder({
 
   useEffect(() => {
     return () => {
+      // Stop silence detection timer FIRST to prevent it from triggering after unmount
+      if (silenceDetectionIntervalRef.current != null) {
+        clearInterval(silenceDetectionIntervalRef.current)
+        silenceDetectionIntervalRef.current = null
+      }
+
       // Stop timer if running
       if (timerIntervalRef.current != null) {
         clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = null
-      }
-      // Stop silence detection timer if running
-      if (silenceDetectionIntervalRef.current != null) {
-        clearInterval(silenceDetectionIntervalRef.current)
-        silenceDetectionIntervalRef.current = null
       }
       // Stop media recorder if active
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

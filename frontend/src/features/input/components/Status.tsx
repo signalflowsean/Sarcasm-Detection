@@ -19,6 +19,7 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown 
     isRecording &&
     autoStopCountdown !== null &&
     autoStopCountdown !== undefined &&
+    autoStopCountdown > 0 &&
     autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS
 
   if (isRecording) {

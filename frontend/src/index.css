@@ -3191,7 +3191,12 @@ body:has(.audio-recorder__modal) .detector-jack {
   /* Speech status overlay on mobile - doesn't reserve space to save room */
   /* Uses popover z-index - appears above base content but below modals */
   /* Note: Speech status should be hidden when modals are open (handled by component logic) */
-  /* Position fixed immediately to prevent layout shifts on page load */
+  /* Position fixed creates an overlay that doesn't reserve space in the layout flow */
+  /* !important is necessary to ensure position: fixed applies immediately on page load, */
+  /* preventing layout shifts that occur if CSS loads after initial render or if other */
+  /* stylesheets attempt to set position. The base .speech-status--container rule sets */
+  /* min-height: 1.5rem which reserves space; without !important, timing issues can cause */
+  /* the element to briefly reserve space before position: fixed applies. */
   .mobile-input-controls .speech-status--container {
     position: fixed !important;
     bottom: 1rem;
