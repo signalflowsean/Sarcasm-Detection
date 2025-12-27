@@ -753,6 +753,24 @@ The `@moonshine-ai/moonshine-js` package (v0.1.29) has a broken file path depend
 
 **Status:** Known issue in the upstream package. Does not affect functionality.
 
+### Occasional Layout Shift on Microphone Button
+
+**Issue:** Very occasional layout shift occurs when users click the microphone button to start recording.
+
+**Impact:** Minor visual glitch that happens infrequently. Does not affect functionality.
+
+**Status:** Partially mitigated with CSS fixes (fixed dimensions, overflow handling, GPU acceleration). The occasional nature suggests it may be related to React state update timing or browser repaint cycles. A complete fix would likely require JavaScript-level coordination (debouncing state updates or requestAnimationFrame synchronization), which is more invasive.
+
+**Technical Details:**
+
+- Mic button wrapper reserves space for recording indicator overflow (8px padding)
+- Fixed dimensions prevent most shifts
+- Transform/GPU acceleration added to reduce repaint-related shifts
+- Root cause likely involves timing between:
+  - Flash animation stopping (`shouldFlash` prop change)
+  - Recording indicator appearing (`isRecording` state change)
+  - React re-renders and browser repaints
+
 ---
 
 ## License

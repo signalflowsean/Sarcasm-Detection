@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Configure Git
         run: |
@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Commit version update
-        if: steps.check_changes.outputs.changed == 'true'
+        if: steps.check_changes.outputs.changed == "true"
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -71,7 +71,7 @@ jobs:
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Comment on PR
-        if: steps.check_changes.outputs.changed == 'true'
+        if: steps.check_changes.outputs.changed == "true"
         uses: actions/github-script@v7
         with:
           script: |

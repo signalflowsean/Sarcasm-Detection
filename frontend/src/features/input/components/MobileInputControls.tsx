@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/hooks/useDetection'
 import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
+import { AUTO_STOP_COUNTDOWN_START_MS } from '../hooks/constants'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
 import { useWaveform } from '../hooks/useWaveform'
-import { formatDuration, isMacPlatform, isMobileBrowser } from '../utils'
+import { isMacPlatform, isMobileBrowser } from '../utils'
 import { isDev } from '../utils/env'
 import DiscardButton from './DiscardButton'
 import MicButton from './MicButton'
@@ -472,15 +473,17 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       {/* Audio row: mic, waveform, play, trash */}
       <div className="mobile-input-controls__audio-row">
-        {/* Record button */}
-        <MicButton
-          ref={micBtnRef}
-          isRecording={state.isRecording}
-          shouldFlash={isProsodic && !state.audioBlob && !state.isRecording}
-          disabled={isLexical || playback.isPlaying || isSending}
-          onClick={onMicClick}
-          onKeyDown={onMicKeyDown}
-        />
+        {/* Record button wrapper - reserves space for recording indicator to prevent layout shift */}
+        <div className="mobile-input-controls__mic-wrapper">
+          <MicButton
+            ref={micBtnRef}
+            isRecording={state.isRecording}
+            shouldFlash={isProsodic && !state.audioBlob && !state.isRecording}
+            disabled={isLexical || playback.isPlaying || isSending}
+            onClick={onMicClick}
+            onKeyDown={onMicKeyDown}
+          />
+        </div>
 
         {/* Waveform - takes available space */}
         <div className="mobile-input-controls__waveform-wrapper">
@@ -493,13 +496,20 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             showEmpty={isProsodic && !state.isRecording && !state.audioUrl}
             emptyMessage=""
           />
-          {isProsodic && (state.isRecording || state.audioBlob) && (
-            <span className="mobile-input-controls__duration">
-              {state.isRecording
-                ? formatDuration(state.durationMs)
-                : formatDuration(playback.playbackMs)}
-            </span>
-          )}
+          {/* Only show countdown message when auto-stop is imminent - overlaid on waveform */}
+          {isProsodic &&
+            state.isRecording &&
+            state.autoStopCountdown !== null &&
+            state.autoStopCountdown > 0 &&
+            state.autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS && (
+              <div
+                className="mobile-input-controls__countdown-overlay"
+                role="status"
+                aria-live="polite"
+              >
+                Auto-stopping in {Math.ceil(state.autoStopCountdown / 1000)}…
+              </div>
+            )}
         </div>
 
         {/* Play button */}

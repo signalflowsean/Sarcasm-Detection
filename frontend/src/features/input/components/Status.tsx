@@ -1,18 +1,34 @@
+import { AUTO_STOP_COUNTDOWN_START_MS } from '../hooks/constants'
+
 type Props = {
   isRecording: boolean
   isPlaying: boolean
   hasAudio: boolean
   duration: string
+  autoStopCountdown: number | null
 }
 
-const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
+const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown }: Props) => {
   const shouldShow = isRecording || hasAudio
 
   let statusText = ''
   let statusClass = 'audio-recorder__status'
 
+  // Show countdown if we're in the auto-stop countdown window
+  const showCountdown =
+    isRecording &&
+    autoStopCountdown !== null &&
+    autoStopCountdown > 0 &&
+    autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS
+
   if (isRecording) {
-    statusText = 'Recording… '
+    if (showCountdown) {
+      const secondsRemaining = Math.ceil(autoStopCountdown / 1000)
+      statusText = `Auto-stopping recording in ${secondsRemaining}… `
+      statusClass += ' audio-recorder__status--countdown'
+    } else {
+      statusText = 'Recording… '
+    }
   } else if (isPlaying) {
     statusText = 'Playing… '
   } else if (hasAudio) {
@@ -32,7 +48,7 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration }: Props) => {
       {shouldShow ? (
         <>
           {statusText}
-          <span className="audio-recorder__status__duration">{duration}</span>
+          {!showCountdown && <span className="audio-recorder__status__duration">{duration}</span>}
         </>
       ) : (
         // Render invisible placeholder to maintain consistent height
