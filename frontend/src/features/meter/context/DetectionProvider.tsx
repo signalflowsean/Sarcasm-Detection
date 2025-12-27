@@ -210,10 +210,9 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
       clearTimers()
       setState(DetectionState.LOADING)
 
-      // Reset values to 0 so the needle returns to baseline during loading
-      // This ensures a clean visual transition when rapidly sending detections
-      setLexicalValue(0)
-      setProsodicValue(0)
+      // Keep needle at last position during loading - don't reset to 0
+      // This ensures visible movement when API returns any value (including 0)
+      // The needle will transition from its last position to the new result
 
       // Clear any existing cable animation timer before starting new one
       clearCableAnimationTimer()

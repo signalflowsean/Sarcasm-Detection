@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clamp01 } from '../utils'
+import { AUTO_STOP_COUNTDOWN_START_MS, AUTO_STOP_SILENCE_THRESHOLD_MS } from './constants'
 
 type Nullable<T> = T | null
 
@@ -15,6 +16,7 @@ export type AudioRecorderState = {
   transcript: string
   interimTranscript: string
   error: Nullable<string>
+  autoStopCountdown: Nullable<number> // ms until auto-stop, or null if not counting
 }
 
 export type PlaybackState = {
@@ -110,6 +112,7 @@ export function useAudioRecorder({
     transcript: '',
     interimTranscript: '',
     error: null,
+    autoStopCountdown: null,
   })
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -134,6 +137,11 @@ export function useAudioRecorder({
   const isRecordingRef = useRef<boolean>(false)
   const isStartingRecordingRef = useRef<boolean>(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Silence detection refs
+  const lastTranscriptUpdateRef = useRef<number>(0)
+  const silenceDetectionIntervalRef = useRef<number | null>(null)
+  const stopRecordingRef = useRef<(() => void) | null>(null)
 
   // Keep isRecordingRef in sync with state
   useEffect(() => {
@@ -171,6 +179,56 @@ export function useAudioRecorder({
       clearInterval(timerIntervalRef.current)
       timerIntervalRef.current = null
     }
+  }, [])
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Silence Detection
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const startSilenceDetection = useCallback(() => {
+    // Initialize last update timestamp to now
+    lastTranscriptUpdateRef.current = performance.now()
+
+    // Clear any existing interval
+    if (silenceDetectionIntervalRef.current != null) {
+      clearInterval(silenceDetectionIntervalRef.current)
+    }
+
+    // Check for silence periodically (every 100ms for smooth countdown)
+    const checkSilence = () => {
+      const now = performance.now()
+      const timeSinceLastUpdate = now - lastTranscriptUpdateRef.current
+      const timeUntilAutoStop = AUTO_STOP_SILENCE_THRESHOLD_MS - timeSinceLastUpdate
+
+      // Update countdown if we're within the countdown window
+      if (timeUntilAutoStop <= AUTO_STOP_COUNTDOWN_START_MS && timeUntilAutoStop > 0) {
+        setState(s => ({ ...s, autoStopCountdown: Math.max(0, timeUntilAutoStop) }))
+      } else if (timeUntilAutoStop > AUTO_STOP_COUNTDOWN_START_MS) {
+        // Not yet in countdown zone, clear countdown
+        setState(s => (s.autoStopCountdown !== null ? { ...s, autoStopCountdown: null } : s))
+      }
+
+      // If silence threshold exceeded, stop recording
+      if (timeSinceLastUpdate >= AUTO_STOP_SILENCE_THRESHOLD_MS) {
+        stopRecordingRef.current?.()
+      }
+    }
+
+    silenceDetectionIntervalRef.current = window.setInterval(checkSilence, 100)
+  }, [])
+
+  const stopSilenceDetection = useCallback(() => {
+    if (silenceDetectionIntervalRef.current != null) {
+      clearInterval(silenceDetectionIntervalRef.current)
+      silenceDetectionIntervalRef.current = null
+    }
+    setState(s => (s.autoStopCountdown !== null ? { ...s, autoStopCountdown: null } : s))
+  }, [])
+
+  const resetSilenceTimer = useCallback(() => {
+    lastTranscriptUpdateRef.current = performance.now()
+    // Clear countdown display when we get new transcript data
+    setState(s => (s.autoStopCountdown !== null ? { ...s, autoStopCountdown: null } : s))
   }, [])
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -212,6 +270,7 @@ export function useAudioRecorder({
       transcript: '',
       interimTranscript: '',
       error: null,
+      autoStopCountdown: null,
     }))
     setPlayback({ isPlaying: false, playbackMs: 0, audioDurationMs: 0 })
     resetWaveform()
@@ -266,6 +325,7 @@ export function useAudioRecorder({
       mr.start()
       startTimer()
       startSpeechRecognition()
+      startSilenceDetection()
       setState(s => ({
         ...s,
         isRecording: true,
@@ -304,6 +364,7 @@ export function useAudioRecorder({
     setupWaveform,
     startTimer,
     startSpeechRecognition,
+    startSilenceDetection,
     computePeaksFromBlob,
     onRecordingStart,
   ])
@@ -313,6 +374,9 @@ export function useAudioRecorder({
 
     // Stop speech recognition FIRST to release any microphone access it may have
     stopSpeechRecognition()
+
+    // Stop silence detection
+    stopSilenceDetection()
 
     const mr = mediaRecorderRef.current
     if (mr && mr.state !== 'inactive') mr.stop()
@@ -328,7 +392,12 @@ export function useAudioRecorder({
     stopTimer()
     setState(s => ({ ...s, isRecording: false }))
     isStartingRecordingRef.current = false
-  }, [state.isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition])
+  }, [state.isRecording, cleanupWaveform, stopTimer, stopSpeechRecognition, stopSilenceDetection])
+
+  // Keep stopRecordingRef in sync with stopRecording for silence detection
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording
+  }, [stopRecording])
 
   const discardRecording = useCallback(() => {
     const el = audioRef.current
@@ -345,6 +414,9 @@ export function useAudioRecorder({
     if (state.isRecording) {
       // Stop speech recognition FIRST to release any microphone access it may have
       stopSpeechRecognition()
+
+      // Stop silence detection
+      stopSilenceDetection()
 
       const mr = mediaRecorderRef.current
       if (mr && mr.state !== 'inactive') mr.stop()
@@ -370,6 +442,7 @@ export function useAudioRecorder({
       durationMs: 0,
       transcript: '',
       interimTranscript: '',
+      autoStopCountdown: null,
     }))
     setPlayback({ isPlaying: false, playbackMs: 0, audioDurationMs: 0 })
     resetWaveform()
@@ -380,6 +453,7 @@ export function useAudioRecorder({
     cleanupWaveform,
     stopTimer,
     stopSpeechRecognition,
+    stopSilenceDetection,
     resetWaveform,
   ])
 
@@ -489,13 +563,19 @@ export function useAudioRecorder({
   // Transcript Updates
   // ─────────────────────────────────────────────────────────────────────────
 
-  const updateTranscript = useCallback(({ interim, final }: { interim: string; final: string }) => {
-    setState(s => ({
-      ...s,
-      interimTranscript: interim,
-      transcript: s.transcript + final,
-    }))
-  }, [])
+  const updateTranscript = useCallback(
+    ({ interim, final }: { interim: string; final: string }) => {
+      // Reset silence timer whenever we get transcript updates
+      resetSilenceTimer()
+
+      setState(s => ({
+        ...s,
+        interimTranscript: interim,
+        transcript: s.transcript + final,
+      }))
+    },
+    [resetSilenceTimer]
+  )
 
   const setError = useCallback((error: string | null) => {
     setState(s => ({ ...s, error }))
@@ -511,6 +591,11 @@ export function useAudioRecorder({
       if (timerIntervalRef.current != null) {
         clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = null
+      }
+      // Stop silence detection timer if running
+      if (silenceDetectionIntervalRef.current != null) {
+        clearInterval(silenceDetectionIntervalRef.current)
+        silenceDetectionIntervalRef.current = null
       }
       // Stop media recorder if active
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

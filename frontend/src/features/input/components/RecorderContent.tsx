@@ -25,6 +25,7 @@ type Props = {
   showPlayhead?: boolean
   playheadPercent?: number
   isSeekEnabled?: boolean
+  autoStopCountdown?: number | null
   onSeekPercent?: (percent: number) => void
   onMicClick: () => void
   onMicKeyDown: (e: React.KeyboardEvent) => void
@@ -52,6 +53,7 @@ const RecorderContent = ({
   showPlayhead,
   playheadPercent,
   isSeekEnabled,
+  autoStopCountdown,
   onSeekPercent,
   onMicClick,
   onMicKeyDown,
@@ -88,6 +90,7 @@ const RecorderContent = ({
           isPlaying={isPlaying}
           hasAudio={!!audioSrc}
           duration={durationLabel}
+          autoStopCountdown={autoStopCountdown}
         />
       </div>
 

@@ -319,6 +319,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
         showPlayhead={!state.isRecording && !!state.audioUrl}
         playheadPercent={playheadPercent}
         isSeekEnabled={!state.isRecording && !!state.audioUrl}
+        autoStopCountdown={state.autoStopCountdown}
         onSeekPercent={handleSeek}
         onMicClick={onMicClick}
         onMicKeyDown={onMicKeyDown}

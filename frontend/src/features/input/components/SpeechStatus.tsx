@@ -146,7 +146,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
       data-testid="speech-status"
       style={{
         // Desktop: Reserve space even when hidden to prevent layout shifts
-        // Mobile: Overlay positioning (no reserved space to save room)
+        // Mobile: CSS handles fixed positioning, so no inline styles needed
         minHeight: isMobileOrTablet ? undefined : '1.5rem',
         padding: shouldShow ? undefined : '0',
       }}

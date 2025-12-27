@@ -6,7 +6,7 @@ import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
 import { useWaveform } from '../hooks/useWaveform'
-import { formatDuration, isMacPlatform, isMobileBrowser } from '../utils'
+import { isMacPlatform, isMobileBrowser } from '../utils'
 import { isDev } from '../utils/env'
 import DiscardButton from './DiscardButton'
 import MicButton from './MicButton'
@@ -493,13 +493,16 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             showEmpty={isProsodic && !state.isRecording && !state.audioUrl}
             emptyMessage=""
           />
-          {isProsodic && (state.isRecording || state.audioBlob) && (
-            <span className="mobile-input-controls__duration">
-              {state.isRecording
-                ? formatDuration(state.durationMs)
-                : formatDuration(playback.playbackMs)}
-            </span>
-          )}
+          {/* Only show countdown message when auto-stop is imminent - overlaid on waveform */}
+          {isProsodic &&
+            state.isRecording &&
+            state.autoStopCountdown !== null &&
+            state.autoStopCountdown !== undefined &&
+            state.autoStopCountdown <= 3000 && (
+              <div className="mobile-input-controls__countdown-overlay">
+                Auto-stopping in {Math.ceil(state.autoStopCountdown / 1000)}…
+              </div>
+            )}
         </div>
 
         {/* Play button */}
