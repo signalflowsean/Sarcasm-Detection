@@ -1,3 +1,5 @@
+import { AUTO_STOP_COUNTDOWN_START_MS } from '../hooks/constants'
+
 type Props = {
   isRecording: boolean
   isPlaying: boolean
@@ -17,7 +19,7 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown 
     isRecording &&
     autoStopCountdown !== null &&
     autoStopCountdown !== undefined &&
-    autoStopCountdown <= 3000
+    autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS
 
   if (isRecording) {
     if (showCountdown) {

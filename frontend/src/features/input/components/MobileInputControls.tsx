@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/hooks/useDetection'
 import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
+import { AUTO_STOP_COUNTDOWN_START_MS } from '../hooks/constants'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
@@ -498,8 +499,12 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             state.isRecording &&
             state.autoStopCountdown !== null &&
             state.autoStopCountdown !== undefined &&
-            state.autoStopCountdown <= 3000 && (
-              <div className="mobile-input-controls__countdown-overlay">
+            state.autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS && (
+              <div
+                className="mobile-input-controls__countdown-overlay"
+                role="status"
+                aria-live="polite"
+              >
                 Auto-stopping in {Math.ceil(state.autoStopCountdown / 1000)}…
               </div>
             )}
