@@ -5,7 +5,7 @@ type Props = {
   isPlaying: boolean
   hasAudio: boolean
   duration: string
-  autoStopCountdown?: number | null
+  autoStopCountdown: number | null
 }
 
 const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown }: Props) => {
@@ -18,7 +18,6 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown 
   const showCountdown =
     isRecording &&
     autoStopCountdown !== null &&
-    autoStopCountdown !== undefined &&
     autoStopCountdown > 0 &&
     autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS
 

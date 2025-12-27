@@ -473,15 +473,17 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
 
       {/* Audio row: mic, waveform, play, trash */}
       <div className="mobile-input-controls__audio-row">
-        {/* Record button */}
-        <MicButton
-          ref={micBtnRef}
-          isRecording={state.isRecording}
-          shouldFlash={isProsodic && !state.audioBlob && !state.isRecording}
-          disabled={isLexical || playback.isPlaying || isSending}
-          onClick={onMicClick}
-          onKeyDown={onMicKeyDown}
-        />
+        {/* Record button wrapper - reserves space for recording indicator to prevent layout shift */}
+        <div className="mobile-input-controls__mic-wrapper">
+          <MicButton
+            ref={micBtnRef}
+            isRecording={state.isRecording}
+            shouldFlash={isProsodic && !state.audioBlob && !state.isRecording}
+            disabled={isLexical || playback.isPlaying || isSending}
+            onClick={onMicClick}
+            onKeyDown={onMicKeyDown}
+          />
+        </div>
 
         {/* Waveform - takes available space */}
         <div className="mobile-input-controls__waveform-wrapper">
@@ -498,7 +500,6 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
           {isProsodic &&
             state.isRecording &&
             state.autoStopCountdown !== null &&
-            state.autoStopCountdown !== undefined &&
             state.autoStopCountdown > 0 &&
             state.autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS && (
               <div

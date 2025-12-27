@@ -25,7 +25,7 @@ type Props = {
   showPlayhead?: boolean
   playheadPercent?: number
   isSeekEnabled?: boolean
-  autoStopCountdown?: number | null
+  autoStopCountdown: number | null
   onSeekPercent?: (percent: number) => void
   onMicClick: () => void
   onMicKeyDown: (e: React.KeyboardEvent) => void
