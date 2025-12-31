@@ -299,10 +299,10 @@ class TestTimingCalculations:
         assert duration_match is not None
         duration_str = duration_match.group(1)
 
-        # Check format: should have up to 3 decimal places
+        # Check format: should have exactly 3 decimal places
         parts = duration_str.split('.')
         assert len(parts) == 2  # Should have decimal point
-        assert len(parts[1]) <= 3  # Up to 3 decimal places
+        assert len(parts[1]) == 3  # Exactly 3 decimal places
 
 
 class TestEdgeCases:

@@ -336,7 +336,9 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Invalid response format from server')) {
+    // Check for exact match to distinguish validation errors from JSON parsing errors
+    const expectedErrorMessage = `[${requestId}] Invalid response format from server`
+    if (error instanceof Error && error.message === expectedErrorMessage) {
       throw error
     }
     throw new Error(`[${requestId}] Invalid response format from server`)
@@ -399,7 +401,9 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Invalid response format from server')) {
+    // Check for exact match to distinguish validation errors from JSON parsing errors
+    const expectedErrorMessage = `[${requestId}] Invalid response format from server`
+    if (error instanceof Error && error.message === expectedErrorMessage) {
       throw error
     }
     throw new Error(`[${requestId}] Invalid response format from server`)
