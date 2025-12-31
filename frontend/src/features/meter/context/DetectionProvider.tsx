@@ -217,10 +217,9 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
 
       // Cancel any pending result cycle if we start a new request
       clearTimers()
-    }
 
-    setIsLoading(loading)
-    if (loading) {
+      // Set loading state and transition to LOADING after all reset logic is complete
+      setIsLoading(true)
       setState(DetectionState.LOADING)
 
       // Clear any existing cable animation timer before starting new one
@@ -232,6 +231,8 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
         setCableAnimating(false)
         cableAnimationTimeoutRef.current = null
       }, CABLE_ANIMATION_MIN_DURATION_MS)
+    } else {
+      setIsLoading(false)
     }
   }
 
