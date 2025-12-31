@@ -486,6 +486,56 @@ class TestEdgeCases:
         except ValueError:
             pytest.fail(f'Request ID "{request_id}" should be a valid UUID')
 
+    def test_whitespace_only_request_id_header(self, test_client, caplog):
+        """Should generate new request ID when X-Request-ID header contains only whitespace."""
+        with caplog.at_level(logging.INFO):
+            response = test_client.get('/test', headers={'X-Request-ID': '   '})
+
+        assert response.status_code == 200
+
+        # Find logs
+        all_logs = [r.message for r in caplog.records]
+        request_logs = [log for log in all_logs if 'GET /test' in log]
+
+        assert len(request_logs) > 0
+
+        # Should not use whitespace-only string as request ID
+        # Extract request ID from first log
+        match = re.search(r'\[([^\]]+)\]', request_logs[0])
+        assert match is not None
+        request_id = match.group(1)
+
+        # Should be a valid UUID (not whitespace)
+        assert request_id.strip() != ''
+        try:
+            uuid.UUID(request_id)
+        except ValueError:
+            pytest.fail(f'Request ID "{request_id}" should be a valid UUID')
+
+    def test_request_id_with_whitespace_is_stripped(self, test_client, caplog):
+        """Should strip whitespace from valid request ID headers."""
+        custom_request_id = '  test-id-12345  '
+
+        with caplog.at_level(logging.INFO):
+            response = test_client.get('/test', headers={'X-Request-ID': custom_request_id})
+
+        assert response.status_code == 200
+
+        # Find logs
+        all_logs = [r.message for r in caplog.records]
+        request_logs = [log for log in all_logs if 'GET /test' in log]
+
+        assert len(request_logs) > 0
+
+        # Extract request ID from logs
+        match = re.search(r'\[([^\]]+)\]', request_logs[0])
+        assert match is not None
+        logged_request_id = match.group(1)
+
+        # Should be stripped (no leading/trailing whitespace)
+        assert logged_request_id == 'test-id-12345'
+        assert logged_request_id == custom_request_id.strip()
+
 
 class TestMiddlewareRegistration:
     """Test middleware setup and registration."""

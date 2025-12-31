@@ -472,13 +472,19 @@ railway logs --filter "abc-123-def-456"  # Specific request ID
 
 ```bash
 # Find slow requests (> 1 second)
-railway logs --filter "Duration: [1-9]"
+railway logs | grep "Duration: [1-9]"
 
 # Find failed requests
-railway logs --filter "Status: [45]"
+railway logs | grep "Status: [45]"
 
 # Find specific user's requests (by IP)
-railway logs --filter "from 192.168.1.100"
+railway logs | grep "from 192.168.1.100"
+
+# Find POST requests
+railway logs | grep "POST /api"
+
+# Find errors
+railway logs | grep "ERROR"
 
 # Export logs for analysis
 railway logs > production-logs.txt
@@ -542,15 +548,15 @@ Monitor API performance using log data:
 
 ```bash
 # Find slowest requests in last 1000 logs
-railway logs --tail 1000 | grep "Duration:" | sort -t: -k5 -rn | head -10
+railway logs | tail -n 1000 | grep "Duration:" | sort -t: -k5 -rn | head -10
 
 # Average response time for specific endpoint
-railway logs --tail 1000 | grep "POST /api/lexical" | grep "Duration:" | \
+railway logs | tail -n 1000 | grep "POST /api/lexical" | grep "Duration:" | \
   awk -F'Duration: ' '{print $2}' | awk '{print $1}' | \
   awk '{s+=$1; n++} END {print s/n "s average"}'
 
 # Count requests by status code
-railway logs --tail 1000 | grep "Status:" | \
+railway logs | tail -n 1000 | grep "Status:" | \
   awk -F'Status: ' '{print $2}' | awk '{print $1}' | sort | uniq -c
 ```
 

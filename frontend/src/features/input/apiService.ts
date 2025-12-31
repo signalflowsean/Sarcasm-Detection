@@ -163,6 +163,15 @@ function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
     signal.addEventListener('abort', abortHandler)
   })
 
+  // Clean up listeners when the controller's signal aborts
+  // This prevents memory leaks by removing listeners once they're no longer needed
+  const cleanup = () => {
+    signals.forEach(signal => {
+      signal.removeEventListener('abort', abortHandler)
+    })
+  }
+  controller.signal.addEventListener('abort', cleanup, { once: true })
+
   return controller.signal
 }
 
@@ -199,7 +208,14 @@ async function fetchWithTimeout(
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out - server took too long to respond')
+      // Check if the timeout signal was the one that aborted
+      // If controller.signal.aborted is true, it was a timeout
+      // Otherwise, it was a user-initiated cancellation via options.signal
+      if (controller.signal.aborted) {
+        throw new Error('Request timed out - server took too long to respond')
+      }
+      // User-initiated cancellation - preserve the original error
+      throw error
     }
     throw error
   }

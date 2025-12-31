@@ -37,9 +37,11 @@ def setup_logging_middleware(app: Flask):
         """
         # Extract request ID from header or generate new one
         request_id = request.headers.get('X-Request-ID')
-        if not request_id:
-            # Generate UUID if no request ID provided (for direct API calls)
+        if not request_id or not request_id.strip():
+            # Generate UUID if no valid request ID provided (for direct API calls)
             request_id = str(uuid.uuid4())
+        else:
+            request_id = request_id.strip()
 
         # Store in Flask's g object for access across request lifecycle
         g.request_id = request_id
