@@ -16,12 +16,16 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REQUIREMENTS_FILE="$SCRIPT_DIR/../requirements-dev.txt"
 if [ -f "$REQUIREMENTS_FILE" ]; then
     EXPECTED_VERSION=$(grep "^ruff==" "$REQUIREMENTS_FILE" | cut -d'=' -f3)
-    echo "Expected: $EXPECTED_VERSION"
-    if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
-        echo "⚠️  WARNING: Version mismatch! Install correct version with:"
-        echo "   pip install ruff==$EXPECTED_VERSION"
+    if [ -z "$EXPECTED_VERSION" ]; then
+        echo "⚠️  Could not determine expected ruff version from requirements-dev.txt"
     else
-        echo "✓ Version matches requirements-dev.txt"
+        echo "Expected: $EXPECTED_VERSION"
+        if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "⚠️  WARNING: Version mismatch! Install correct version with:"
+            echo "   pip install ruff==$EXPECTED_VERSION"
+        else
+            echo "✓ Version matches requirements-dev.txt"
+        fi
     fi
 else
     echo "⚠️  Could not find requirements-dev.txt"

@@ -553,7 +553,7 @@ railway logs | tail -n 1000 | grep "Duration:" | sort -t: -k5 -rn | head -10
 # Average response time for specific endpoint
 railway logs | tail -n 1000 | grep "POST /api/lexical" | grep "Duration:" | \
   awk -F'Duration: ' '{print $2}' | awk '{print $1}' | \
-  awk '{s+=$1; n++} END {print s/n "s average"}'
+  awk '{s+=$1; n++} END {if(n>0) print s/n "s average"; else print "No data"}'
 
 # Count requests by status code
 railway logs | tail -n 1000 | grep "Status:" | \

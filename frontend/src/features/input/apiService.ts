@@ -136,16 +136,25 @@ function generateRequestId(): string {
 // ============================================================================
 
 /**
+ * Result of merging multiple AbortSignals.
+ * Contains the merged signal and an optional cleanup function to remove event listeners.
+ */
+interface MergedAbortSignal {
+  signal: AbortSignal
+  cleanup?: () => void
+}
+
+/**
  * Merge multiple AbortSignals into a single signal that aborts when any signal aborts.
  * Falls back to manual event listener approach for browsers that don't support AbortSignal.any().
  *
  * @param signals - Array of AbortSignals to merge
- * @returns A merged AbortSignal that aborts when any input signal aborts
+ * @returns An object containing the merged AbortSignal and an optional cleanup function
  */
-function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
+function mergeAbortSignals(signals: AbortSignal[]): MergedAbortSignal {
   // Use native AbortSignal.any() if available (Chrome 120+, Firefox 120+, Safari 17+)
   if (typeof AbortSignal.any === 'function') {
-    return AbortSignal.any(signals)
+    return { signal: AbortSignal.any(signals) }
   }
 
   // Fallback for older browsers: create a new controller and listen to all signals
@@ -154,7 +163,7 @@ function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
   // Check if any signal is already aborted
   if (signals.some(signal => signal.aborted)) {
     controller.abort()
-    return controller.signal
+    return { signal: controller.signal }
   }
 
   // Listen for abort events on all signals
@@ -172,7 +181,7 @@ function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
   }
   controller.signal.addEventListener('abort', cleanup, { once: true })
 
-  return controller.signal
+  return { signal: controller.signal, cleanup }
 }
 
 /**
@@ -195,12 +204,18 @@ async function fetchWithTimeout(
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
+  // Track cleanup function for merged signals to prevent memory leaks
+  let signalCleanup: (() => void) | undefined
+
   try {
     // Merge timeout signal with any existing signal from options
     // This preserves both timeout and external abort capabilities
-    const signal = options.signal
+    const merged = options.signal
       ? mergeAbortSignals([options.signal, controller.signal])
-      : controller.signal
+      : { signal: controller.signal }
+
+    signalCleanup = merged.cleanup
+    const signal = merged.signal
 
     const response = await fetch(url, { ...options, signal })
     clearTimeout(timeoutId)
@@ -218,6 +233,10 @@ async function fetchWithTimeout(
       throw error
     }
     throw error
+  } finally {
+    // Always clean up event listeners to prevent memory leaks
+    // This ensures listeners are removed even when the request completes successfully
+    signalCleanup?.()
   }
 }
 

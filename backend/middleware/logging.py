@@ -37,7 +37,9 @@ def setup_logging_middleware(app: Flask):
         """
         # Extract request ID from header or generate new one
         request_id = request.headers.get('X-Request-ID')
-        if not request_id or not request_id.strip():
+        # Check for None, empty string, or whitespace-only strings
+        # Explicitly check for empty string to avoid using it as request ID
+        if request_id is None or request_id == '' or not request_id.strip():
             # Generate UUID if no valid request ID provided (for direct API calls)
             request_id = str(uuid.uuid4())
         else:
