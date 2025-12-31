@@ -7,6 +7,19 @@
 // In development: falls back to direct backend connection
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
 
+// ============================================================================
+// Configuration Constants
+// ============================================================================
+
+/** Maximum text length in characters (matches backend MAX_TEXT_LENGTH) */
+const MAX_TEXT_LENGTH = 10000
+
+/** Maximum audio file size in MB (matches backend MAX_AUDIO_SIZE_MB) */
+const MAX_AUDIO_SIZE_MB = 50
+
+/** Request timeout in milliseconds (matches nginx proxy_read_timeout) */
+const REQUEST_TIMEOUT_MS = 60000
+
 export type ProsodicResponse = {
   id: string
   value: number // 0.0–1.0 inclusive
@@ -105,6 +118,92 @@ function getExtensionFromBlob(blob: Blob): string {
   return MIME_TO_EXTENSION[blob.type] ?? '.webm'
 }
 
+// ============================================================================
+// Request ID Generation
+// ============================================================================
+
+/**
+ * Generate a unique request ID for tracking requests across frontend and backend.
+ * Uses crypto.randomUUID() for cryptographically secure random IDs.
+ * @returns A unique request ID string
+ */
+function generateRequestId(): string {
+  return crypto.randomUUID()
+}
+
+// ============================================================================
+// Timeout Handling
+// ============================================================================
+
+/**
+ * Fetch wrapper with timeout support using AbortController.
+ * Prevents hanging requests by aborting after the specified timeout.
+ *
+ * @param url - URL to fetch
+ * @param options - Fetch options
+ * @param timeoutMs - Timeout in milliseconds (default: 60 seconds)
+ * @returns Promise that resolves to the Response
+ * @throws Error with 'Request timed out' message if timeout is reached
+ * @throws Original error for other fetch failures
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out - server took too long to respond')
+    }
+    throw error
+  }
+}
+
+// ============================================================================
+// Input Validation
+// ============================================================================
+
+/**
+ * Validate text input before sending to API.
+ * Provides immediate feedback and prevents unnecessary API calls.
+ *
+ * @param text - Text to validate
+ * @throws Error with descriptive message if validation fails
+ */
+function validateText(text: string): void {
+  if (!text || !text.trim()) {
+    throw new Error('Text cannot be empty')
+  }
+  if (text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text exceeds maximum length of ${MAX_TEXT_LENGTH.toLocaleString()} characters`)
+  }
+}
+
+/**
+ * Validate audio blob before sending to API.
+ * Provides immediate feedback and prevents unnecessary API calls.
+ *
+ * @param audio - Audio blob to validate
+ * @throws Error with descriptive message if validation fails
+ */
+function validateAudio(audio: Blob): void {
+  if (audio.size === 0) {
+    throw new Error('Audio file is empty')
+  }
+  const maxBytes = MAX_AUDIO_SIZE_MB * 1024 * 1024
+  if (audio.size > maxBytes) {
+    throw new Error(`Audio file exceeds maximum size of ${MAX_AUDIO_SIZE_MB}MB`)
+  }
+}
+
 /**
  * Send audio to the prosodic detection endpoint.
  * @param audio - Audio blob from recording
@@ -112,20 +211,29 @@ function getExtensionFromBlob(blob: Blob): string {
  * @throws Error with descriptive message if request fails
  */
 export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> {
+  // Validate audio before sending
+  validateAudio(audio)
+
+  // Generate unique request ID for tracking
+  const requestId = generateRequestId()
+
   const formData = new FormData()
   const extension = getExtensionFromBlob(audio)
   formData.append('audio', audio, `recording${extension}`)
 
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/api/prosodic`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/prosodic`, {
       method: 'POST',
+      headers: {
+        'X-Request-ID': requestId,
+      },
       body: formData,
     })
   } catch (error) {
-    // Network error (no response received)
+    // Network error or timeout
     const message = error instanceof Error ? error.message : 'Network error'
-    throw new Error(`Failed to connect to server: ${message}`)
+    throw new Error(`[${requestId}] Failed to connect to server: ${message}`)
   }
 
   if (!response.ok) {
@@ -144,21 +252,21 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
       const statusText = response.statusText || 'Unknown error'
       errorMessage = `HTTP ${response.status}: ${statusText}`
     }
-    throw new Error(errorMessage)
+    throw new Error(`[${requestId}] ${errorMessage}`)
   }
 
   // Parse successful response
   try {
     const data: unknown = await response.json()
     if (!isProsodicResponse(data)) {
-      throw new Error('Invalid response format from server')
+      throw new Error(`[${requestId}] Invalid response format from server`)
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid response format from server') {
+    if (error instanceof Error && error.message.includes('Invalid response format from server')) {
       throw error
     }
-    throw new Error('Invalid response format from server')
+    throw new Error(`[${requestId}] Invalid response format from server`)
   }
 }
 
@@ -169,19 +277,26 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
  * @throws Error with descriptive message if request fails
  */
 export async function sendLexicalText(text: string): Promise<LexicalResponse> {
+  // Validate text before sending
+  validateText(text)
+
+  // Generate unique request ID for tracking
+  const requestId = generateRequestId()
+
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/api/lexical`, {
+    response = await fetchWithTimeout(`${API_BASE_URL}/api/lexical`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
       },
       body: JSON.stringify({ text }),
     })
   } catch (error) {
-    // Network error (no response received)
+    // Network error or timeout
     const message = error instanceof Error ? error.message : 'Network error'
-    throw new Error(`Failed to connect to server: ${message}`)
+    throw new Error(`[${requestId}] Failed to connect to server: ${message}`)
   }
 
   if (!response.ok) {
@@ -200,20 +315,20 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
       const statusText = response.statusText || 'Unknown error'
       errorMessage = `HTTP ${response.status}: ${statusText}`
     }
-    throw new Error(errorMessage)
+    throw new Error(`[${requestId}] ${errorMessage}`)
   }
 
   // Parse successful response
   try {
     const data: unknown = await response.json()
     if (!isLexicalResponse(data)) {
-      throw new Error('Invalid response format from server')
+      throw new Error(`[${requestId}] Invalid response format from server`)
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid response format from server') {
+    if (error instanceof Error && error.message.includes('Invalid response format from server')) {
       throw error
     }
-    throw new Error('Invalid response format from server')
+    throw new Error(`[${requestId}] Invalid response format from server`)
   }
 }

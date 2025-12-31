@@ -18,6 +18,7 @@ from config import (
 )
 from errors import UserError
 from extensions import limiter
+from middleware.logging import setup_logging_middleware
 from routes import health_bp, lexical_bp, prosodic_bp
 
 
@@ -103,6 +104,9 @@ def create_app():
         logger.info(f'Rate limiting enabled: {RATE_LIMIT_DEFAULT} (default)')
     else:
         logger.info('Rate limiting disabled')
+
+    # Register request/response logging middleware
+    setup_logging_middleware(app)
 
     # Custom error handler for rate limit exceeded
     @app.errorhandler(429)
