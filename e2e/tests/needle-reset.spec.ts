@@ -156,7 +156,7 @@ test.describe("Needle Reset on Rapid Detections", () => {
     expect(requestCount).toBe(3);
 
     // Verify the UI is back to idle state
-    // Note: The textarea is cleared after each successful send (see TextInput.tsx line 42),
+    // Note: The textarea is cleared after each successful send (see TextInput.tsx),
     // so after the third send completes, the button should be disabled with "Type Text First"
     await expect(sendButton).toBeDisabled();
     await expect(sendButton).toHaveText(/Type Text First/);
