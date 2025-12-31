@@ -1,6 +1,7 @@
 import { MEDIA_QUERIES } from '../../../breakpoints'
 import { useMediaQuery } from '../hooks'
 import type { SpeechStatus as SpeechStatusType } from '../hooks/speech'
+import { isMobileBrowser } from '../utils'
 import { isDev } from '../utils/env'
 
 type Props = {
@@ -128,15 +129,19 @@ const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
  */
 const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
   const isMobileOrTablet = useMediaQuery(MEDIA_QUERIES.isMobileOrTablet)
+  const isMobile = isMobileBrowser()
   // Always render a container, but behavior differs by platform:
   // - Desktop: Reserves space (minHeight) to prevent layout shifts
   // - Mobile: Overlay positioning (no reserved space) to save room
+  // Show errors on all platforms (critical feedback users need to see)
+  // Loading state is mobile-only to prevent layout shifts on desktop
   // In dev mode, allow showing loading spinner even when not recording (for testing)
-  const shouldShow =
-    (isRecording && status !== 'idle' && status !== 'listening') ||
-    (isDev() && status === 'loading')
-  const config =
-    shouldShow && (status === 'loading' || status === 'error') ? STATUS_CONFIG[status] : null
+  const isError = status === 'error'
+  const isLoading = status === 'loading'
+  const shouldShowError = isRecording && isError
+  const shouldShowLoading = isMobile && ((isRecording && isLoading) || (isDev() && isLoading))
+  const shouldShow = shouldShowError || shouldShowLoading
+  const config = shouldShow && (isLoading || isError) ? STATUS_CONFIG[status] : null
 
   return (
     <output
