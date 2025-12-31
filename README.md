@@ -370,6 +370,190 @@ ruff check . --fix        # Auto-fix
 ruff format .             # Format
 ```
 
+### Logging and Monitoring
+
+The application includes structured request/response logging with request ID tracking for debugging and monitoring.
+
+#### Log Format
+
+All API requests are logged with the following information:
+
+```
+INFO - [request-id] METHOD PATH from IP Content-Length: N bytes
+INFO - [request-id] METHOD PATH - Status: XXX - Duration: X.XXXs - Size: N bytes
+```
+
+**Example:**
+
+```
+INFO - [abc-123-def-456] POST /api/lexical from 192.168.1.100 Content-Length: 45 bytes
+INFO - [abc-123-def-456] POST /api/lexical - Status: 200 - Duration: 0.234s - Size: 89 bytes
+```
+
+#### Request ID Tracking
+
+Request IDs enable correlation between frontend errors and backend logs:
+
+- **Frontend:** Generates a unique UUID for each API request (sent via `X-Request-ID` header)
+- **Backend:** Logs the request ID with all log entries for that request
+- **Error Messages:** Include request IDs (e.g., `[abc-123] Failed to connect to server`)
+
+This makes it easy to trace a user-reported error from the browser console to the backend logs.
+
+#### Accessing Logs in Development
+
+**Backend (Flask):**
+
+```bash
+cd backend
+source venv/bin/activate
+python app.py
+# Logs appear in terminal with INFO/DEBUG/WARNING/ERROR levels
+```
+
+**Frontend (Browser Console):**
+
+```javascript
+// All network requests show request IDs in error messages
+// Check browser console for failed API calls with [request-id] prefix
+```
+
+**Filtering Logs:**
+
+```bash
+# Show only API requests
+python app.py 2>&1 | grep -E "\[.*\] (GET|POST|PUT|DELETE)"
+
+# Show only errors
+python app.py 2>&1 | grep ERROR
+
+# Show specific request ID
+python app.py 2>&1 | grep "abc-123-def-456"
+
+# Show request timing (slow requests > 1s)
+python app.py 2>&1 | grep -E "Duration: [1-9][0-9]*\."
+```
+
+#### Accessing Logs in Production (Railway)
+
+**Via Railway CLI:**
+
+```bash
+# Install Railway CLI (if not installed)
+npm install -g @railway/cli
+railway login
+
+# View backend logs (real-time)
+cd backend
+railway link  # Select: sarcasm → production → Backend
+railway logs
+
+# View frontend logs (real-time)
+cd frontend
+railway link  # Select: sarcasm → production → Frontend
+railway logs
+
+# View logs with filtering
+railway logs --filter "POST /api"
+railway logs --filter "ERROR"
+railway logs --filter "abc-123-def-456"  # Specific request ID
+```
+
+**Via Railway Dashboard:**
+
+1. Go to [Railway Dashboard](https://railway.app/dashboard)
+2. Select the **sarcasm** project
+3. Click on **Backend** or **Frontend** service
+4. Click the **Deployments** tab
+5. Select the active deployment
+6. View logs in the **Logs** section
+
+**Log Search Tips:**
+
+```bash
+# Find slow requests (> 1 second)
+railway logs --filter "Duration: [1-9]"
+
+# Find failed requests
+railway logs --filter "Status: [45]"
+
+# Find specific user's requests (by IP)
+railway logs --filter "from 192.168.1.100"
+
+# Export logs for analysis
+railway logs > production-logs.txt
+```
+
+#### Debugging with Request IDs
+
+When investigating an issue:
+
+1. **Get the request ID** from the frontend error message:
+
+   ```
+   Error: [abc-123-def-456] Request timed out
+   ```
+
+2. **Search backend logs** for that request ID:
+
+   ```bash
+   # Development
+   grep "abc-123-def-456" backend.log
+
+   # Production (Railway)
+   railway logs --filter "abc-123-def-456"
+   ```
+
+3. **View the full request lifecycle**:
+
+   ```
+   [abc-123-def-456] POST /api/lexical from 203.0.113.42 Content-Length: 45 bytes
+   [abc-123-def-456] POST /api/lexical - Status: 200 - Duration: 0.234s - Size: 89 bytes
+   ```
+
+4. **Check for errors** between request start and end:
+   ```bash
+   # Look for errors with same request ID
+   railway logs --filter "abc-123-def-456" | grep ERROR
+   ```
+
+#### Log Levels
+
+The application uses standard Python logging levels:
+
+- **DEBUG**: Detailed information for debugging (development only)
+- **INFO**: General informational messages (request/response logs)
+- **WARNING**: Warning messages (validation failures, fallback behavior)
+- **ERROR**: Error messages (exceptions, failures)
+
+**Setting Log Level:**
+
+```bash
+# Development (shows DEBUG + INFO + WARNING + ERROR)
+export FLASK_ENV=development
+
+# Production (shows INFO + WARNING + ERROR only)
+export FLASK_ENV=production
+```
+
+#### Performance Monitoring
+
+Monitor API performance using log data:
+
+```bash
+# Find slowest requests in last 1000 logs
+railway logs --tail 1000 | grep "Duration:" | sort -t: -k5 -rn | head -10
+
+# Average response time for specific endpoint
+railway logs --tail 1000 | grep "POST /api/lexical" | grep "Duration:" | \
+  awk -F'Duration: ' '{print $2}' | awk '{print $1}' | \
+  awk '{s+=$1; n++} END {print s/n "s average"}'
+
+# Count requests by status code
+railway logs --tail 1000 | grep "Status:" | \
+  awk -F'Status: ' '{print $2}' | awk '{print $1}' | sort | uniq -c
+```
+
 ### Git Hooks (Pre-commit)
 
 The project uses [Husky](https://typicode.github.io/husky/) to automatically run linting and formatting on staged files before each commit. This is configured automatically when you run `npm install` (via the `prepare` script).

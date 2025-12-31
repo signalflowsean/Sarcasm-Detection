@@ -136,11 +136,43 @@ function generateRequestId(): string {
 // ============================================================================
 
 /**
+ * Merge multiple AbortSignals into a single signal that aborts when any signal aborts.
+ * Falls back to manual event listener approach for browsers that don't support AbortSignal.any().
+ *
+ * @param signals - Array of AbortSignals to merge
+ * @returns A merged AbortSignal that aborts when any input signal aborts
+ */
+function mergeAbortSignals(signals: AbortSignal[]): AbortSignal {
+  // Use native AbortSignal.any() if available (Chrome 120+, Firefox 120+, Safari 17+)
+  if (typeof AbortSignal.any === 'function') {
+    return AbortSignal.any(signals)
+  }
+
+  // Fallback for older browsers: create a new controller and listen to all signals
+  const controller = new AbortController()
+
+  // Check if any signal is already aborted
+  if (signals.some(signal => signal.aborted)) {
+    controller.abort()
+    return controller.signal
+  }
+
+  // Listen for abort events on all signals
+  const abortHandler = () => controller.abort()
+  signals.forEach(signal => {
+    signal.addEventListener('abort', abortHandler)
+  })
+
+  return controller.signal
+}
+
+/**
  * Fetch wrapper with timeout support using AbortController.
  * Prevents hanging requests by aborting after the specified timeout.
+ * Merges timeout signal with any existing signal in options to preserve both timeout and external abort capabilities.
  *
  * @param url - URL to fetch
- * @param options - Fetch options
+ * @param options - Fetch options (may include an existing signal)
  * @param timeoutMs - Timeout in milliseconds (default: 60 seconds)
  * @returns Promise that resolves to the Response
  * @throws Error with 'Request timed out' message if timeout is reached
@@ -155,7 +187,13 @@ async function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal })
+    // Merge timeout signal with any existing signal from options
+    // This preserves both timeout and external abort capabilities
+    const signal = options.signal
+      ? mergeAbortSignals([options.signal, controller.signal])
+      : controller.signal
+
+    const response = await fetch(url, { ...options, signal })
     clearTimeout(timeoutId)
     return response
   } catch (error) {
