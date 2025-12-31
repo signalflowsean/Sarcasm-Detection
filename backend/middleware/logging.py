@@ -66,9 +66,18 @@ def setup_logging_middleware(app: Flask):
         Returns:
             Unmodified response object
         """
-        # Calculate request duration
-        duration = time.time() - g.start_time
-        request_id = g.request_id
+        # Safely get request_id and start_time (may not be set if before_request failed)
+        request_id = getattr(g, 'request_id', 'unknown')
+        start_time = getattr(g, 'start_time', None)
+
+        # Calculate request duration (0 if start_time wasn't set)
+        if start_time is not None:
+            duration = time.time() - start_time
+        else:
+            duration = 0.0
+            logger.warning(
+                f'[{request_id}] Request duration unavailable (before_request may have failed)'
+            )
 
         # Get response size (may be None for streaming responses)
         response_size = response.content_length or 0
