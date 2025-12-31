@@ -104,7 +104,9 @@ class TestRequestIDGeneration:
         custom_request_id = 'consistent-id-67890'
 
         with caplog.at_level(logging.INFO):
-            response = test_client.post('/test', json={'data': 'test'})
+            response = test_client.post(
+                '/test', json={'data': 'test'}, headers={'X-Request-ID': custom_request_id}
+            )
 
         assert response.status_code == 200
 
@@ -117,9 +119,11 @@ class TestRequestIDGeneration:
             matches = re.findall(request_id_pattern, log)
             request_ids.update(matches)
 
-        # All logs for this request should use the same request ID
-        # (either the custom one or a generated UUID)
+        # All logs for this request should use the same request ID (the custom one)
         assert len(request_ids) == 1, f'Found multiple request IDs: {request_ids}'
+        assert custom_request_id in request_ids, (
+            f'Custom request ID {custom_request_id} not found in logs'
+        )
 
 
 class TestLoggingOutput:
