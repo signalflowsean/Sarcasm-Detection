@@ -71,14 +71,15 @@ describe('apiService', () => {
       expect(error.message).toContain('Network error')
     })
 
-    it('should handle timeout errors', async () => {
+    it('should treat AbortError from user cancellation as connection error', async () => {
+      // When fetch is aborted by user (not timeout), it should be treated as a connection error
       vi.mocked(fetch).mockRejectedValueOnce(
         Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' })
       )
 
-      await expect(sendLexicalText('test')).rejects.toThrow(
-        'Request timed out - server took too long to respond'
-      )
+      const error = await sendLexicalText('test').catch(e => e)
+      expect(error.message).toContain('Failed to connect to server')
+      expect(error.message).toContain('signal is aborted without reason')
     })
 
     it('should handle non-JSON error responses', async () => {
@@ -183,15 +184,16 @@ describe('apiService', () => {
       expect(error.message).toContain('Failed to fetch')
     })
 
-    it('should handle timeout errors', async () => {
+    it('should treat AbortError from user cancellation as connection error', async () => {
+      // When fetch is aborted by user (not timeout), it should be treated as a connection error
       vi.mocked(fetch).mockRejectedValueOnce(
         Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' })
       )
 
       const audioBlob = createMockAudioBlob()
-      await expect(sendProsodicAudio(audioBlob)).rejects.toThrow(
-        'Request timed out - server took too long to respond'
-      )
+      const error = await sendProsodicAudio(audioBlob).catch(e => e)
+      expect(error.message).toContain('Failed to connect to server')
+      expect(error.message).toContain('signal is aborted without reason')
     })
 
     it('should handle non-JSON error responses', async () => {
