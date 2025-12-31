@@ -1,5 +1,5 @@
-import { expect, type Page } from '@playwright/test';
-import { REDIRECT_TIMEOUT } from './constants';
+import { expect, type Page } from "@playwright/test";
+import { REDIRECT_TIMEOUT } from "./constants";
 
 /**
  * Navigates to a URL and expects it to redirect to root ('/').
@@ -10,10 +10,10 @@ import { REDIRECT_TIMEOUT } from './constants';
  */
 export async function expectRedirectToRoot(
   page: Page,
-  fromUrl: string
+  fromUrl: string,
 ): Promise<void> {
   await page.goto(fromUrl);
   // Should redirect to root (redirect should be instant, use shorter timeout)
-  await page.waitForURL('/', { timeout: REDIRECT_TIMEOUT });
-  await expect(page).toHaveURL('/');
+  await page.waitForURL("/", { timeout: REDIRECT_TIMEOUT });
+  await expect(page).toHaveURL("/");
 }
