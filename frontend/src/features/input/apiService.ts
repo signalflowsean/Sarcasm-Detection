@@ -15,7 +15,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
 const MAX_TEXT_LENGTH = 10000
 
 /** Maximum audio file size in MB (matches backend MAX_AUDIO_SIZE_MB) */
-const MAX_AUDIO_SIZE_MB = 50
+const MAX_AUDIO_SIZE_MB = 10
 
 /** Request timeout in milliseconds (matches nginx proxy_read_timeout) */
 const REQUEST_TIMEOUT_MS = 60000

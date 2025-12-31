@@ -440,8 +440,8 @@ MAX_TEXT_LENGTH = 10000  # Maximum characters for lexical analysis
 # Audio File Validation
 # ============================================================================
 
-# Max file size (aligned with nginx client_max_body_size of 50M)
-MAX_AUDIO_SIZE_MB = 50
+# Max file size (aligned with nginx client_max_body_size of 10M)
+MAX_AUDIO_SIZE_MB = 10
 MAX_AUDIO_SIZE_BYTES = MAX_AUDIO_SIZE_MB * 1024 * 1024
 
 # ============================================================================
