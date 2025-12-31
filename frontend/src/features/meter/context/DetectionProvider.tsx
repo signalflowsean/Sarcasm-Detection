@@ -204,15 +204,24 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
 
   // Set loading state
   const setLoading = (loading: boolean) => {
-    setIsLoading(loading)
     if (loading) {
+      // If we're interrupting a previous detection (values are non-zero),
+      // reset to 0 BEFORE starting the loading animation
+      const isInterrupting = lexicalValue > 0.01 || prosodicValue > 0.01
+      if (isInterrupting) {
+        // Immediately reset values to 0 so the loading stutter happens at 0
+        setLexicalValue(0)
+        setProsodicValue(0)
+        setState(DetectionState.RESETTING)
+      }
+
       // Cancel any pending result cycle if we start a new request
       clearTimers()
-      setState(DetectionState.LOADING)
+    }
 
-      // Keep needle at last position during loading - don't reset to 0
-      // This ensures visible movement when API returns any value (including 0)
-      // The needle will transition from its last position to the new result
+    setIsLoading(loading)
+    if (loading) {
+      setState(DetectionState.LOADING)
 
       // Clear any existing cable animation timer before starting new one
       clearCableAnimationTimer()

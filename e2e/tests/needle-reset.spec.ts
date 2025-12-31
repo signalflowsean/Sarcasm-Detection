@@ -83,6 +83,10 @@ test.describe("Needle Reset on Rapid Detections", () => {
     });
 
     await textarea.fill("Thank you for your help.");
+    // Small delay to ensure React has finished updating the UI state
+    // before triggering the second detection, allowing monitoring to capture
+    // the reset behavior reliably
+    await page.waitForTimeout(100);
     await sendButton.click();
 
     // Wait for second detection cycle to complete
@@ -152,6 +156,8 @@ test.describe("Needle Reset on Rapid Detections", () => {
     expect(requestCount).toBe(3);
 
     // Verify the UI is back to idle state
+    // Note: The textarea is cleared after each successful send (see TextInput.tsx line 42),
+    // so after the third send completes, the button should be disabled with "Type Text First"
     await expect(sendButton).toBeDisabled();
     await expect(sendButton).toHaveText(/Type Text First/);
   });

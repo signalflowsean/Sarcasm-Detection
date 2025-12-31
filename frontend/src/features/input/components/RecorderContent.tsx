@@ -66,9 +66,10 @@ const RecorderContent = ({
   const transcriptDescription =
     'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
 
-  // Show loading indicator in placeholder when model is loading
+  // Show loading indicator in placeholder when model is loading (mobile only)
+  // On desktop, keep placeholder stable to prevent visual flicker
   const placeholder =
-    speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
+    isMobile && speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
 
   // Use mobile-appropriate messaging for the empty waveform state
   // Consistent with keyboard shortcut visibility (both use isMobileBrowser())
