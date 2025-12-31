@@ -31,7 +31,7 @@ def prosodic_detection():
     Uses Wav2Vec2 embeddings + LogisticRegression classifier trained on MUStARD dataset.
 
     Supported formats: WAV, MP3, WebM, OGG, FLAC, M4A, AAC
-    Max file size: 50MB (aligned with nginx client_max_body_size)
+    Max file size: 10MB (aligned with nginx client_max_body_size)
 
     Request: multipart/form-data with 'audio' file
     Response: { "id": "uuid", "value": 0.0-1.0, "reliable": true/false }

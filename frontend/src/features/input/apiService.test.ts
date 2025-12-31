@@ -159,11 +159,11 @@ describe('apiService', () => {
     })
 
     it('should validate audio size before sending', async () => {
-      // Create a blob larger than 50MB
-      const largeData = new Uint8Array(51 * 1024 * 1024) // 51MB
+      // Create a blob larger than 10MB
+      const largeData = new Uint8Array(11 * 1024 * 1024) // 11MB
       const largeBlob = new Blob([largeData], { type: 'audio/wav' })
       await expect(sendProsodicAudio(largeBlob)).rejects.toThrow(
-        'Audio file exceeds maximum size of 50MB'
+        'Audio file exceeds maximum size of 10MB'
       )
       expect(fetch).not.toHaveBeenCalled()
     })
