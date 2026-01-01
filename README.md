@@ -269,17 +269,17 @@ Health check endpoint for container orchestration.
 
 **Backend:**
 
-| Variable              | Default         | Description                                                                   |
-| --------------------- | --------------- | ----------------------------------------------------------------------------- |
-| `API_DELAY_SECONDS`   | `2.0`           | Artificial delay for showcasing loading animations (set to `0` in production) |
-| `FLASK_DEBUG`         | `0`             | Flask debug mode (`1` for development, `0` for production)                    |
-| `FFMPEG_TIMEOUT`      | `30`            | FFmpeg conversion timeout in seconds (prevents hanging on corrupted files)    |
-| `PRELOAD_MODELS`      | `true`          | Preload ML models at startup (set to `false` for faster dev startup)          |
-| `RATE_LIMIT_ENABLED`  | `true`          | Enable/disable rate limiting                                                  |
-| `RATE_LIMIT_DEFAULT`  | `60 per minute` | Default rate limit for all endpoints                                          |
-| `RATE_LIMIT_LEXICAL`  | `30 per minute` | Rate limit for text analysis endpoint                                         |
-| `RATE_LIMIT_PROSODIC` | `10 per minute` | Rate limit for audio analysis endpoint                                        |
-| `RATE_LIMIT_STORAGE`  | `memory://`     | Storage backend (`memory://` or `redis://host:port`)                          |
+| Variable              | Default                     | Description                                                                |
+| --------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| `API_DELAY_SECONDS`   | `1.2` in dev, `0.8` in prod | Artificial delay for showcasing loading animations                         |
+| `FLASK_DEBUG`         | `0`                         | Flask debug mode (`1` for development, `0` for production)                 |
+| `FFMPEG_TIMEOUT`      | `30`                        | FFmpeg conversion timeout in seconds (prevents hanging on corrupted files) |
+| `PRELOAD_MODELS`      | `true`                      | Preload ML models at startup (set to `false` for faster dev startup)       |
+| `RATE_LIMIT_ENABLED`  | `true`                      | Enable/disable rate limiting                                               |
+| `RATE_LIMIT_DEFAULT`  | `60 per minute`             | Default rate limit for all endpoints                                       |
+| `RATE_LIMIT_LEXICAL`  | `30 per minute`             | Rate limit for text analysis endpoint                                      |
+| `RATE_LIMIT_PROSODIC` | `10 per minute`             | Rate limit for audio analysis endpoint                                     |
+| `RATE_LIMIT_STORAGE`  | `memory://`                 | Storage backend (`memory://` or `redis://host:port`)                       |
 
 **Frontend:**
 
@@ -826,7 +826,7 @@ Configure these in the Railway dashboard for each service:
 **Backend:**
 | Variable | Description |
 |----------|-------------|
-| `API_DELAY_SECONDS` | Set to `0` for production |
+| `API_DELAY_SECONDS` | Defaults to `0.8` in production (matches cable animation duration). Set to `0` to disable artificial delay. |
 | `FLASK_DEBUG` | Set to `0` for production (use `1` for development) |
 | `CORS_ORIGINS` | **REQUIRED** - Comma-separated list of allowed frontend origins (e.g., `https://sarcasm-detector.com`). Cannot be `*` in production. |
 

@@ -1,4 +1,23 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import {
+  injectAudioMocks,
+  loadTestAudioBase64,
+  waitForAudioMocksReady,
+} from "./utils/audio-mocks";
+
+/**
+ * Click the mic button using JavaScript instead of Playwright's click.
+ * This is needed because Playwright's click({ force: true }) doesn't
+ * properly trigger React's click handler on this specific button.
+ */
+async function clickMicButton(page: Page) {
+  await page.evaluate(() => {
+    const btn = document.querySelector(
+      '[data-testid="mic-button"]',
+    ) as HTMLButtonElement;
+    btn?.click();
+  });
+}
 
 /**
  * Tests for detection value reset when switching modes.
@@ -108,57 +127,29 @@ test.describe("Mode Switch Reset - Desktop", () => {
       });
     });
 
+    // Inject audio mocks BEFORE navigation (addInitScript must be called before goto)
+    const audioBase64 = loadTestAudioBase64();
+    await injectAudioMocks(page, audioBase64);
+
     // Navigate to audio mode
     await page.goto("/audio-input");
+    await waitForAudioMocksReady(page);
 
-    // Inject audio mocks for recording
-    const audioBase64 =
-      "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-    await page.addInitScript((base64) => {
-      // Mock MediaRecorder
-      (window as any).MediaRecorder = class {
-        constructor() {}
-        start() {}
-        stop() {}
-        ondataavailable = null;
-        onstop = null;
-        state = "inactive";
-      };
+    const micButton = page.getByTestId("mic-button");
+    const sendButton = page.getByTestId("send-button");
 
-      // Mock getUserMedia
-      navigator.mediaDevices.getUserMedia = async () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = 100;
-        canvas.height = 100;
-        const stream = canvas.captureStream();
-        return stream;
-      };
+    // Record audio (start and stop) instead of typing text
+    // The textarea is disabled in audio mode (read-only for transcription)
+    await clickMicButton(page);
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 5000 });
 
-      // Mock AudioContext
-      (window as any).AudioContext = class {
-        createMediaStreamSource() {
-          return {
-            connect: () => {},
-            disconnect: () => {},
-          };
-        }
-        createAnalyser() {
-          return {
-            getByteFrequencyData: () => {},
-          };
-        }
-        close() {}
-      };
-    }, audioBase64);
-
-    // Wait for audio mocks to be ready
     await page.waitForTimeout(500);
 
-    const textarea = page.getByTestId("textarea");
-    const sendButton = page.getByTestId("audio-send-button");
+    await clickMicButton(page);
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 5000 });
 
-    // Type text and send (prosodic mode uses both audio and text)
-    await textarea.fill("This is a test message");
+    // Wait for send button to be available
+    await expect(sendButton).toBeVisible({ timeout: 5000 });
     await sendButton.click();
 
     // Wait for detection to complete
@@ -183,6 +174,10 @@ test.describe("Mode Switch Reset - Desktop", () => {
 
     // Verify we're now in text mode
     await page.waitForURL("/text-input", { timeout: 5000 });
+
+    // Wait for textarea to become enabled (it's disabled in audio mode)
+    const textModeTextarea = page.getByTestId("textarea");
+    await expect(textModeTextarea).toBeEnabled({ timeout: 5000 });
 
     // Verify needle has reset to zero
     const resetRotation = await needle.evaluate((el) => {
@@ -299,44 +294,12 @@ test.describe("Mode Switch Reset - Mobile/Tablet", () => {
       });
     });
 
-    // Inject audio mocks
-    const audioBase64 =
-      "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-    await page.addInitScript((base64) => {
-      (window as any).MediaRecorder = class {
-        constructor() {}
-        start() {}
-        stop() {}
-        ondataavailable = null;
-        onstop = null;
-        state = "inactive";
-      };
-
-      navigator.mediaDevices.getUserMedia = async () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = 100;
-        canvas.height = 100;
-        return canvas.captureStream();
-      };
-
-      (window as any).AudioContext = class {
-        createMediaStreamSource() {
-          return {
-            connect: () => {},
-            disconnect: () => {},
-          };
-        }
-        createAnalyser() {
-          return {
-            getByteFrequencyData: () => {},
-          };
-        }
-        close() {}
-      };
-    }, audioBase64);
+    // Inject audio mocks BEFORE navigation (addInitScript must be called before goto)
+    const audioBase64 = loadTestAudioBase64();
+    await injectAudioMocks(page, audioBase64);
 
     await page.goto("/");
-    await page.waitForTimeout(500);
+    await waitForAudioMocksReady(page);
 
     // Switch to prosodic mode first
     const modeSwitch = page.getByTestId("detection-mode-switch");
@@ -345,11 +308,21 @@ test.describe("Mode Switch Reset - Mobile/Tablet", () => {
     const mobileControls = page.getByTestId("mobile-input-controls");
     await expect(mobileControls).toHaveAttribute("data-mode", "prosodic");
 
-    const textarea = page.locator(".mobile-input-controls__textarea textarea");
+    const micButton = page.getByTestId("mic-button");
     const sendButton = page.getByTestId("mobile-send-button");
 
-    // Type text and send (prosodic mode uses both audio and text)
-    await textarea.fill("This is a test message");
+    // Record audio (start and stop) instead of typing text
+    // The textarea is disabled in prosodic mode (read-only for transcription)
+    await micButton.tap({ force: true });
+    await expect(micButton).toHaveClass(/is-recording/, { timeout: 10000 });
+
+    await page.waitForTimeout(500);
+
+    await micButton.tap({ force: true });
+    await expect(micButton).not.toHaveClass(/is-recording/, { timeout: 10000 });
+
+    // Wait for send button to be available
+    await expect(sendButton).toBeVisible({ timeout: 5000 });
     await sendButton.click();
 
     // Wait for detection to complete
@@ -371,6 +344,12 @@ test.describe("Mode Switch Reset - Mobile/Tablet", () => {
 
     // Verify we're back in lexical mode
     await expect(mobileControls).toHaveAttribute("data-mode", "lexical");
+
+    // Wait for textarea to become enabled (it's disabled in prosodic mode)
+    const lexicalTextarea = page.locator(
+      ".mobile-input-controls__textarea textarea",
+    );
+    await expect(lexicalTextarea).toBeEnabled({ timeout: 5000 });
 
     // Verify needle has reset to zero
     const resetRotation = await needle.evaluate((el) => {
