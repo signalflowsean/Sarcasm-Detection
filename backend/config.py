@@ -207,7 +207,8 @@ DEFAULT_API_DELAY_DEV = 1.2  # Development: 1.2 seconds delay
 DEFAULT_API_DELAY_PROD = 0.8  # Production: 0.8 seconds delay (matches cable animation duration)
 
 # Artificial delay in seconds to showcase loading animations
-# Defaults to 0.8 in production, 1.2 in development
+# When API_DELAY_SECONDS is not set, defaults to 0.8 in production, 1.2 in development.
+# If explicitly set (e.g., API_DELAY_SECONDS=0), the configured value is used instead.
 # SECURITY: Validate delay to prevent DoS attacks via extremely large delays
 _raw_api_delay = os.environ.get(
     'API_DELAY_SECONDS',
