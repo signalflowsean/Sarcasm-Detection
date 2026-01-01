@@ -10,7 +10,7 @@
     "install:e2e": "cd e2e && npm install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "run-script-os",
-    "dev:backend:win32": "set FLASK_DEBUG=1 && backend\\venv\\Scripts\\python backend\\app.py",
+    "dev:backend:win32": "set FLASK_DEBUG=1&& backend\\venv\\Scripts\\python backend\\app.py",
     "dev:backend:darwin:linux": "FLASK_DEBUG=1 backend/venv/bin/python backend/app.py",
     "dev:frontend": "cd frontend && npm run dev",
     "e2e": "cd e2e && npm test",
