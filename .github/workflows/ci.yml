@@ -32,10 +32,10 @@ jobs:
 
       - name: Verify Ruff version
         run: |
-          EXPECTED_VERSION=$(grep "^ruff==" requirements-dev.txt | cut -d'=' -f3)
+          EXPECTED_VERSION=$(grep -E "^\s*ruff\s*==\s*" requirements-dev.txt | sed -E 's/^\s*ruff\s*==\s*//' | sed 's/\s*#.*$//' | tr -d '[:space:]')
           if [ -z "$EXPECTED_VERSION" ]; then
             echo "Error: Failed to extract Ruff version from requirements-dev.txt"
-            echo "Please ensure requirements-dev.txt exists and contains a line matching '^ruff=='"
+            echo "Please ensure requirements-dev.txt exists and contains a line matching 'ruff =='"
             exit 1
           fi
           INSTALLED_VERSION=$(ruff --version | awk '{print $2}')

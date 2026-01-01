@@ -106,10 +106,10 @@ def _validate_lock_order(self):
 
 ## Production vs Development
 
-- **Development** (`FLASK_ENV != 'production'`): Validation is **enabled**
+- **Development** (`FLASK_DEBUG=1`): Validation is **enabled**
   - Lock ordering violations raise `LockOrderingError` immediately
   - Helps catch bugs during development and testing
-- **Production** (`FLASK_ENV == 'production'`): Validation is **disabled**
+- **Production** (`FLASK_DEBUG=0`): Validation is **disabled**
   - No runtime overhead from tracking and validation
   - Relies on tests to ensure correct ordering
 

@@ -272,7 +272,7 @@ Health check endpoint for container orchestration.
 | Variable              | Default         | Description                                                                   |
 | --------------------- | --------------- | ----------------------------------------------------------------------------- |
 | `API_DELAY_SECONDS`   | `2.0`           | Artificial delay for showcasing loading animations (set to `0` in production) |
-| `FLASK_ENV`           | `production`    | Flask environment mode                                                        |
+| `FLASK_DEBUG`         | `0`             | Flask debug mode (`1` for development, `0` for production)                    |
 | `FFMPEG_TIMEOUT`      | `30`            | FFmpeg conversion timeout in seconds (prevents hanging on corrupted files)    |
 | `PRELOAD_MODELS`      | `true`          | Preload ML models at startup (set to `false` for faster dev startup)          |
 | `RATE_LIMIT_ENABLED`  | `true`          | Enable/disable rate limiting                                                  |
@@ -536,10 +536,10 @@ The application uses standard Python logging levels:
 
 ```bash
 # Development (shows DEBUG + INFO + WARNING + ERROR)
-export FLASK_ENV=development
+export FLASK_DEBUG=1
 
 # Production (shows INFO + WARNING + ERROR only)
-export FLASK_ENV=production
+export FLASK_DEBUG=0
 ```
 
 #### Performance Monitoring
@@ -827,7 +827,7 @@ Configure these in the Railway dashboard for each service:
 | Variable | Description |
 |----------|-------------|
 | `API_DELAY_SECONDS` | Set to `0` for production |
-| `FLASK_ENV` | Set to `production` |
+| `FLASK_DEBUG` | Set to `0` for production (use `1` for development) |
 | `CORS_ORIGINS` | **REQUIRED** - Comma-separated list of allowed frontend origins (e.g., `https://sarcasm-detector.com`). Cannot be `*` in production. |
 
 #### Changing Moonshine Model in Production

@@ -22,7 +22,7 @@ import pickle
 import threading
 from contextlib import contextmanager
 
-from config import FLASK_ENV, LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
+from config import IS_PRODUCTION, LEXICAL_MODEL_PATH, PROSODIC_MODEL_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -318,12 +318,12 @@ def validate_sklearn_model(model, model_name: str) -> bool:
 #   - Acquire onnx, then lexical (reverse order - deadlock risk!)
 #   - Acquire prosodic, then lexical (reverse order - deadlock risk!)
 #
-# Performance: Validation only runs in development mode (FLASK_ENV != 'production')
+# Performance: Validation only runs in development mode (FLASK_DEBUG=1)
 # In production, validation is disabled for performance.
 # ============================================================================
 
 # Enable lock ordering validation in development mode only
-_ENABLE_LOCK_ORDERING_VALIDATION = FLASK_ENV != 'production'
+_ENABLE_LOCK_ORDERING_VALIDATION = not IS_PRODUCTION
 
 # Thread-local storage to track which locks each thread currently holds
 # Each thread gets its own set of held locks to avoid interference
@@ -535,7 +535,7 @@ def enable_lock_ordering_validation(enabled: bool = True):
     Temporarily enable or disable lock ordering validation.
 
     This is useful for testing lock ordering violations without changing
-    the global FLASK_ENV setting.
+    the global FLASK_DEBUG setting (via IS_PRODUCTION).
 
     Args:
         enabled: Whether to enable validation

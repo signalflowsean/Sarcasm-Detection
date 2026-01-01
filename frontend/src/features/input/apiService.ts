@@ -11,13 +11,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
 // Configuration Constants
 // ============================================================================
 
-/** Maximum text length in characters (matches backend MAX_TEXT_LENGTH) */
+/** Maximum text length in characters (Matches MAX_TEXT_LENGTH in backend/config.py) */
 const MAX_TEXT_LENGTH = 10000
 
-/** Maximum audio file size in MB (matches backend MAX_AUDIO_SIZE_MB) */
+/** Maximum audio file size in MB (Matches MAX_AUDIO_SIZE_MB in backend/config.py) */
 const MAX_AUDIO_SIZE_MB = 10
 
-/** Request timeout in milliseconds (matches nginx proxy_read_timeout) */
+/** Request timeout in milliseconds (matches nginx proxy_read_timeout (60s)) */
 const REQUEST_TIMEOUT_MS = 60000
 
 export type ProsodicResponse = {
@@ -151,7 +151,7 @@ interface MergedAbortSignal {
  * @param signals - Array of AbortSignals to merge
  * @returns An object containing the merged AbortSignal and an optional cleanup function
  */
-function mergeAbortSignals(signals: AbortSignal[]): MergedAbortSignal {
+export function mergeAbortSignals(signals: AbortSignal[]): MergedAbortSignal {
   // Use native AbortSignal.any() if available (Chrome 120+, Firefox 120+, Safari 17+)
   if (typeof AbortSignal.any === 'function') {
     return { signal: AbortSignal.any(signals) }
@@ -229,8 +229,9 @@ async function fetchWithTimeout(
       if (controller.signal.aborted) {
         throw new Error('Request timed out - server took too long to respond')
       }
-      // User-initiated cancellation - preserve the original error
-      throw error
+      // User-initiated cancellation - provide descriptive error message
+      const originalMessage = error.message || 'AbortError'
+      throw new Error(`Request aborted by caller while fetching ${url}: ${originalMessage}`)
     }
     throw error
   } finally {

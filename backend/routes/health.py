@@ -71,7 +71,7 @@ def version():
             'version': API_VERSION,
             'buildTime': BUILD_TIME,
             'environment': 'production'
-            if os.environ.get('FLASK_ENV') != 'development'
+            if os.environ.get('FLASK_DEBUG', '0').lower() not in ('1', 'true', 'yes')
             else 'development',
         }
     )

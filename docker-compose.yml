@@ -2,12 +2,12 @@
 # Docker Compose Configuration - LOCAL DEVELOPMENT ONLY
 # ============================================================================
 # ⚠️  WARNING: This configuration is for LOCAL TESTING ONLY
-# 
+#
 # This docker-compose.yml uses production-like settings but with permissive
 # CORS (http://localhost) for local development convenience.
-# 
+#
 # DO NOT use this configuration in production environments!
-# 
+#
 # For production deployments (Railway, AWS, etc.):
 #   1. Set CORS_ORIGINS to your actual frontend domain(s)
 #   2. Use HTTPS URLs only (e.g., https://yourdomain.com)
@@ -25,17 +25,17 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # ⚠️  SECURITY WARNING: FLASK_ENV=production enables strict CORS checks
+      # ⚠️  SECURITY WARNING: FLASK_DEBUG=0 (production) enables strict CORS checks
       # The CORS_ORIGINS below is ONLY for local Docker testing
-      - FLASK_ENV=production
+      - FLASK_DEBUG=0
       - API_DELAY_SECONDS=0
       # ⚠️  CORS_ORIGINS SECURITY WARNING:
       # This value (http://localhost) is ONLY for local Docker Compose testing.
-      # 
+      #
       # In production, you MUST override this with your actual frontend domain:
       #   - Railway: Set CORS_ORIGINS in Railway dashboard environment variables
       #   - Example: CORS_ORIGINS=https://sarcasm-detector.com,https://www.sarcasm-detector.com
-      # 
+      #
       # NEVER deploy with http://localhost in production - it allows any origin
       # to make requests to your API, creating a security vulnerability.
       #

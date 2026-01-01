@@ -14,8 +14,10 @@ from urllib.parse import urlparse
 # Environment Configuration
 # ============================================================================
 
-FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
-IS_PRODUCTION = FLASK_ENV == 'production'
+# Flask 2.2+ deprecated FLASK_ENV, Flask 2.3+ removed it
+# Use FLASK_DEBUG instead: FLASK_DEBUG=1 for development, FLASK_DEBUG=0 for production
+FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
+IS_PRODUCTION = not FLASK_DEBUG
 
 # ============================================================================
 # Logging Configuration

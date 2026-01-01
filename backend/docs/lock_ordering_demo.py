@@ -84,7 +84,7 @@ def demo_validation_disabled():
 
     with enable_lock_ordering_validation(False):
         print('\n⚠️  Lock ordering validation is DISABLED')
-        print('   (This is how it works in production: FLASK_ENV=production)')
+        print('   (This is how it works in production: FLASK_DEBUG=0)')
 
         print('\n⚠️  Acquiring _onnx_session_lock (order=3)...')
         with _onnx_session_lock:

@@ -6,7 +6,7 @@ import {
   mockLexicalResponse,
   mockProsodicResponse,
 } from '../../test/mocks'
-import { sendLexicalText, sendProsodicAudio } from './apiService'
+import { mergeAbortSignals, sendLexicalText, sendProsodicAudio } from './apiService'
 
 describe('apiService', () => {
   beforeEach(() => {
@@ -15,6 +15,210 @@ describe('apiService', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  describe('mergeAbortSignals', () => {
+    describe('native AbortSignal.any() path', () => {
+      beforeEach(() => {
+        // Mock AbortSignal.any() as available
+        if (typeof AbortSignal.any !== 'function') {
+          ;(AbortSignal as unknown as { any: typeof AbortSignal.any }).any = vi.fn(
+            (signals: AbortSignal[]) => {
+              const controller = new AbortController()
+              signals.forEach(signal => {
+                if (signal.aborted) {
+                  controller.abort()
+                } else {
+                  signal.addEventListener('abort', () => controller.abort(), { once: true })
+                }
+              })
+              return controller.signal
+            }
+          )
+        }
+      })
+
+      afterEach(() => {
+        // Restore original AbortSignal if it was mocked
+        if (typeof AbortSignal.any === 'function' && vi.isMockFunction(AbortSignal.any)) {
+          delete (AbortSignal as unknown as { any?: typeof AbortSignal.any }).any
+        }
+      })
+
+      it('should use native AbortSignal.any() when available', () => {
+        const signal1 = new AbortController().signal
+        const signal2 = new AbortController().signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal).toBeDefined()
+        expect(result.cleanup).toBeUndefined() // Native path doesn't return cleanup
+        expect(result.signal.aborted).toBe(false)
+      })
+
+      it('should abort merged signal when any input signal aborts', () => {
+        const controller1 = new AbortController()
+        const controller2 = new AbortController()
+        const signal1 = controller1.signal
+        const signal2 = controller2.signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal.aborted).toBe(false)
+
+        controller1.abort()
+
+        expect(result.signal.aborted).toBe(true)
+      })
+
+      it('should handle already aborted signals', () => {
+        const controller1 = new AbortController()
+        controller1.abort()
+        const signal1 = controller1.signal
+        const signal2 = new AbortController().signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal.aborted).toBe(true)
+      })
+    })
+
+    describe('fallback path (no AbortSignal.any())', () => {
+      let originalAbortSignalAny: typeof AbortSignal.any | undefined
+
+      beforeEach(() => {
+        // Save original if it exists
+        originalAbortSignalAny = (AbortSignal as unknown as { any?: typeof AbortSignal.any }).any
+        // Remove AbortSignal.any() to force fallback path
+        delete (AbortSignal as unknown as { any?: typeof AbortSignal.any }).any
+      })
+
+      afterEach(() => {
+        // Restore original if it existed
+        if (originalAbortSignalAny) {
+          ;(AbortSignal as unknown as { any?: typeof AbortSignal.any }).any = originalAbortSignalAny
+        }
+      })
+
+      it('should use fallback implementation when AbortSignal.any() is not available', () => {
+        const signal1 = new AbortController().signal
+        const signal2 = new AbortController().signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal).toBeDefined()
+        expect(result.cleanup).toBeDefined() // Fallback path returns cleanup
+        expect(result.signal.aborted).toBe(false)
+      })
+
+      it('should abort merged signal when any input signal aborts', () => {
+        const controller1 = new AbortController()
+        const controller2 = new AbortController()
+        const signal1 = controller1.signal
+        const signal2 = controller2.signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal.aborted).toBe(false)
+
+        controller1.abort()
+
+        expect(result.signal.aborted).toBe(true)
+      })
+
+      it('should handle already aborted signals without adding listeners', () => {
+        const controller1 = new AbortController()
+        controller1.abort()
+        const signal1 = controller1.signal
+        const signal2 = new AbortController().signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.signal.aborted).toBe(true)
+        expect(result.cleanup).toBeUndefined() // No cleanup needed if already aborted
+      })
+
+      it('should handle multiple signals aborting', () => {
+        const controller1 = new AbortController()
+        const controller2 = new AbortController()
+        const controller3 = new AbortController()
+        const signal1 = controller1.signal
+        const signal2 = controller2.signal
+        const signal3 = controller3.signal
+
+        const result = mergeAbortSignals([signal1, signal2, signal3])
+
+        expect(result.signal.aborted).toBe(false)
+
+        controller2.abort()
+
+        expect(result.signal.aborted).toBe(true)
+      })
+
+      it('should call cleanup function to remove event listeners', () => {
+        const controller1 = new AbortController()
+        const controller2 = new AbortController()
+        const signal1 = controller1.signal
+        const signal2 = controller2.signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        expect(result.cleanup).toBeDefined()
+
+        // Spy on removeEventListener to verify cleanup
+        const removeSpy1 = vi.spyOn(signal1, 'removeEventListener')
+        const removeSpy2 = vi.spyOn(signal2, 'removeEventListener')
+
+        result.cleanup!()
+
+        expect(removeSpy1).toHaveBeenCalled()
+        expect(removeSpy2).toHaveBeenCalled()
+      })
+
+      it('should automatically clean up listeners when merged signal aborts', async () => {
+        const controller1 = new AbortController()
+        const controller2 = new AbortController()
+        const signal1 = controller1.signal
+        const signal2 = controller2.signal
+
+        const result = mergeAbortSignals([signal1, signal2])
+
+        // Spy on removeEventListener to verify automatic cleanup
+        const removeSpy1 = vi.spyOn(signal1, 'removeEventListener')
+        const removeSpy2 = vi.spyOn(signal2, 'removeEventListener')
+
+        // Abort one of the signals, which should trigger cleanup via the abort event listener
+        controller1.abort()
+
+        // Wait for the abort event to propagate and trigger cleanup
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+
+        expect(result.signal.aborted).toBe(true)
+        expect(removeSpy1).toHaveBeenCalled()
+        expect(removeSpy2).toHaveBeenCalled()
+      })
+
+      it('should handle empty signals array', () => {
+        const result = mergeAbortSignals([])
+
+        expect(result.signal).toBeDefined()
+        expect(result.signal.aborted).toBe(false)
+      })
+
+      it('should handle single signal', () => {
+        const controller = new AbortController()
+        const signal = controller.signal
+
+        const result = mergeAbortSignals([signal])
+
+        expect(result.signal).toBeDefined()
+        expect(result.cleanup).toBeDefined()
+
+        controller.abort()
+
+        expect(result.signal.aborted).toBe(true)
+      })
+    })
   })
 
   describe('sendLexicalText', () => {
