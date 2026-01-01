@@ -5,7 +5,20 @@
 
 // In Docker: empty string makes URLs relative (nginx proxies /api/* to backend)
 // In development: falls back to direct backend connection
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000').replace(/\/$/, '')
+
+// ============================================================================
+// Configuration Constants
+// ============================================================================
+
+/** Maximum text length in characters (Matches MAX_TEXT_LENGTH in backend/config.py) */
+const MAX_TEXT_LENGTH = 10000
+
+/** Maximum audio file size in MB (Matches MAX_AUDIO_SIZE_MB in backend/config.py) */
+const MAX_AUDIO_SIZE_MB = 10
+
+/** Request timeout in milliseconds (matches nginx proxy_read_timeout (60s)) */
+const REQUEST_TIMEOUT_MS = 60000
 
 export type ProsodicResponse = {
   id: string
@@ -25,6 +38,17 @@ export type LexicalResponse = {
  */
 interface ErrorResponse {
   error: string
+}
+
+/**
+ * Custom error class for invalid API response formats.
+ * Used to distinguish validation errors from JSON parsing errors.
+ */
+class InvalidResponseFormatError extends Error {
+  constructor(requestId: string) {
+    super(`[${requestId}] Invalid response format from server`)
+    this.name = 'InvalidResponseFormatError'
+  }
 }
 
 /**
@@ -105,6 +129,173 @@ function getExtensionFromBlob(blob: Blob): string {
   return MIME_TO_EXTENSION[blob.type] ?? '.webm'
 }
 
+// ============================================================================
+// Request ID Generation
+// ============================================================================
+
+/**
+ * Generate a unique request ID for tracking requests across frontend and backend.
+ * @returns A unique UUID string for request tracking
+ */
+function generateRequestId(): string {
+  return crypto.randomUUID()
+}
+
+// ============================================================================
+// Timeout Handling
+// ============================================================================
+
+/**
+ * Result of merging multiple AbortSignals.
+ * Contains the merged signal and an optional cleanup function to remove event listeners.
+ */
+interface MergedAbortSignal {
+  signal: AbortSignal
+  cleanup?: () => void
+}
+
+/**
+ * Merge multiple AbortSignals into a single signal that aborts when any signal aborts.
+ * Falls back to manual event listener approach for browsers that don't support AbortSignal.any().
+ *
+ * @param signals - Array of AbortSignals to merge
+ * @returns An object containing the merged AbortSignal and an optional cleanup function
+ */
+export function mergeAbortSignals(signals: AbortSignal[]): MergedAbortSignal {
+  // Use native AbortSignal.any() if available (Chrome 120+, Firefox 120+, Safari 17+)
+  if (typeof AbortSignal.any === 'function') {
+    return { signal: AbortSignal.any(signals) }
+  }
+
+  // Fallback for older browsers: create a new controller and listen to all signals
+  const controller = new AbortController()
+
+  // Check if any signal is already aborted
+  if (signals.some(signal => signal.aborted)) {
+    controller.abort()
+    return { signal: controller.signal }
+  }
+
+  // Listen for abort events on all signals
+  const abortHandler = () => controller.abort()
+  signals.forEach(signal => {
+    signal.addEventListener('abort', abortHandler)
+  })
+
+  // Clean up listeners when the controller's signal aborts
+  // This prevents memory leaks by removing listeners once they're no longer needed
+  const cleanup = () => {
+    signals.forEach(signal => {
+      signal.removeEventListener('abort', abortHandler)
+    })
+  }
+  controller.signal.addEventListener('abort', cleanup, { once: true })
+
+  return { signal: controller.signal, cleanup }
+}
+
+/**
+ * Fetch wrapper with timeout support using AbortController.
+ * Prevents hanging requests by aborting after the specified timeout.
+ * Merges timeout signal with any existing signal in options to preserve both timeout and external abort capabilities.
+ *
+ * @param url - URL to fetch
+ * @param options - Fetch options (may include an existing signal)
+ * @param timeoutMs - Timeout in milliseconds (default: 60 seconds)
+ * @returns Promise that resolves to the Response
+ * @throws Error with 'Request timed out' message if timeout is reached
+ * @throws Original error for other fetch failures
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+
+  // Track whether the timeout actually fired
+  // This prevents race conditions where we can't reliably determine
+  // if controller.signal.aborted was caused by timeout or external signal
+  let timeoutFired = false
+  const timeoutId = setTimeout(() => {
+    timeoutFired = true
+    controller.abort()
+  }, timeoutMs)
+
+  // Track cleanup function for merged signals to prevent memory leaks
+  let signalCleanup: (() => void) | undefined
+
+  try {
+    // Merge timeout signal with any existing signal from options
+    // This preserves both timeout and external abort capabilities
+    const merged = options.signal
+      ? mergeAbortSignals([options.signal, controller.signal])
+      : { signal: controller.signal }
+
+    signalCleanup = merged.cleanup
+    const signal = merged.signal
+
+    const response = await fetch(url, { ...options, signal })
+    clearTimeout(timeoutId)
+    return response
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      // Check if the timeout was the cause by examining our flag
+      // This is more reliable than checking controller.signal.aborted
+      // which could be true even if an external signal aborted first
+      if (timeoutFired) {
+        throw new Error('Request timed out - server took too long to respond')
+      }
+      // User-initiated cancellation - provide descriptive error message
+      const originalMessage = error.message || 'AbortError'
+      throw new Error(`Request aborted by caller while fetching ${url}: ${originalMessage}`)
+    }
+    throw error
+  } finally {
+    // Always clean up event listeners to prevent memory leaks
+    // This ensures listeners are removed even when the request completes successfully
+    signalCleanup?.()
+  }
+}
+
+// ============================================================================
+// Input Validation
+// ============================================================================
+
+/**
+ * Validate text input before sending to API.
+ * Provides immediate feedback and prevents unnecessary API calls.
+ *
+ * @param text - Text to validate
+ * @throws Error with descriptive message if validation fails
+ */
+function validateText(text: string): void {
+  if (!text || !text.trim()) {
+    throw new Error('Text cannot be empty')
+  }
+  if (text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text exceeds maximum length of ${MAX_TEXT_LENGTH.toLocaleString()} characters`)
+  }
+}
+
+/**
+ * Validate audio blob before sending to API.
+ * Provides immediate feedback and prevents unnecessary API calls.
+ *
+ * @param audio - Audio blob to validate
+ * @throws Error with descriptive message if validation fails
+ */
+function validateAudio(audio: Blob): void {
+  if (audio.size === 0) {
+    throw new Error('Audio file is empty')
+  }
+  const maxBytes = MAX_AUDIO_SIZE_MB * 1024 * 1024
+  if (audio.size > maxBytes) {
+    throw new Error(`Audio file exceeds maximum size of ${MAX_AUDIO_SIZE_MB}MB`)
+  }
+}
+
 /**
  * Send audio to the prosodic detection endpoint.
  * @param audio - Audio blob from recording
@@ -112,20 +303,30 @@ function getExtensionFromBlob(blob: Blob): string {
  * @throws Error with descriptive message if request fails
  */
 export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> {
+  // Validate audio before sending
+  validateAudio(audio)
+
+  // Generate unique request ID for tracking
+  const requestId = generateRequestId()
+
   const formData = new FormData()
   const extension = getExtensionFromBlob(audio)
   formData.append('audio', audio, `recording${extension}`)
 
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/api/prosodic`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/prosodic` : '/api/prosodic'
+    response = await fetchWithTimeout(url, {
       method: 'POST',
+      headers: {
+        'X-Request-ID': requestId,
+      },
       body: formData,
     })
   } catch (error) {
-    // Network error (no response received)
+    // Network error or timeout
     const message = error instanceof Error ? error.message : 'Network error'
-    throw new Error(`Failed to connect to server: ${message}`)
+    throw new Error(`[${requestId}] Failed to connect to server: ${message}`)
   }
 
   if (!response.ok) {
@@ -144,21 +345,22 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
       const statusText = response.statusText || 'Unknown error'
       errorMessage = `HTTP ${response.status}: ${statusText}`
     }
-    throw new Error(errorMessage)
+    throw new Error(`[${requestId}] ${errorMessage}`)
   }
 
   // Parse successful response
   try {
     const data: unknown = await response.json()
     if (!isProsodicResponse(data)) {
-      throw new Error('Invalid response format from server')
+      throw new InvalidResponseFormatError(requestId)
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid response format from server') {
+    // Re-throw validation errors as-is, wrap JSON parsing errors
+    if (error instanceof InvalidResponseFormatError) {
       throw error
     }
-    throw new Error('Invalid response format from server')
+    throw new InvalidResponseFormatError(requestId)
   }
 }
 
@@ -169,19 +371,27 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
  * @throws Error with descriptive message if request fails
  */
 export async function sendLexicalText(text: string): Promise<LexicalResponse> {
+  // Validate text before sending
+  validateText(text)
+
+  // Generate unique request ID for tracking
+  const requestId = generateRequestId()
+
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/api/lexical`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/lexical` : '/api/lexical'
+    response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
       },
       body: JSON.stringify({ text }),
     })
   } catch (error) {
-    // Network error (no response received)
+    // Network error or timeout
     const message = error instanceof Error ? error.message : 'Network error'
-    throw new Error(`Failed to connect to server: ${message}`)
+    throw new Error(`[${requestId}] Failed to connect to server: ${message}`)
   }
 
   if (!response.ok) {
@@ -200,20 +410,21 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
       const statusText = response.statusText || 'Unknown error'
       errorMessage = `HTTP ${response.status}: ${statusText}`
     }
-    throw new Error(errorMessage)
+    throw new Error(`[${requestId}] ${errorMessage}`)
   }
 
   // Parse successful response
   try {
     const data: unknown = await response.json()
     if (!isLexicalResponse(data)) {
-      throw new Error('Invalid response format from server')
+      throw new InvalidResponseFormatError(requestId)
     }
     return data
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid response format from server') {
+    // Re-throw validation errors as-is, wrap JSON parsing errors
+    if (error instanceof InvalidResponseFormatError) {
       throw error
     }
-    throw new Error('Invalid response format from server')
+    throw new InvalidResponseFormatError(requestId)
   }
 }

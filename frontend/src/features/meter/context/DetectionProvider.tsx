@@ -1,6 +1,6 @@
 import { sendLexicalText, sendProsodicAudio } from '@/features/input/apiService'
 import { isDev } from '@/features/input/utils/env'
-import React, { createContext, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useEffect, useRef, useState } from 'react'
 import { useWhichInput } from '../hooks/useWhichInput'
 import type { DetectionStateType } from '../utils/meterConstants'
 import {
@@ -283,7 +283,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
   }
 
   // Manual reset
-  const reset = () => {
+  const reset = useCallback(() => {
     clearTimers()
     clearCableAnimationTimer()
     setIsLoading(false)
@@ -292,7 +292,7 @@ export function DetectionProvider({ children }: DetectionProviderProps) {
     setProsodicValue(0)
     setIsReliable(true)
     setState(DetectionState.IDLE)
-  }
+  }, [])
 
   // DEV MODE ONLY: Trigger a test detection by calling real endpoints
   // Only available in development builds (gated by isDev())

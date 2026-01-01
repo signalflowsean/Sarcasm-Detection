@@ -40,7 +40,8 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 # Set test environment BEFORE importing app modules
-os.environ['FLASK_ENV'] = 'testing'
+# Use FLASK_DEBUG=1 for testing (development mode)
+os.environ['FLASK_DEBUG'] = '1'
 os.environ['RATE_LIMIT_ENABLED'] = 'false'
 os.environ['API_DELAY_SECONDS'] = '0'
 

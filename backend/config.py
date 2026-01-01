@@ -14,8 +14,10 @@ from urllib.parse import urlparse
 # Environment Configuration
 # ============================================================================
 
-FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
-IS_PRODUCTION = FLASK_ENV == 'production'
+# Flask 2.2+ deprecated FLASK_ENV, Flask 2.3+ removed it
+# Use FLASK_DEBUG instead: FLASK_DEBUG=1 for development, FLASK_DEBUG=0 for production
+FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
+IS_PRODUCTION = not FLASK_DEBUG
 
 # ============================================================================
 # Logging Configuration
@@ -202,10 +204,11 @@ CORS_ORIGINS = _validate_cors_origins(_raw_cors_origins, IS_PRODUCTION)
 # Default API delay values (in seconds)
 # Used to showcase loading animations in development
 DEFAULT_API_DELAY_DEV = 1.2  # Development: 1.2 seconds delay
-DEFAULT_API_DELAY_PROD = 0.0  # Production: no artificial delay
+DEFAULT_API_DELAY_PROD = 0.8  # Production: 0.8 seconds delay (matches cable animation duration)
 
 # Artificial delay in seconds to showcase loading animations
-# Defaults to 0 in production, 1.2 in development
+# When API_DELAY_SECONDS is not set, defaults to 0.8 in production, 1.2 in development.
+# If explicitly set (e.g., API_DELAY_SECONDS=0), the configured value is used instead.
 # SECURITY: Validate delay to prevent DoS attacks via extremely large delays
 _raw_api_delay = os.environ.get(
     'API_DELAY_SECONDS',
@@ -440,8 +443,8 @@ MAX_TEXT_LENGTH = 10000  # Maximum characters for lexical analysis
 # Audio File Validation
 # ============================================================================
 
-# Max file size (aligned with nginx client_max_body_size of 50M)
-MAX_AUDIO_SIZE_MB = 50
+# Max file size (aligned with nginx client_max_body_size of 10M)
+MAX_AUDIO_SIZE_MB = 10
 MAX_AUDIO_SIZE_BYTES = MAX_AUDIO_SIZE_MB * 1024 * 1024
 
 # ============================================================================

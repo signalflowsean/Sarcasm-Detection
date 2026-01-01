@@ -30,6 +30,23 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Verify Ruff version
+        run: |
+          EXPECTED_VERSION=$(grep -E "^\s*ruff\s*==\s*" requirements-dev.txt | sed -E 's/^\s*ruff\s*==\s*//' | sed 's/\s*#.*$//' | tr -d '[:space:]')
+          if [ -z "$EXPECTED_VERSION" ]; then
+            echo "Error: Failed to extract Ruff version from requirements-dev.txt"
+            echo "Please ensure requirements-dev.txt exists and contains a line matching 'ruff =='"
+            exit 1
+          fi
+          INSTALLED_VERSION=$(ruff --version | awk '{print $2}')
+          if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "Error: Ruff version mismatch!"
+            echo "Expected: $EXPECTED_VERSION"
+            echo "Installed: $INSTALLED_VERSION"
+            exit 1
+          fi
+          echo "✓ Ruff version matches: $INSTALLED_VERSION"
+
       - name: Lint with Ruff
         run: |
           ruff check .

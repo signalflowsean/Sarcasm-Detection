@@ -245,12 +245,12 @@ class TestLockOrderingValidation:
                         pass
 
         # After exiting context, validation state is restored
-        # (depends on original FLASK_ENV setting)
+        # (depends on original FLASK_DEBUG setting)
 
     @patch('models.loader._ENABLE_LOCK_ORDERING_VALIDATION', True)
     def test_validation_enabled_by_default_in_dev(self):
         """Test that lock ordering validation is enabled in development mode."""
-        # When FLASK_ENV != 'production', validation should be enabled
+        # When FLASK_DEBUG=1 (development), validation should be enabled
         with _onnx_session_lock:
             with pytest.raises(LockOrderingError):
                 with _prosodic_model_lock:

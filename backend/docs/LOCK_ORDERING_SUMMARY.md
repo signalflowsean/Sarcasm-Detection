@@ -57,11 +57,11 @@ When acquiring a lock:
 ### 5. Environment-Based Activation
 
 ```python
-_ENABLE_LOCK_ORDERING_VALIDATION = FLASK_ENV != 'production'
+_ENABLE_LOCK_ORDERING_VALIDATION = not IS_PRODUCTION
 ```
 
-- **Development**: Validation ON → Catch bugs early
-- **Production**: Validation OFF → Zero performance overhead
+- **Development** (`FLASK_DEBUG=1`): Validation ON → Catch bugs early
+- **Production** (`FLASK_DEBUG=0`): Validation OFF → Zero performance overhead
 
 ## Files Created/Modified
 
