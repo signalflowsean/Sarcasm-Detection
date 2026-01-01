@@ -204,7 +204,7 @@ CORS_ORIGINS = _validate_cors_origins(_raw_cors_origins, IS_PRODUCTION)
 # Default API delay values (in seconds)
 # Used to showcase loading animations in development
 DEFAULT_API_DELAY_DEV = 1.2  # Development: 1.2 seconds delay
-DEFAULT_API_DELAY_PROD = 0.0  # Production: no artificial delay
+DEFAULT_API_DELAY_PROD = 0.8  # Production: 0.8 seconds delay (matches cable animation duration)
 
 # Artificial delay in seconds to showcase loading animations
 # Defaults to 0 in production, 1.2 in development
