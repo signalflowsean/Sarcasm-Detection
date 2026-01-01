@@ -5,7 +5,7 @@
 
 // In Docker: empty string makes URLs relative (nginx proxies /api/* to backend)
 // In development: falls back to direct backend connection
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000'
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000').replace(/\/$/, '')
 
 // ============================================================================
 // Configuration Constants
@@ -315,7 +315,8 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
 
   let response: Response
   try {
-    response = await fetchWithTimeout(`${API_BASE_URL}/api/prosodic`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/prosodic` : '/api/prosodic'
+    response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'X-Request-ID': requestId,
@@ -378,7 +379,8 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
 
   let response: Response
   try {
-    response = await fetchWithTimeout(`${API_BASE_URL}/api/lexical`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/api/lexical` : '/api/lexical'
+    response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
