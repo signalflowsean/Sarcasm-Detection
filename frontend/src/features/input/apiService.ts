@@ -41,6 +41,17 @@ interface ErrorResponse {
 }
 
 /**
+ * Custom error class for invalid API response formats.
+ * Used to distinguish validation errors from JSON parsing errors.
+ */
+class InvalidResponseFormatError extends Error {
+  constructor(requestId: string) {
+    super(`[${requestId}] Invalid response format from server`)
+    this.name = 'InvalidResponseFormatError'
+  }
+}
+
+/**
  * Type guard to check if data is an ErrorResponse.
  * @param data - Unknown data to check
  * @returns True if data is an ErrorResponse
@@ -124,8 +135,7 @@ function getExtensionFromBlob(blob: Blob): string {
 
 /**
  * Generate a unique request ID for tracking requests across frontend and backend.
- * Uses crypto.randomUUID() for cryptographically secure random IDs.
- * @returns A unique request ID string
+ * @returns A unique UUID string for request tracking
  */
 function generateRequestId(): string {
   return crypto.randomUUID()
@@ -202,7 +212,15 @@ async function fetchWithTimeout(
   timeoutMs: number = REQUEST_TIMEOUT_MS
 ): Promise<Response> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  // Track whether the timeout actually fired
+  // This prevents race conditions where we can't reliably determine
+  // if controller.signal.aborted was caused by timeout or external signal
+  let timeoutFired = false
+  const timeoutId = setTimeout(() => {
+    timeoutFired = true
+    controller.abort()
+  }, timeoutMs)
 
   // Track cleanup function for merged signals to prevent memory leaks
   let signalCleanup: (() => void) | undefined
@@ -223,10 +241,10 @@ async function fetchWithTimeout(
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
-      // Check if the timeout signal was the one that aborted
-      // If controller.signal.aborted is true, it was a timeout
-      // Otherwise, it was a user-initiated cancellation via options.signal
-      if (controller.signal.aborted) {
+      // Check if the timeout was the cause by examining our flag
+      // This is more reliable than checking controller.signal.aborted
+      // which could be true even if an external signal aborted first
+      if (timeoutFired) {
         throw new Error('Request timed out - server took too long to respond')
       }
       // User-initiated cancellation - provide descriptive error message
@@ -333,16 +351,15 @@ export async function sendProsodicAudio(audio: Blob): Promise<ProsodicResponse> 
   try {
     const data: unknown = await response.json()
     if (!isProsodicResponse(data)) {
-      throw new Error(`[${requestId}] Invalid response format from server`)
+      throw new InvalidResponseFormatError(requestId)
     }
     return data
   } catch (error) {
-    // Check for exact match to distinguish validation errors from JSON parsing errors
-    const expectedErrorMessage = `[${requestId}] Invalid response format from server`
-    if (error instanceof Error && error.message === expectedErrorMessage) {
+    // Re-throw validation errors as-is, wrap JSON parsing errors
+    if (error instanceof InvalidResponseFormatError) {
       throw error
     }
-    throw new Error(`[${requestId}] Invalid response format from server`)
+    throw new InvalidResponseFormatError(requestId)
   }
 }
 
@@ -398,15 +415,14 @@ export async function sendLexicalText(text: string): Promise<LexicalResponse> {
   try {
     const data: unknown = await response.json()
     if (!isLexicalResponse(data)) {
-      throw new Error(`[${requestId}] Invalid response format from server`)
+      throw new InvalidResponseFormatError(requestId)
     }
     return data
   } catch (error) {
-    // Check for exact match to distinguish validation errors from JSON parsing errors
-    const expectedErrorMessage = `[${requestId}] Invalid response format from server`
-    if (error instanceof Error && error.message === expectedErrorMessage) {
+    // Re-throw validation errors as-is, wrap JSON parsing errors
+    if (error instanceof InvalidResponseFormatError) {
       throw error
     }
-    throw new Error(`[${requestId}] Invalid response format from server`)
+    throw new InvalidResponseFormatError(requestId)
   }
 }

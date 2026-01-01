@@ -275,8 +275,9 @@ describe('apiService', () => {
       expect(error.message).toContain('Network error')
     })
 
-    it('should treat AbortError from user cancellation as connection error', async () => {
-      // When fetch is aborted by user (not timeout), it should be treated as a connection error
+    it('should handle non-timeout AbortError as connection error', async () => {
+      // When fetch is aborted by a non-timeout source (e.g., browser navigation, network interruption),
+      // it should be treated as a connection error, not a timeout error
       vi.mocked(fetch).mockRejectedValueOnce(
         Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' })
       )
@@ -388,8 +389,9 @@ describe('apiService', () => {
       expect(error.message).toContain('Failed to fetch')
     })
 
-    it('should treat AbortError from user cancellation as connection error', async () => {
-      // When fetch is aborted by user (not timeout), it should be treated as a connection error
+    it('should handle non-timeout AbortError as connection error', async () => {
+      // When fetch is aborted by a non-timeout source (e.g., browser navigation, network interruption),
+      // it should be treated as a connection error, not a timeout error
       vi.mocked(fetch).mockRejectedValueOnce(
         Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' })
       )
