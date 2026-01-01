@@ -1,5 +1,5 @@
 # Stage 1: Builder - compile Python packages with build tools
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -28,7 +28,7 @@ RUN echo "Downloading wav2vec2.onnx..." && \
 
 
 # Stage 2: Runtime - minimal image with only runtime deps
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
