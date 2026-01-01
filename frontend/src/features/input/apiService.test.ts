@@ -318,8 +318,8 @@ describe('apiService', () => {
         })
       })
 
-      // Start the request (it will hang waiting for timeout)
-      const requestPromise = sendLexicalText('test')
+      // Start the request and attach error handler immediately to prevent unhandled rejection
+      const requestPromise = sendLexicalText('test').catch(e => e)
 
       // Advance timers past REQUEST_TIMEOUT_MS (60000ms) to trigger timeout
       await vi.advanceTimersByTimeAsync(60001)
@@ -328,7 +328,7 @@ describe('apiService', () => {
       await Promise.resolve()
 
       // Verify the error message contains the timeout message
-      const error = await requestPromise.catch(e => e)
+      const error = await requestPromise
       expect(error.message).toContain('Failed to connect to server')
       expect(error.message).toContain('Request timed out - server took too long to respond')
 
@@ -483,8 +483,8 @@ describe('apiService', () => {
       })
 
       const audioBlob = createMockAudioBlob()
-      // Start the request (it will hang waiting for timeout)
-      const requestPromise = sendProsodicAudio(audioBlob)
+      // Start the request and attach error handler immediately to prevent unhandled rejection
+      const requestPromise = sendProsodicAudio(audioBlob).catch(e => e)
 
       // Advance timers past REQUEST_TIMEOUT_MS (60000ms) to trigger timeout
       await vi.advanceTimersByTimeAsync(60001)
@@ -493,7 +493,7 @@ describe('apiService', () => {
       await Promise.resolve()
 
       // Verify the error message contains the timeout message
-      const error = await requestPromise.catch(e => e)
+      const error = await requestPromise
       expect(error.message).toContain('Failed to connect to server')
       expect(error.message).toContain('Request timed out - server took too long to respond')
 
