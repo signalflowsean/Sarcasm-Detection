@@ -51,7 +51,7 @@ jobs:
       - name: Start backend server
         working-directory: backend
         run: |
-          export FLASK_ENV=testing
+          export FLASK_DEBUG=1
           export RATE_LIMIT_ENABLED=false
           export API_DELAY_SECONDS=0
           export PRELOAD_MODELS=false
@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
         env:
-          FLASK_ENV: testing
+          FLASK_DEBUG: "1"
           RATE_LIMIT_ENABLED: "false"
           API_DELAY_SECONDS: "0"
           PRELOAD_MODELS: "false"
