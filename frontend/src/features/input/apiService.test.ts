@@ -287,6 +287,55 @@ describe('apiService', () => {
       expect(error.message).toContain('signal is aborted without reason')
     })
 
+    it('should handle timeout scenarios when fetch exceeds REQUEST_TIMEOUT_MS', async () => {
+      // Use fake timers to control time without actually waiting 60 seconds
+      vi.useFakeTimers()
+
+      // Mock fetch to return a promise that hangs but respects abort signal
+      // When the signal is aborted (by timeout), it should throw AbortError
+      vi.mocked(fetch).mockImplementationOnce((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          // Listen for abort signal and reject with AbortError when it fires
+          if (options?.signal) {
+            // Check if already aborted
+            if (options.signal.aborted) {
+              const abortError = new Error('The operation was aborted.')
+              abortError.name = 'AbortError'
+              reject(abortError)
+              return
+            }
+            // Listen for abort event
+            options.signal.addEventListener(
+              'abort',
+              () => {
+                const abortError = new Error('The operation was aborted.')
+                abortError.name = 'AbortError'
+                reject(abortError)
+              },
+              { once: true }
+            )
+          }
+        })
+      })
+
+      // Start the request (it will hang waiting for timeout)
+      const requestPromise = sendLexicalText('test')
+
+      // Advance timers past REQUEST_TIMEOUT_MS (60000ms) to trigger timeout
+      await vi.advanceTimersByTimeAsync(60001)
+
+      // Wait for microtasks to settle so the abort event propagates
+      await Promise.resolve()
+
+      // Verify the error message contains the timeout message
+      const error = await requestPromise.catch(e => e)
+      expect(error.message).toContain('Failed to connect to server')
+      expect(error.message).toContain('Request timed out - server took too long to respond')
+
+      // Restore real timers
+      vi.useRealTimers()
+    })
+
     it('should handle non-JSON error responses', async () => {
       vi.mocked(fetch).mockReturnValueOnce(
         Promise.resolve({
@@ -400,6 +449,56 @@ describe('apiService', () => {
       const error = await sendProsodicAudio(audioBlob).catch(e => e)
       expect(error.message).toContain('Failed to connect to server')
       expect(error.message).toContain('signal is aborted without reason')
+    })
+
+    it('should handle timeout scenarios when fetch exceeds REQUEST_TIMEOUT_MS', async () => {
+      // Use fake timers to control time without actually waiting 60 seconds
+      vi.useFakeTimers()
+
+      // Mock fetch to return a promise that hangs but respects abort signal
+      // When the signal is aborted (by timeout), it should throw AbortError
+      vi.mocked(fetch).mockImplementationOnce((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          // Listen for abort signal and reject with AbortError when it fires
+          if (options?.signal) {
+            // Check if already aborted
+            if (options.signal.aborted) {
+              const abortError = new Error('The operation was aborted.')
+              abortError.name = 'AbortError'
+              reject(abortError)
+              return
+            }
+            // Listen for abort event
+            options.signal.addEventListener(
+              'abort',
+              () => {
+                const abortError = new Error('The operation was aborted.')
+                abortError.name = 'AbortError'
+                reject(abortError)
+              },
+              { once: true }
+            )
+          }
+        })
+      })
+
+      const audioBlob = createMockAudioBlob()
+      // Start the request (it will hang waiting for timeout)
+      const requestPromise = sendProsodicAudio(audioBlob)
+
+      // Advance timers past REQUEST_TIMEOUT_MS (60000ms) to trigger timeout
+      await vi.advanceTimersByTimeAsync(60001)
+
+      // Wait for microtasks to settle so the abort event propagates
+      await Promise.resolve()
+
+      // Verify the error message contains the timeout message
+      const error = await requestPromise.catch(e => e)
+      expect(error.message).toContain('Failed to connect to server')
+      expect(error.message).toContain('Request timed out - server took too long to respond')
+
+      // Restore real timers
+      vi.useRealTimers()
     })
 
     it('should handle non-JSON error responses', async () => {

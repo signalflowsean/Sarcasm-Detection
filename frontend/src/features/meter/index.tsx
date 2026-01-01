@@ -35,6 +35,7 @@ const MeterSection = () => {
     prosodicValue,
     mainValue,
     isReliable,
+    reset,
   } = useDetection()
 
   // Check if we're on mobile/tablet
@@ -55,6 +56,28 @@ const MeterSection = () => {
   // Track previous power state to detect power-on transition
   const prevPowerStateRef = useRef<PowerState>(powerState)
   const [isPoweringOn, setIsPoweringOn] = useState(false)
+
+  // Track previous input mode to detect changes and reset detection values
+  // This ensures values reset when switching modes (both desktop rotary switch
+  // and mobile/tablet detection mode switch) after a detection has been made
+  const prevInputModeRef = useRef<InputMode>(inputMode)
+  const prevDetectionModeRef = useRef<DetectionMode>(detectionMode)
+
+  // Reset detection values when effective input mode changes
+  // This handles both desktop (rotary switch) and mobile/tablet (detection mode switch)
+  // Values should reset when switching modes because they no longer make sense in the new context
+  useEffect(() => {
+    const inputModeChanged = prevInputModeRef.current !== inputMode
+    const detectionModeChanged = prevDetectionModeRef.current !== detectionMode
+
+    // Reset if input mode changed (desktop rotary switch or mobile detection mode)
+    if (inputModeChanged || (isMobileOrTablet && detectionModeChanged)) {
+      reset()
+    }
+
+    prevInputModeRef.current = inputMode
+    prevDetectionModeRef.current = detectionMode
+  }, [inputMode, detectionMode, isMobileOrTablet, reset])
 
   // Info modal state (for mobile/tablet getting started)
   const [showInfoModal, setShowInfoModal] = useState(false)
