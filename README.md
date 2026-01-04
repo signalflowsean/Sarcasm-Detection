@@ -961,6 +961,27 @@ The `@moonshine-ai/moonshine-js` package (v0.1.29) has a broken file path depend
   - Recording indicator appearing (`isRecording` state change)
   - React re-renders and browser repaints
 
+### Waveform Visualization Cross-Browser Normalization
+
+**Issue:** Audio waveform visualization has imperfect normalization across Chrome and Firefox due to significant differences in microphone audio levels returned by the Web Audio API.
+
+**Impact:** Minor visual inconsistencies:
+- Chrome: May show slight noise floor amplification during silence
+- Firefox: May peak/clip on loud audio
+
+**Technical Details:**
+
+Chrome's `getUserMedia` + `AnalyserNode` returns very quiet audio (deviation 1-5 from center), while Firefox returns much louder audio (deviation 20-50+). This creates an overlap where Chrome's speech signal (deviation 2-5) is indistinguishable from Firefox's noise floor (deviation 2-4).
+
+**Current Mitigation:** Adaptive gain curve with deviation-based max gain limits:
+- Low deviation (≤5): Higher max gain (6-8x) for Chrome
+- High deviation (15+): Lower max gain (2x) to prevent Firefox peaking
+
+**Potential Improvements:**
+- Browser detection to apply browser-specific settings
+- User-adjustable sensitivity control
+- Frequency-based voice activity detection (more complex)
+
 ---
 
 ## License

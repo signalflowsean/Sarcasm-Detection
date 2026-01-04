@@ -9,13 +9,33 @@ vi.mock('@moonshine-ai/moonshine-js', () => {
   }
 })
 
+// Mock Web Speech API support check to prevent preload from running in tests
+vi.mock('./webSpeechEngine', async importOriginal => {
+  const actual = await importOriginal<typeof import('./webSpeechEngine')>()
+  return {
+    ...actual,
+    // Return true so preload doesn't kick in during tests
+    isWebSpeechSupported: () => true,
+  }
+})
+
+// Mock moonshine preload to prevent side effects
+vi.mock('./moonshineEngine', async importOriginal => {
+  const actual = await importOriginal<typeof import('./moonshineEngine')>()
+  return {
+    ...actual,
+    // No-op preload in tests
+    preloadMoonshineModel: vi.fn().mockResolvedValue(undefined),
+  }
+})
+
 import * as Moonshine from '@moonshine-ai/moonshine-js'
 
 describe('useSpeechRecognition', () => {
   let mockTranscriber: {
     start: ReturnType<typeof vi.fn>
     stop: ReturnType<typeof vi.fn>
-    isListening: ReturnType<typeof vi.fn>
+    // Note: isListening() does NOT exist in @moonshine-ai/moonshine-js v0.1.29
   }
   let capturedCallbacks: {
     onTranscriptionCommitted?: (text: string) => void
@@ -35,10 +55,25 @@ describe('useSpeechRecognition', () => {
     vi.resetAllMocks()
 
     // Create mock transcriber instance
+    // Note: isListening() does NOT exist in @moonshine-ai/moonshine-js v0.1.29
     mockTranscriber = {
-      start: vi.fn().mockResolvedValue(undefined),
+      start: vi.fn().mockImplementation(async () => {
+        // After start, trigger callbacks to simulate ready state
+        // Use setTimeout to allow test to inspect intermediate states if needed
+        setTimeout(() => {
+          if (capturedCallbacks.onModelLoadStart) {
+            capturedCallbacks.onModelLoadStart()
+          }
+          if (capturedCallbacks.onModelLoadComplete) {
+            capturedCallbacks.onModelLoadComplete()
+          }
+          // Simulate first transcript to trigger 'listening' status
+          if (capturedCallbacks.onTranscriptionUpdated) {
+            capturedCallbacks.onTranscriptionUpdated('')
+          }
+        }, 0)
+      }),
       stop: vi.fn(),
-      isListening: vi.fn().mockReturnValue(false),
     }
 
     // Capture callbacks when MicrophoneTranscriber is constructed
@@ -77,22 +112,15 @@ describe('useSpeechRecognition', () => {
 
       expect(result.current.speechStatus).toBe('idle')
 
-      // Start speech recognition
+      // Start speech recognition - the mock auto-triggers callbacks via setTimeout
+      // so we need to flush timers after starting
       await act(async () => {
-        await result.current.startSpeechRecognition()
+        result.current.startSpeechRecognition()
+        // Allow setTimeout callbacks to run
+        await new Promise(resolve => setTimeout(resolve, 10))
       })
 
-      // Simulate MoonshineJS callbacks
-      act(() => {
-        capturedCallbacks.onModelLoadStart?.()
-      })
-      expect(result.current.speechStatus).toBe('loading')
-
-      // Simulate model load completion and listening start
-      mockTranscriber.isListening.mockReturnValue(true)
-      act(() => {
-        capturedCallbacks.onModelLoadComplete?.()
-      })
+      // After start completes, status should be 'listening' (callbacks were auto-triggered)
       expect(result.current.speechStatus).toBe('listening')
     })
 
@@ -142,9 +170,10 @@ describe('useSpeechRecognition', () => {
       })
 
       // Simulate the callbacks that would normally set status to listening
-      mockTranscriber.isListening.mockReturnValue(true)
       act(() => {
         capturedCallbacks.onModelLoadComplete?.()
+        // First transcript triggers 'listening' status (VAD ready)
+        capturedCallbacks.onTranscriptionUpdated?.('hello')
       })
 
       expect(result.current.speechStatus).toBe('listening')
@@ -180,8 +209,7 @@ describe('useSpeechRecognition', () => {
         await result.current.startSpeechRecognition()
       })
 
-      // Set engine to listening state (moonshineEngine checks `listening` internally)
-      mockTranscriber.isListening.mockReturnValue(true)
+      // Set engine to listening state - onModelLoadComplete sets listening = true internally
       act(() => {
         capturedCallbacks.onModelLoadComplete?.()
       })
@@ -207,8 +235,7 @@ describe('useSpeechRecognition', () => {
         await result.current.startSpeechRecognition()
       })
 
-      // Set engine to listening state
-      mockTranscriber.isListening.mockReturnValue(true)
+      // Set engine to listening state - onModelLoadComplete sets listening = true internally
       act(() => {
         capturedCallbacks.onModelLoadComplete?.()
       })
@@ -248,15 +275,21 @@ describe('useSpeechRecognition', () => {
       const { result } = renderHook(() => useSpeechRecognition(options))
 
       await act(async () => {
-        await result.current.startSpeechRecognition()
+        result.current.startSpeechRecognition()
+        // Allow setTimeout callbacks to run
+        await new Promise(resolve => setTimeout(resolve, 10))
       })
 
-      // Simulate empty/whitespace transcripts
+      // Clear mock calls from the initial auto-triggered callbacks
+      options.onTranscriptUpdate.mockClear()
+
+      // Simulate empty/whitespace committed transcripts
       act(() => {
         capturedCallbacks.onTranscriptionCommitted?.('')
         capturedCallbacks.onTranscriptionCommitted?.('   ')
       })
 
+      // Should not be called for empty committed transcripts (final is filtered)
       expect(options.onTranscriptUpdate).not.toHaveBeenCalled()
     })
   })
@@ -281,7 +314,7 @@ describe('useSpeechRecognition', () => {
       expect(result.current.speechStatus).toBe('error')
     })
 
-    it('should show error when MoonshineJS fails and no fallback available', async () => {
+    it('should show error when MoonshineJS fails (Web Speech API not available in test env)', async () => {
       mockTranscriber.start.mockRejectedValueOnce(new Error('MoonshineJS failed'))
 
       const options = createMockOptions()
@@ -291,17 +324,18 @@ describe('useSpeechRecognition', () => {
         await result.current.startSpeechRecognition()
       })
 
-      // Web Speech API is not available in test environment
+      // Web Speech API is tried first but not available in test environment
+      // Then MoonshineJS is tried as fallback, but we made it fail
       // Error message format depends on environment (dev shows technical details, prod shows user-friendly)
       const errorMessage = options.onError.mock.calls[0]?.[0]
       expect(errorMessage).toBeTruthy()
       // Both formats include the base message; dev includes technical details
-      expect(errorMessage).toContain('Speech recognition is not available in this browser')
+      expect(errorMessage).toContain('Speech recognition failed')
       // In development, technical details are included; in production, user-friendly message only
       // Check that either format is present (flexible for both environments)
       const hasTechnicalDetails =
-        errorMessage.includes('MoonshineJS') && errorMessage.includes('Web Speech API')
-      const hasUserFriendlyMessage = errorMessage.includes('Please use text input')
+        errorMessage.includes('MoonshineJS') || errorMessage.includes('Web Speech API')
+      const hasUserFriendlyMessage = errorMessage.includes('Please try again')
       expect(hasTechnicalDetails || hasUserFriendlyMessage).toBe(true)
       expect(result.current.speechStatus).toBe('error')
     })
@@ -341,9 +375,10 @@ describe('useSpeechRecognition', () => {
       })
 
       // Simulate the callbacks that would normally set status to listening
-      mockTranscriber.isListening.mockReturnValue(true)
       act(() => {
         capturedCallbacks.onModelLoadComplete?.()
+        // First transcript triggers 'listening' status (VAD ready)
+        capturedCallbacks.onTranscriptionUpdated?.('hello')
       })
 
       expect(result.current.speechStatus).toBe('listening')

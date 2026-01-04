@@ -34,15 +34,19 @@ type WaveformControls = {
 }
 
 type SpeechControls = {
-  startSpeechRecognition: () => void
+  startSpeechRecognition: () => Promise<void>
   stopSpeechRecognition: () => void
 }
+
+export type SpeechStatus = 'idle' | 'loading' | 'listening' | 'error'
 
 export type UseAudioRecorderOptions = {
   /** Waveform controls from useWaveform hook */
   waveformControls: WaveformControls
   /** Speech recognition controls from useSpeechRecognition hook */
   speechControls: SpeechControls
+  /** Current speech recognition status - used to pause auto-stop during loading */
+  speechStatus?: SpeechStatus
   /** Callback when recording successfully starts */
   onRecordingStart?: () => void
 }
@@ -94,10 +98,15 @@ export type UseAudioRecorderReturn = {
 export function useAudioRecorder({
   waveformControls,
   speechControls,
+  speechStatus = 'idle',
   onRecordingStart,
 }: UseAudioRecorderOptions): UseAudioRecorderReturn {
   const { setupWaveform, cleanupWaveform, invalidatePeaks, computePeaksFromBlob, resetWaveform } =
     waveformControls
+
+  // Track speechStatus in a ref for use in silence detection callback
+  const speechStatusRef = useRef(speechStatus)
+  speechStatusRef.current = speechStatus
   const { startSpeechRecognition, stopSpeechRecognition } = speechControls
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -207,6 +216,15 @@ export function useAudioRecorder({
     const checkSilence = () => {
       // Don't execute if component is unmounted
       if (!isMountedRef.current) return
+
+      // While speech recognition is loading (model/VAD initializing),
+      // pause the auto-stop timer by continuously resetting the timestamp
+      if (speechStatusRef.current === 'loading') {
+        lastTranscriptUpdateRef.current = performance.now()
+        // Clear any countdown display during loading
+        setState(s => (s.autoStopCountdown !== null ? { ...s, autoStopCountdown: null } : s))
+        return
+      }
 
       const now = performance.now()
       const timeSinceLastUpdate = now - lastTranscriptUpdateRef.current
@@ -334,9 +352,21 @@ export function useAudioRecorder({
 
       mediaRecorderRef.current = mr
       await setupWaveform(stream)
+
+      // Start speech recognition FIRST and wait for it to be ready
+      // This ensures the model is loaded before we start recording
+      // The loading state will be shown to the user during this time
+      await startSpeechRecognition()
+
+      // Check if stop was called during speech recognition initialization
+      if (!mediaRecorderRef.current || !mediaStreamRef.current) {
+        isStartingRecordingRef.current = false
+        return
+      }
+
+      // NOW start the actual recording (timer, MediaRecorder, etc.)
       mr.start()
       startTimer()
-      startSpeechRecognition()
       startSilenceDetection()
       setState(s => ({
         ...s,

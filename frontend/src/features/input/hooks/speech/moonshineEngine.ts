@@ -34,21 +34,212 @@ function logError(...args: unknown[]) {
   }
 }
 
+// Track preload state
+let preloadPromise: Promise<void> | null = null
+
+// Progress tracking
+export type DownloadProgress = {
+  bytesDownloaded: number
+  totalBytes: number
+  percent: number
+  currentFile: string
+  filesCompleted: number
+  totalFiles: number
+}
+
+export type ProgressCallback = (progress: DownloadProgress) => void
+
+let progressCallback: ProgressCallback | null = null
+
+/**
+ * Set a callback to receive download progress updates.
+ * Call with null to remove the callback.
+ */
+export function setDownloadProgressCallback(callback: ProgressCallback | null): void {
+  progressCallback = callback
+}
+
+/**
+ * Get the model path to use for Moonshine.
+ */
+function getModelPath(): string {
+  // In dev mode, check for model override
+  if (isDev()) {
+    const override = localStorage.getItem('moonshine_model_override')
+    if (override) return override
+  }
+  // Use env variable or default to base model
+  const envModel = import.meta.env.VITE_MOONSHINE_MODEL
+  return typeof envModel === 'string' && envModel.trim() ? envModel.trim() : 'model/base'
+}
+
+/**
+ * Fetch a file with progress tracking.
+ * Returns the total bytes downloaded.
+ */
+async function fetchWithProgress(
+  url: string,
+  onProgress: (bytesReceived: number, totalBytes: number) => void
+): Promise<number> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.status}`)
+  }
+
+  const contentLength = response.headers.get('Content-Length')
+  const totalBytes = contentLength ? parseInt(contentLength, 10) : 0
+
+  // If no Content-Length or no body, fall back to simple fetch
+  if (!response.body || !totalBytes) {
+    const buffer = await response.arrayBuffer()
+    onProgress(buffer.byteLength, buffer.byteLength)
+    return buffer.byteLength
+  }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let bytesReceived = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    chunks.push(value)
+    bytesReceived += value.length
+    onProgress(bytesReceived, totalBytes)
+  }
+
+  return bytesReceived
+}
+
+// Moonshine CDN base URL
+const MOONSHINE_CDN = 'https://download.moonshine.ai'
+
+/**
+ * Get the CDN URL for a model file.
+ * The model path (e.g., 'model/base') maps to CDN structure.
+ */
+function getModelCdnUrl(modelPath: string, fileName: string): string {
+  // modelPath is like 'model/base' or 'model/tiny'
+  // CDN structure is https://download.moonshine.ai/model/{name}/quantized/{file}
+  const modelName = modelPath.replace('model/', '')
+  return `${MOONSHINE_CDN}/model/${modelName}/quantized/${fileName}`
+}
+
+/**
+ * Preload the Moonshine model in the background by fetching model files.
+ * This pre-caches the model so it loads faster when the user clicks record.
+ * Progress updates are sent via the callback set with setDownloadProgressCallback.
+ */
+export async function preloadMoonshineModel(): Promise<void> {
+  // Return existing preload promise if already started
+  if (preloadPromise) {
+    return preloadPromise
+  }
+
+  const modelPath = getModelPath()
+  log('Preloading model in background:', modelPath)
+
+  preloadPromise = (async () => {
+    try {
+      // MoonshineJS models are served from their CDN
+      // The library loads: encoder_model.onnx and decoder_model_merged.onnx
+      // These are the main model files (see moonshine-js/src/model.ts)
+      const modelFileNames = ['encoder_model.onnx', 'decoder_model_merged.onnx']
+      const modelFiles = modelFileNames.map(name => getModelCdnUrl(modelPath, name))
+
+      log('Preload: Fetching model files...')
+
+      // Track overall progress
+      let totalBytesDownloaded = 0
+      let estimatedTotalBytes = 400 * 1024 * 1024 // ~400MB for base model
+      let filesCompleted = 0
+
+      // Report initial progress
+      if (progressCallback) {
+        progressCallback({
+          bytesDownloaded: 0,
+          totalBytes: estimatedTotalBytes,
+          percent: 0,
+          currentFile: modelFiles[0],
+          filesCompleted: 0,
+          totalFiles: modelFiles.length,
+        })
+      }
+
+      // Download files sequentially for accurate progress tracking
+      for (const file of modelFiles) {
+        try {
+          const fileName = file.split('/').pop() || file
+          log(`Preload: Downloading ${fileName}...`)
+
+          const fileBytes = await fetchWithProgress(file, (bytesReceived, totalBytes) => {
+            if (progressCallback) {
+              // Update estimated total based on first large file
+              if (filesCompleted === 0 && totalBytes > 0 && file.includes('encoder')) {
+                // encoder.onnx is typically the largest, ~60% of total
+                estimatedTotalBytes = Math.round(totalBytes / 0.6)
+              }
+
+              progressCallback({
+                bytesDownloaded: totalBytesDownloaded + bytesReceived,
+                totalBytes: estimatedTotalBytes,
+                percent: Math.min(
+                  99,
+                  Math.round(((totalBytesDownloaded + bytesReceived) / estimatedTotalBytes) * 100)
+                ),
+                currentFile: fileName,
+                filesCompleted,
+                totalFiles: modelFiles.length,
+              })
+            }
+          })
+
+          totalBytesDownloaded += fileBytes
+          filesCompleted++
+          log(`Preload: Cached ${fileName} (${Math.round(fileBytes / 1024 / 1024)}MB)`)
+        } catch {
+          // Individual file fetch failure is okay - model might have different structure
+          log(`Preload: Could not cache ${file} (may not exist)`)
+          filesCompleted++
+        }
+      }
+
+      // Report completion
+      if (progressCallback) {
+        progressCallback({
+          bytesDownloaded: totalBytesDownloaded,
+          totalBytes: totalBytesDownloaded,
+          percent: 100,
+          currentFile: '',
+          filesCompleted: modelFiles.length,
+          totalFiles: modelFiles.length,
+        })
+      }
+
+      log(
+        `Preload: Model files cached successfully (${Math.round(totalBytesDownloaded / 1024 / 1024)}MB total)`
+      )
+    } catch (error) {
+      logError('Preload error:', error)
+      preloadPromise = null
+      throw error
+    }
+  })()
+
+  return preloadPromise
+}
+
+// Max time to wait for first transcript before transitioning to 'listening' anyway
+const MAX_LOADING_WAIT_MS = 5000
+
 export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
   let transcriber: Moonshine.MicrophoneTranscriber | null = null
   let listening = false
+  let vadReady = false // Track if VAD has detected speech (system is fully ready)
   let wasStopped = false // Track if stop() was called during start()
-
-  const getModelPath = (): string => {
-    // In dev mode, check for model override
-    if (isDev()) {
-      const override = localStorage.getItem('moonshine_model_override')
-      if (override) return override
-    }
-    // Use env variable or default to base model
-    const envModel = import.meta.env.VITE_MOONSHINE_MODEL
-    return typeof envModel === 'string' && envModel.trim() ? envModel.trim() : 'model/base'
-  }
+  let loadingTimeoutId: ReturnType<typeof setTimeout> | null = null
+  let readyResolve: (() => void) | null = null // Resolve function for ready promise
 
   return {
     name: 'MoonshineJS',
@@ -75,12 +266,45 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
         {
           onTranscriptionCommitted: (text: string) => {
             log('Final transcript:', text)
+            // First transcript means system is ready - switch to 'listening' status
+            if (!vadReady) {
+              vadReady = true
+              listening = true
+              if (loadingTimeoutId) {
+                clearTimeout(loadingTimeoutId)
+                loadingTimeoutId = null
+              }
+              log('System ready - first transcript received')
+              callbacks.onStatusChange('listening')
+              // Resolve the ready promise so startRecording can proceed
+              if (readyResolve) {
+                readyResolve()
+                readyResolve = null
+              }
+            }
             if (listening && text.trim()) {
               callbacks.onTranscriptUpdate({ interim: '', final: text })
             }
           },
           onTranscriptionUpdated: (text: string) => {
             log('Interim transcript:', text)
+            // First transcript means system is ready - switch to 'listening' status
+            // This may fire before onModelLoadComplete if model was cached
+            if (!vadReady) {
+              vadReady = true
+              listening = true // Ensure listening is set
+              if (loadingTimeoutId) {
+                clearTimeout(loadingTimeoutId)
+                loadingTimeoutId = null
+              }
+              log('System ready - first transcript received')
+              callbacks.onStatusChange('listening')
+              // Resolve the ready promise so startRecording can proceed
+              if (readyResolve) {
+                readyResolve()
+                readyResolve = null
+              }
+            }
             if (listening) {
               callbacks.onTranscriptUpdate({ interim: text, final: '' })
             }
@@ -90,11 +314,30 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
             callbacks.onStatusChange('loading')
           },
           onModelLoadComplete: () => {
-            log('Model loaded, listening:', transcriber?.isListening())
-            if (transcriber?.isListening()) {
-              listening = true
-              callbacks.onStatusChange('listening')
-            }
+            log('Model loaded, waiting for VAD...')
+            // Model is loaded but VAD still needs to initialize
+            // Keep 'loading' status until we get the first transcript
+            // Note: isListening() method doesn't exist in @moonshine-ai/moonshine-js v0.1.29
+            // so we track listening state internally
+            listening = true
+            // Don't set 'listening' status here - wait for first transcript
+            // This keeps the loading indicator visible during VAD initialization
+
+            // Fallback: if no transcript received within timeout, transition anyway
+            // This prevents getting stuck in loading state if there's silence
+            if (loadingTimeoutId) clearTimeout(loadingTimeoutId)
+            loadingTimeoutId = setTimeout(() => {
+              if (!vadReady && listening && transcriber) {
+                log('Loading timeout - transitioning to listening without transcript')
+                vadReady = true
+                callbacks.onStatusChange('listening')
+                // Resolve the ready promise so startRecording can proceed
+                if (readyResolve) {
+                  readyResolve()
+                  readyResolve = null
+                }
+              }
+            }, MAX_LOADING_WAIT_MS)
           },
           onError: (error: Error) => {
             logError('Runtime error:', error)
@@ -105,6 +348,17 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
         false // Disable VAD for continuous streaming
       )
 
+      // Create a promise that resolves when the system is ready (vadReady = true)
+      const readyPromise = new Promise<void>(resolve => {
+        // If already ready (shouldn't happen, but just in case)
+        if (vadReady) {
+          resolve()
+          return
+        }
+        // Store resolve function so callbacks can resolve it
+        readyResolve = resolve
+      })
+
       await transcriber.start()
 
       // Check if stop() was called while awaiting transcriber.start()
@@ -112,14 +366,41 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // to prevent fallback to Web Speech API
       if (wasStopped || !transcriber) {
         log('Start was interrupted by stop() call')
+        // Clean up the ready promise
+        readyResolve = null
         throw new Error(INITIALIZATION_CANCELLED_ERROR)
       }
 
-      log('Started, isListening:', transcriber.isListening())
-
-      if (transcriber.isListening()) {
+      log('Transcriber started, waiting for system to be ready...')
+      // Set listening state after successful start
+      // Note: onModelLoadComplete callback may not fire when model is already cached,
+      // so we must also set listening here to ensure transcripts are processed
+      if (!listening) {
         listening = true
+        callbacks.onStatusChange('loading')
       }
+
+      // Set fallback timeout if not already set by onModelLoadComplete
+      // This handles the case where model was cached and onModelLoadComplete didn't fire
+      if (!loadingTimeoutId && !vadReady) {
+        log('Setting fallback timeout for cached model scenario')
+        loadingTimeoutId = setTimeout(() => {
+          if (!vadReady && listening && transcriber) {
+            log('Loading timeout (cached model) - transitioning to listening')
+            vadReady = true
+            callbacks.onStatusChange('listening')
+            if (readyResolve) {
+              readyResolve()
+              readyResolve = null
+            }
+          }
+        }, MAX_LOADING_WAIT_MS)
+      }
+
+      // Wait for the system to be fully ready before returning
+      // This ensures MediaRecorder doesn't start until speech recognition is ready
+      await readyPromise
+      log('System ready, start() complete')
     },
 
     stop(): void {
@@ -127,6 +408,16 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // Mark that stop was called - this prevents accessing transcriber
       // if stop() is called while start() is awaiting transcriber.start()
       wasStopped = true
+      // Clear any pending loading timeout
+      if (loadingTimeoutId) {
+        clearTimeout(loadingTimeoutId)
+        loadingTimeoutId = null
+      }
+      // Resolve the ready promise if pending (so start() doesn't hang)
+      if (readyResolve) {
+        readyResolve()
+        readyResolve = null
+      }
       if (transcriber) {
         try {
           transcriber.stop()
@@ -136,11 +427,14 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
         transcriber = null
       }
       listening = false
+      vadReady = false
       callbacks.onStatusChange('idle')
     },
 
     isListening(): boolean {
-      return listening && (transcriber?.isListening() ?? false)
+      // Track listening state internally since isListening() doesn't exist
+      // in @moonshine-ai/moonshine-js v0.1.29
+      return listening && transcriber !== null
     },
   }
 }

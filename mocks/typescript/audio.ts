@@ -346,7 +346,7 @@ export interface MoonshineMockConfig {
  * @browser This function mocks the MoonshineJS library (uses window.setTimeout).
  */
 export function createMockMicrophoneTranscriber(
-  config: MoonshineMockConfig = {},
+  config: MoonshineMockConfig = {}
 ) {
   const {
     transcript = "Mock transcript from Moonshine.",
@@ -374,7 +374,7 @@ export function createMockMicrophoneTranscriber(
         onTranscriptionCommitted?: (text: string) => void;
         onTranscriptionUpdated?: (text: string) => void;
       },
-      enableVAD?: boolean,
+      enableVAD?: boolean
     ) {
       this._model = model;
       this._callbacks = callbacks || {};
@@ -397,7 +397,7 @@ export function createMockMicrophoneTranscriber(
       const interimTimeout = window.setTimeout(() => {
         if (this._listening && this._callbacks.onTranscriptionUpdated) {
           this._callbacks.onTranscriptionUpdated(
-            transcript.split(" ").slice(0, 2).join(" "),
+            transcript.split(" ").slice(0, 2).join(" ")
           );
         }
       }, 500);
@@ -425,9 +425,9 @@ export function createMockMicrophoneTranscriber(
       this._pendingTimeouts = [];
     }
 
-    isListening(): boolean {
-      return this._listening;
-    }
+    // Note: isListening() method does NOT exist in @moonshine-ai/moonshine-js v0.1.29
+    // despite being documented. We intentionally omit it from the mock to match
+    // the real library behavior and catch any code that incorrectly uses it.
   };
 }
 
@@ -465,7 +465,7 @@ export interface SpeechRecognitionMockConfig {
  * @browser This function mocks browser SpeechRecognition API (uses window.setTimeout).
  */
 export function createMockSpeechRecognition(
-  config: SpeechRecognitionMockConfig = {},
+  config: SpeechRecognitionMockConfig = {}
 ) {
   const {
     supported = true,

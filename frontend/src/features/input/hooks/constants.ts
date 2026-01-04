@@ -15,3 +15,9 @@ export const AUTO_STOP_SILENCE_THRESHOLD_MS = 4000
  * For example, 3000ms means the countdown displays during the last 3 seconds.
  */
 export const AUTO_STOP_COUNTDOWN_START_MS = 3000
+
+/**
+ * Loading message shown when the speech-to-text model is loading.
+ * Used in Status, SpeechStatus, RecorderContent, and MobileInputControls.
+ */
+export const SPEECH_LOADING_MESSAGE = 'Loading Speech To Text Model...'

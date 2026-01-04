@@ -44,7 +44,10 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   )
 
   const handleSpeechError = useCallback((message: string) => {
-    setErrorRef.current(message)
+    // Speech errors are displayed by SpeechStatus component (with dismiss functionality)
+    // Don't duplicate to audio-recorder__error - that's for other recorder errors (API, etc.)
+    // Log for debugging purposes
+    console.warn('[Speech]', message)
   }, [])
 
   const { startSpeechRecognition, stopSpeechRecognition, speechStatus, resetSpeechStatus } =
@@ -86,6 +89,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       startSpeechRecognition,
       stopSpeechRecognition,
     },
+    speechStatus,
     onRecordingStart: () => {
       setHasEverRecorded(true)
     },

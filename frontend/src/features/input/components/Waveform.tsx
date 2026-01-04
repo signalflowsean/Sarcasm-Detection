@@ -109,8 +109,13 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
       onTouchCancel={onTouchCancel}
       data-testid="waveform"
     >
-      <canvas ref={ref} aria-label={label} />
-      {showPlayhead && (
+      {/* Hide canvas when showing empty state to avoid visual overlap */}
+      <canvas
+        ref={ref}
+        aria-label={label}
+        style={{ visibility: showEmpty ? 'hidden' : 'visible' }}
+      />
+      {showPlayhead && !showEmpty && (
         <div
           className="audio-recorder__playhead"
           style={{ left: `${Math.min(100, Math.max(0, playheadPercent * 100))}%` }}

@@ -1,17 +1,17 @@
 /**
  * Web Speech API Speech Recognition Engine
  *
- * Fallback speech-to-text engine using the browser's native Web Speech API.
- * Used when MoonshineJS fails or isn't available.
+ * Primary speech-to-text engine using the browser's native Web Speech API.
+ * Falls back to MoonshineJS when not available (Firefox, Opera, etc.).
  *
  * Pros:
  * - No model download required
  * - Fast startup
- * - Good accuracy (uses cloud services)
+ * - Best accuracy (uses cloud services)
  *
  * Cons:
  * - Requires internet connection
- * - Not available in all browsers (Firefox, some mobile)
+ * - Not available in all browsers (Firefox, Opera, some mobile)
  * - May have privacy implications (sends audio to cloud)
  */
 
@@ -65,6 +65,43 @@ function getSpeechRecognition(): SpeechRecognitionType | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
+/**
+ * Check if Web Speech API is supported in the current browser.
+ * This can be called before creating an engine to determine if preloading
+ * Moonshine is needed.
+ *
+ * Dev override: localStorage.setItem('force_moonshine', 'true') to force
+ * Moonshine mode even on browsers with Web Speech API (for testing).
+ */
+export function isWebSpeechSupported(): boolean {
+  // Dev override: force Moonshine mode for testing
+  if (typeof window !== 'undefined' && localStorage.getItem('force_moonshine') === 'true') {
+    return false
+  }
+
+  const SpeechRecognition = getSpeechRecognition()
+  if (!SpeechRecognition) return false
+
+  // Additional check: Try to instantiate and verify API actually works
+  // Some browsers (Firefox, Edge, Opera) have the constructor but it throws
+  // or doesn't function properly
+  try {
+    const test = new SpeechRecognition()
+    // Check if essential methods exist
+    if (typeof test.start !== 'function') return false
+    // Clean up test instance
+    try {
+      test.abort()
+    } catch {
+      // May throw if not started, that's fine
+    }
+    return true
+  } catch {
+    // Constructor threw - API not actually supported
+    return false
+  }
+}
+
 type RecognitionState = 'idle' | 'starting' | 'listening' | 'ending' | 'restarting'
 
 export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
@@ -77,7 +114,8 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
     name: 'Web Speech API',
 
     isSupported(): boolean {
-      return getSpeechRecognition() !== null
+      // Reuse the standalone function to avoid code duplication
+      return isWebSpeechSupported()
     },
 
     async start(): Promise<void> {
@@ -94,7 +132,9 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
       state = 'starting'
       log('Starting...')
-      callbacks.onStatusChange('loading')
+      // Note: We intentionally don't set 'loading' status here because Web Speech API
+      // doesn't download a model. This prevents layout shift and ensures "Loading Speech
+      // To Text Model" message only appears for Moonshine.
 
       recognition = new SpeechRecognition()
       recognition.continuous = true
