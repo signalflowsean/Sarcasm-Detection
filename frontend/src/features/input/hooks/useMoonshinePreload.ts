@@ -86,7 +86,8 @@ export function useMoonshinePreload(): PreloadState {
     }
 
     // If preload is in progress, track it
-    if (preloadStarted && !preloadComplete) {
+    // Note: preloadComplete is guaranteed false here (we returned above if true)
+    if (preloadStarted) {
       setIsLoading(true)
 
       // Set up progress callback

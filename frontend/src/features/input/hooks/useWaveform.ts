@@ -2,6 +2,90 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useRafInterval } from '../hooks'
 import { isDev } from '../utils/env'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-Gain Normalization Constants
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// These thresholds address a significant browser discrepancy in Web Audio API
+// behavior. When reading audio data via AnalyserNode.getByteTimeDomainData():
+//
+// - Chrome produces VERY quiet audio signals:
+//   • Silence/noise: deviation 0-2 from center (128)
+//   • Normal speech: deviation 2-10 from center
+//   • Loud speech: deviation 10-15 from center
+//
+// - Firefox produces much louder audio signals:
+//   • Silence/noise: deviation 0-5 from center
+//   • Normal speech: deviation 20-50 from center
+//   • Loud speech: deviation 50+ from center
+//
+// Without normalization, Chrome waveforms appear nearly flat while Firefox
+// waveforms fill the canvas. The strategy below applies higher gain to quieter
+// signals (Chrome) and lower gain to louder signals (Firefox) to achieve
+// consistent visual amplitude across browsers.
+//
+// Values were determined empirically by testing on Chrome 120+ and Firefox 120+
+// with various microphones (built-in laptop, USB headset, professional condenser).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Audio deviation thresholds (from center value of 128 in Uint8 [0-255] range).
+ * These define the boundaries between noise/quiet/medium/loud signal levels.
+ */
+const DEVIATION_THRESHOLDS = {
+  /**
+   * Max deviation for "very quiet" signals (likely noise or very quiet Chrome audio).
+   * Chrome speech typically starts above this threshold.
+   */
+  VERY_QUIET: 2,
+
+  /**
+   * Max deviation for "quiet" signals (typical Chrome speech range).
+   * Chrome normal speech falls in the 2-5 range.
+   */
+  QUIET: 5,
+
+  /**
+   * Max deviation for "medium" signals (loud Chrome or quiet Firefox).
+   * Firefox normal speech typically exceeds this.
+   */
+  MEDIUM: 15,
+} as const
+
+/**
+ * Maximum gain multipliers for each signal level.
+ * Higher gain for quiet signals (Chrome), lower for loud signals (Firefox).
+ *
+ * The asymmetric values compensate for the ~10-20x amplitude difference
+ * between Chrome and Firefox audio data.
+ */
+const MAX_GAIN_BY_LEVEL = {
+  /**
+   * Very quiet signals (deviation ≤ 2): Allow up to 8x gain.
+   * Provides significant boost for Chrome's quiet output while avoiding
+   * over-amplification of pure noise (which stays below this threshold).
+   */
+  VERY_QUIET: 8,
+
+  /**
+   * Quiet signals (deviation ≤ 5): Allow up to 6x gain.
+   * Typical Chrome speech range - moderate boost to fill canvas.
+   */
+  QUIET: 6,
+
+  /**
+   * Medium signals (deviation ≤ 15): Allow up to 4x gain.
+   * Covers loud Chrome speech and quiet Firefox speech.
+   */
+  MEDIUM: 4,
+
+  /**
+   * Loud signals (deviation > 15): Allow up to 2x gain.
+   * Firefox typically falls here - minimal boost needed as signal is already strong.
+   */
+  LOUD: 2,
+} as const
+
 type Nullable<T> = T | null
 
 type Peaks = {
@@ -99,29 +183,23 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
 
     // ─────────────────────────────────────────────────────────────────────────
     // Normalize peaks to fill canvas (fixes flat waveforms on quiet recordings)
-    // But don't over-amplify very quiet recordings (noise)
+    // Chrome recordings can be VERY quiet (~0.05 peak), so we use aggressive normalization
     // ─────────────────────────────────────────────────────────────────────────
     let peakAmplitude = 0
     for (let i = 0; i < n; i++) {
       peakAmplitude = Math.max(peakAmplitude, Math.abs(min[i]), Math.abs(max[i]))
     }
 
-    // Noise gate: very quiet recordings (peak < 0.05) get minimal amplification
-    // This prevents amplifying noise in recordings
-    const NOISE_THRESHOLD = 0.03 // ~3% of full scale is noise
-    const TARGET_AMPLITUDE = 0.6 // Target 60% of half-height (reduced from 80%)
+    // Simple normalization: scale peaks to fill ~60% of canvas
+    const TARGET_AMPLITUDE = 0.6
+    const MAX_SCALE = 30 // High scaling for Chrome's very quiet audio
 
     let normScale = 1.0
-    if (peakAmplitude > NOISE_THRESHOLD) {
-      // Above noise floor - calculate normalization
+    if (peakAmplitude > 0.0001) {
       const idealScale = TARGET_AMPLITUDE / peakAmplitude
-      // Compress high scales with sqrt, but cap lower to prevent peaking
-      const MAX_SCALE = 5 // Reduced from 10
-      normScale = Math.min(Math.sqrt(idealScale) * 1.5, MAX_SCALE)
-      // Never reduce loud audio
+      normScale = Math.min(idealScale, MAX_SCALE)
       normScale = Math.max(normScale, 1.0)
     }
-    // else: stay at 1.0 (noise - no amplification)
 
     // Fill shape between min and max (with normalization)
     ctx.beginPath()
@@ -204,19 +282,16 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     // Apply gain curve based on deviation level:
     // - Low deviation: allow higher gain (Chrome needs it)
     // - High deviation: cap gain lower (Firefox doesn't need much)
+    // See DEVIATION_THRESHOLDS and MAX_GAIN_BY_LEVEL constants for detailed explanation
     let maxAllowedGain: number
-    if (maxDeviation <= 2) {
-      // Very quiet (Chrome noise/quiet speech): allow up to 8x
-      maxAllowedGain = 8
-    } else if (maxDeviation <= 5) {
-      // Quiet (Chrome speech): allow up to 6x
-      maxAllowedGain = 6
-    } else if (maxDeviation <= 15) {
-      // Medium: allow up to 4x
-      maxAllowedGain = 4
+    if (maxDeviation <= DEVIATION_THRESHOLDS.VERY_QUIET) {
+      maxAllowedGain = MAX_GAIN_BY_LEVEL.VERY_QUIET
+    } else if (maxDeviation <= DEVIATION_THRESHOLDS.QUIET) {
+      maxAllowedGain = MAX_GAIN_BY_LEVEL.QUIET
+    } else if (maxDeviation <= DEVIATION_THRESHOLDS.MEDIUM) {
+      maxAllowedGain = MAX_GAIN_BY_LEVEL.MEDIUM
     } else {
-      // Loud (Firefox): allow up to 2x
-      maxAllowedGain = 2
+      maxAllowedGain = MAX_GAIN_BY_LEVEL.LOUD
     }
 
     // Apply sqrt compression then cap

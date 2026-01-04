@@ -52,6 +52,7 @@ export function useSpeechRecognition({
   const isMountedRef = useRef(true)
   const isStartingRef = useRef(false) // Guard against concurrent start attempts
   const [speechStatus, setSpeechStatus] = useState<SpeechStatus>('idle')
+  const [speechError, setSpeechError] = useState<string | null>(null)
   const [activeEngine, setActiveEngine] = useState<string | null>(null)
 
   // Track mounted state
@@ -81,10 +82,15 @@ export function useSpeechRecognition({
       onStatusChange: (status: SpeechStatus) => {
         if (isMountedRef.current) {
           setSpeechStatus(status)
+          // Clear error when status changes to non-error state
+          if (status !== 'error') {
+            setSpeechError(null)
+          }
         }
       },
       onError: (message: string) => {
         if (isMountedRef.current) {
+          setSpeechError(message)
           onError(message)
         }
       },
@@ -92,7 +98,7 @@ export function useSpeechRecognition({
     [isRecordingRef, onTranscriptUpdate, onError]
   )
 
-  const startSpeechRecognition = useCallback(async () => {
+  const startSpeechRecognition = useCallback(async (): Promise<void> => {
     // Prevent concurrent start attempts - guard against rapid clicks or retries
     if (engineRef.current || isStartingRef.current) {
       log('Already running or starting, ignoring concurrent start attempt')
@@ -171,9 +177,9 @@ export function useSpeechRecognition({
           engineRef.current = null
           setActiveEngine(null)
 
-          // Both engines failed - provide user-friendly message with technical details in dev
+          // Both engines failed - set error state
           const moonshineError = errorMessage
-
+          let userErrorMessage: string
           if (isDev()) {
             // In development, include technical details for debugging
             const errorParts = ['Speech recognition failed.']
@@ -181,18 +187,22 @@ export function useSpeechRecognition({
               errorParts.push(`Web Speech API: ${webSpeechError}`)
             }
             errorParts.push(`MoonshineJS: ${moonshineError}`)
-            onError(errorParts.join(' '))
+            userErrorMessage = errorParts.join(' ')
           } else {
             // In production, show user-friendly message only
-            onError('Speech recognition failed. Please try again or use text input.')
+            userErrorMessage = 'Speech recognition failed. Please try again or use text input.'
           }
+          setSpeechError(userErrorMessage)
+          onError(userErrorMessage)
           setSpeechStatus('error')
+          return // Explicit return after error - function complete
         }
       } else {
         log('MoonshineJS not supported (WebAssembly unavailable)')
         engineRef.current = null
         setActiveEngine(null)
-        // Both engines unavailable - provide user-friendly message with technical details in dev
+        // Both engines unavailable - set error state
+        let userErrorMessage: string
         if (isDev()) {
           // In development, include technical details for debugging
           const errorParts = ['Speech recognition is not available in this browser.']
@@ -200,12 +210,16 @@ export function useSpeechRecognition({
             errorParts.push(`Web Speech API: ${webSpeechError}`)
           }
           errorParts.push('MoonshineJS: not supported (WebAssembly unavailable)')
-          onError(errorParts.join(' '))
+          userErrorMessage = errorParts.join(' ')
         } else {
           // In production, show user-friendly message only
-          onError('Speech recognition is not available in this browser. Please use text input.')
+          userErrorMessage =
+            'Speech recognition is not available in this browser. Please use text input.'
         }
+        setSpeechError(userErrorMessage)
+        onError(userErrorMessage)
         setSpeechStatus('error')
+        return // Explicit return after error - function complete
       }
     } finally {
       // Always clear the starting flag, even if an error occurred
@@ -221,9 +235,11 @@ export function useSpeechRecognition({
     engineRef.current = null
     setActiveEngine(null)
     setSpeechStatus('idle')
+    setSpeechError(null)
   }, [activeEngine])
 
   const resetSpeechStatus = useCallback(() => {
+    setSpeechError(null)
     if (engineRef.current?.isListening() && isRecordingRef.current) {
       setSpeechStatus('listening')
     } else {
@@ -235,6 +251,7 @@ export function useSpeechRecognition({
     startSpeechRecognition,
     stopSpeechRecognition,
     speechStatus,
+    speechError,
     resetSpeechStatus,
     ...(isDev()
       ? {

@@ -17,7 +17,9 @@ export const AUTO_STOP_SILENCE_THRESHOLD_MS = 4000
 export const AUTO_STOP_COUNTDOWN_START_MS = 3000
 
 /**
- * Loading message shown when the speech-to-text model is loading.
+ * Loading message shown when speech recognition is initializing.
+ * For Moonshine: waiting for model to load.
+ * For Web Speech API: connecting to cloud service.
  * Used in Status, SpeechStatus, RecorderContent, and MobileInputControls.
  */
-export const SPEECH_LOADING_MESSAGE = 'Loading Speech To Text Model...'
+export const SPEECH_LOADING_MESSAGE = 'Starting speech recognition...'

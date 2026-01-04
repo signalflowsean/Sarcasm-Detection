@@ -621,11 +621,22 @@
   }
 
   .speech-status--info {
+    /* Fallback for browsers without backdrop-filter support (e.g., Firefox for Android) */
     background: rgba(30, 30, 30, 0.95);
     border: 1px solid rgba(205, 127, 50, 0.4);
     color: #e8d5b7;
-    backdrop-filter: blur(8px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    /* Allow wrapping for progress bar layout - safe default as content only wraps when needed */
+    flex-wrap: wrap;
+  }
+
+  /* Apply backdrop-filter only when supported, with slightly lower opacity for visible blur effect */
+  @supports (backdrop-filter: blur(8px)) {
+    .speech-status--info {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
   }
 
   .speech-status__icon {
@@ -691,11 +702,6 @@
     100% {
       background-position: -200% 0;
     }
-  }
-
-  /* When showing progress bar, allow wrapping */
-  .speech-status--info:has(.speech-status__progress) {
-    flex-wrap: wrap;
   }
 
   /* Retro loading spinner - matches VU meter aesthetic */

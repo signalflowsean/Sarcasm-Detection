@@ -5,6 +5,8 @@ import { RetroSpinner } from './RetroSpinner'
 type Props = {
   status: SpeechStatusType
   isRecording: boolean
+  /** The actual error message from speech recognition. Falls back to default if not provided. */
+  errorMessage?: string | null
   onDismiss?: () => void
 }
 
@@ -15,6 +17,9 @@ type StatusConfig = {
   variant: 'info' | 'error'
 }
 
+const DEFAULT_ERROR_MESSAGE =
+  'Speech-to-text encountered an error. Your audio is still being recorded.'
+
 const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
   loading: {
     message: SPEECH_LOADING_MESSAGE,
@@ -23,7 +28,7 @@ const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
     variant: 'info',
   },
   error: {
-    message: 'Speech-to-text encountered an error. Your audio is still being recorded.',
+    message: DEFAULT_ERROR_MESSAGE,
     srPrefix: 'Error:',
     icon: '✕',
     variant: 'error',
@@ -40,7 +45,7 @@ const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
  * - Icons are decorative (aria-hidden) with text alternatives in message
  * - Actionable messages reassure users their audio is still recording
  */
-const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
+const SpeechStatus = ({ status, isRecording, errorMessage, onDismiss }: Props) => {
   // Show loading and error states on both mobile and desktop
   const isError = status === 'error'
   const isLoading = status === 'loading'
@@ -49,6 +54,10 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
   const shouldShowLoading = isLoading && isRecording
   const shouldShow = shouldShowError || shouldShowLoading
   const config = shouldShow && (isLoading || isError) ? STATUS_CONFIG[status] : null
+
+  // Use the provided error message if available, otherwise fall back to default
+  const displayMessage =
+    isError && errorMessage ? errorMessage : (config?.message ?? DEFAULT_ERROR_MESSAGE)
 
   return (
     <output
@@ -63,7 +72,7 @@ const SpeechStatus = ({ status, isRecording, onDismiss }: Props) => {
           <span className="speech-status__message">
             {/* Visually hidden prefix for screen readers */}
             <span className="sr-only">{config.srPrefix} </span>
-            {config.message}
+            {displayMessage}
           </span>
           <span className="speech-status__icon" aria-hidden="true">
             {status === 'loading' ? <RetroSpinner /> : config.icon}

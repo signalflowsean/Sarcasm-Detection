@@ -50,12 +50,17 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
     console.warn('[Speech]', message)
   }, [])
 
-  const { startSpeechRecognition, stopSpeechRecognition, speechStatus, resetSpeechStatus } =
-    useSpeechRecognition({
-      isRecordingRef,
-      onTranscriptUpdate: handleTranscriptUpdate,
-      onError: handleSpeechError,
-    })
+  const {
+    startSpeechRecognition,
+    stopSpeechRecognition,
+    speechStatus,
+    speechError,
+    resetSpeechStatus,
+  } = useSpeechRecognition({
+    isRecordingRef,
+    onTranscriptUpdate: handleTranscriptUpdate,
+    onError: handleSpeechError,
+  })
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Waveform hook (needs isRecording state, but we don't have it yet)
@@ -334,6 +339,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       <SpeechStatus
         status={displaySpeechStatus}
         isRecording={state.isRecording}
+        errorMessage={speechError}
         onDismiss={resetSpeechStatus}
       />
       {state.error && (

@@ -333,7 +333,15 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
         this.state = "closed";
       }
       createGain() {
-        return {} as GainNode;
+        return {
+          gain: {
+            value: 1.0,
+            setValueAtTime: () => {},
+            linearRampToValueAtTime: () => {},
+          },
+          connect: () => {},
+          disconnect: () => {},
+        } as unknown as GainNode;
       }
       createOscillator() {
         return {} as OscillatorNode;
@@ -361,6 +369,67 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
     (window as { AudioContext: unknown }).AudioContext = MockAudioContext;
     (window as { webkitAudioContext?: unknown }).webkitAudioContext =
       MockAudioContext;
+
+    // Mock Web Speech API (SpeechRecognition)
+    // This is critical for e2e tests - without this, the app tries to use the real
+    // Web Speech API or falls back to MoonshineJS which downloads a 200MB model
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-US";
+      onresult: ((event: unknown) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      onstart: (() => void) | null = null;
+      private _listening = false;
+      private _shouldRestart = true;
+
+      start() {
+        console.log("[E2E Mock] SpeechRecognition.start()");
+        this._listening = true;
+        this._shouldRestart = true;
+
+        // Simulate async startup
+        setTimeout(() => {
+          if (this._listening && this.onstart) {
+            this.onstart();
+          }
+        }, 10);
+
+        // Simulate periodic "no-speech" to trigger restart (mimics real behavior)
+        setTimeout(() => {
+          if (this._listening && this._shouldRestart && this.onend) {
+            console.log("[E2E Mock] SpeechRecognition auto-ended (simulating)");
+            this.onend();
+          }
+        }, 5000);
+      }
+
+      stop() {
+        console.log("[E2E Mock] SpeechRecognition.stop()");
+        this._listening = false;
+        this._shouldRestart = false;
+        if (this.onend) {
+          setTimeout(() => this.onend?.(), 10);
+        }
+      }
+
+      abort() {
+        console.log("[E2E Mock] SpeechRecognition.abort()");
+        this._listening = false;
+        this._shouldRestart = false;
+        if (this.onend) {
+          setTimeout(() => this.onend?.(), 10);
+        }
+      }
+    }
+
+    // Install the mock
+    (window as { SpeechRecognition?: unknown }).SpeechRecognition =
+      MockSpeechRecognition;
+    (window as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition =
+      MockSpeechRecognition;
+    console.log("[E2E Mock] Web Speech API (SpeechRecognition) mocked");
 
     // Signal that mocks are ready
     (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =
@@ -659,7 +728,15 @@ export async function injectAudioMocksWithMoonshine(
           this.state = "closed";
         }
         createGain() {
-          return {} as GainNode;
+          return {
+            gain: {
+              value: 1.0,
+              setValueAtTime: () => {},
+              linearRampToValueAtTime: () => {},
+            },
+            connect: () => {},
+            disconnect: () => {},
+          } as unknown as GainNode;
         }
         createOscillator() {
           return {} as OscillatorNode;
@@ -792,6 +869,70 @@ export async function injectAudioMocksWithMoonshine(
       console.log(
         "[E2E Mock] Audio mocks initialized (MoonshineJS uses real library)",
       );
+
+      // Mock Web Speech API (SpeechRecognition)
+      // This is critical for e2e tests - without this, the app tries to use the real
+      // Web Speech API which may not work properly in headless Chrome
+      class MockSpeechRecognition {
+        continuous = false;
+        interimResults = false;
+        lang = "en-US";
+        onresult: ((event: unknown) => void) | null = null;
+        onerror: ((event: unknown) => void) | null = null;
+        onend: (() => void) | null = null;
+        onstart: (() => void) | null = null;
+        private _listening = false;
+        private _shouldRestart = true;
+
+        start() {
+          console.log("[E2E Mock] SpeechRecognition.start()");
+          this._listening = true;
+          this._shouldRestart = true;
+
+          // Simulate async startup
+          setTimeout(() => {
+            if (this._listening && this.onstart) {
+              this.onstart();
+            }
+          }, 10);
+
+          // Simulate periodic "no-speech" to trigger restart (mimics real behavior)
+          setTimeout(() => {
+            if (this._listening && this._shouldRestart && this.onend) {
+              console.log(
+                "[E2E Mock] SpeechRecognition auto-ended (simulating)",
+              );
+              this.onend();
+            }
+          }, 5000);
+        }
+
+        stop() {
+          console.log("[E2E Mock] SpeechRecognition.stop()");
+          this._listening = false;
+          this._shouldRestart = false;
+          if (this.onend) {
+            setTimeout(() => this.onend?.(), 10);
+          }
+        }
+
+        abort() {
+          console.log("[E2E Mock] SpeechRecognition.abort()");
+          this._listening = false;
+          this._shouldRestart = false;
+          if (this.onend) {
+            setTimeout(() => this.onend?.(), 10);
+          }
+        }
+      }
+
+      // Install the mock
+      (window as { SpeechRecognition?: unknown }).SpeechRecognition =
+        MockSpeechRecognition;
+      (
+        window as { webkitSpeechRecognition?: unknown }
+      ).webkitSpeechRecognition = MockSpeechRecognition;
+      console.log("[E2E Mock] Web Speech API (SpeechRecognition) mocked");
 
       // Signal that mocks are ready
       (window as unknown as { __audioMocksReady: boolean }).__audioMocksReady =

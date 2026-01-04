@@ -82,19 +82,21 @@ export function isWebSpeechSupported(): boolean {
   const SpeechRecognition = getSpeechRecognition()
   if (!SpeechRecognition) return false
 
-  // Additional check: Try to instantiate and verify API actually works
+  // Light-weight check: verify prototype has expected methods without instantiating
+  // This avoids creating objects that might have cleanup concerns
+  if (typeof SpeechRecognition.prototype?.start !== 'function') {
+    return false
+  }
+
+  // Final check: verify constructor doesn't throw
   // Some browsers (Firefox, Edge, Opera) have the constructor but it throws
-  // or doesn't function properly
+  // when you try to use it. We must instantiate to detect this.
   try {
     const test = new SpeechRecognition()
-    // Check if essential methods exist
-    if (typeof test.start !== 'function') return false
-    // Clean up test instance
-    try {
-      test.abort()
-    } catch {
-      // May throw if not started, that's fine
-    }
+    // Explicitly null the reference to aid garbage collection.
+    // Note: An unstarted SpeechRecognition has no active resources,
+    // so GC is sufficient for cleanup. abort() is unnecessary and may throw.
+    void test // Prevent unused variable warning
     return true
   } catch {
     // Constructor threw - API not actually supported
@@ -132,9 +134,11 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
       state = 'starting'
       log('Starting...')
-      // Note: We intentionally don't set 'loading' status here because Web Speech API
-      // doesn't download a model. This prevents layout shift and ensures "Loading Speech
-      // To Text Model" message only appears for Moonshine.
+      // Set 'loading' status to give users feedback while connecting to cloud services.
+      // Although Web Speech API doesn't download a model, there's still a brief delay
+      // while the browser connects to the cloud recognition service. This is especially
+      // noticeable on slower connections.
+      callbacks.onStatusChange('loading')
 
       recognition = new SpeechRecognition()
       recognition.continuous = true

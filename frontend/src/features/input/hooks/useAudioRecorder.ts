@@ -45,8 +45,15 @@ export type UseAudioRecorderOptions = {
   waveformControls: WaveformControls
   /** Speech recognition controls from useSpeechRecognition hook */
   speechControls: SpeechControls
-  /** Current speech recognition status - used to pause auto-stop during loading */
-  speechStatus?: SpeechStatus
+  /**
+   * Current speech recognition status from useSpeechRecognition hook.
+   *
+   * REQUIRED: This prop is critical for correct auto-stop behavior.
+   * The silence detection timer pauses when status is 'loading' to prevent
+   * premature auto-stop while the speech recognition model/VAD initializes.
+   * Without this, recordings may auto-stop before speech recognition is ready.
+   */
+  speechStatus: SpeechStatus
   /** Callback when recording successfully starts */
   onRecordingStart?: () => void
 }
@@ -98,7 +105,7 @@ export type UseAudioRecorderReturn = {
 export function useAudioRecorder({
   waveformControls,
   speechControls,
-  speechStatus = 'idle',
+  speechStatus,
   onRecordingStart,
 }: UseAudioRecorderOptions): UseAudioRecorderReturn {
   const { setupWaveform, cleanupWaveform, invalidatePeaks, computePeaksFromBlob, resetWaveform } =
@@ -379,6 +386,20 @@ export function useAudioRecorder({
       onRecordingStart?.()
     } catch (err) {
       isStartingRecordingRef.current = false
+
+      // Clean up any resources that were acquired before the error occurred
+      // This is critical for errors in setupWaveform or startSpeechRecognition
+      // which happen after getUserMedia succeeds but before recording starts
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop())
+        mediaStreamRef.current = null
+      }
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current = null
+      }
+      // Clean up waveform resources (may have been partially initialized)
+      cleanupWaveform()
+
       let message =
         err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
 
@@ -404,6 +425,7 @@ export function useAudioRecorder({
     invalidatePeaks,
     resetWaveform,
     setupWaveform,
+    cleanupWaveform,
     startTimer,
     startSpeechRecognition,
     startSilenceDetection,

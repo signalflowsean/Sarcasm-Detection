@@ -88,11 +88,12 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('initial state', () => {
-    it('should start with idle status', () => {
+    it('should start with idle status and no error', () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
       expect(result.current.speechStatus).toBe('idle')
+      expect(result.current.speechError).toBe(null)
     })
 
     it('should provide start and stop functions', () => {
@@ -115,7 +116,7 @@ describe('useSpeechRecognition', () => {
       // Start speech recognition - the mock auto-triggers callbacks via setTimeout
       // so we need to flush timers after starting
       await act(async () => {
-        result.current.startSpeechRecognition()
+        await result.current.startSpeechRecognition()
         // Allow setTimeout callbacks to run
         await new Promise(resolve => setTimeout(resolve, 10))
       })
@@ -161,7 +162,7 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('stopSpeechRecognition', () => {
-    it('should stop transcriber and reset to idle', async () => {
+    it('should stop transcriber and reset to idle with no error', async () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
@@ -184,6 +185,7 @@ describe('useSpeechRecognition', () => {
 
       expect(mockTranscriber.stop).toHaveBeenCalled()
       expect(result.current.speechStatus).toBe('idle')
+      expect(result.current.speechError).toBe(null)
     })
 
     it('should handle stop when not running', () => {
@@ -275,7 +277,7 @@ describe('useSpeechRecognition', () => {
       const { result } = renderHook(() => useSpeechRecognition(options))
 
       await act(async () => {
-        result.current.startSpeechRecognition()
+        await result.current.startSpeechRecognition()
         // Allow setTimeout callbacks to run
         await new Promise(resolve => setTimeout(resolve, 10))
       })
@@ -295,7 +297,7 @@ describe('useSpeechRecognition', () => {
   })
 
   describe('error handling', () => {
-    it('should handle runtime transcription errors via onError callback', async () => {
+    it('should handle runtime transcription errors via onError callback and set speechError', async () => {
       const options = createMockOptions()
       const { result } = renderHook(() => useSpeechRecognition(options))
 
@@ -312,9 +314,10 @@ describe('useSpeechRecognition', () => {
 
       expect(options.onError).toHaveBeenCalledWith('Transcription error: Audio processing failed')
       expect(result.current.speechStatus).toBe('error')
+      expect(result.current.speechError).toBe('Transcription error: Audio processing failed')
     })
 
-    it('should show error when MoonshineJS fails (Web Speech API not available in test env)', async () => {
+    it('should show error and set speechError when MoonshineJS fails (Web Speech API not available in test env)', async () => {
       mockTranscriber.start.mockRejectedValueOnce(new Error('MoonshineJS failed'))
 
       const options = createMockOptions()
@@ -338,11 +341,13 @@ describe('useSpeechRecognition', () => {
       const hasUserFriendlyMessage = errorMessage.includes('Please try again')
       expect(hasTechnicalDetails || hasUserFriendlyMessage).toBe(true)
       expect(result.current.speechStatus).toBe('error')
+      // Verify speechError is also set with the same message
+      expect(result.current.speechError).toBe(errorMessage)
     })
   })
 
   describe('resetSpeechStatus', () => {
-    it('should reset to idle when transcriber is not running', async () => {
+    it('should reset to idle and clear speechError when transcriber is not running', async () => {
       const options = createMockOptions()
       options.isRecordingRef.current = false
 
@@ -355,6 +360,7 @@ describe('useSpeechRecognition', () => {
       })
 
       expect(result.current.speechStatus).toBe('error')
+      expect(result.current.speechError).toBeTruthy()
 
       act(() => {
         result.current.resetSpeechStatus()
@@ -362,6 +368,8 @@ describe('useSpeechRecognition', () => {
 
       // Should be idle because transcriber is null after error
       expect(result.current.speechStatus).toBe('idle')
+      // speechError should also be cleared
+      expect(result.current.speechError).toBe(null)
     })
 
     it('should reset to listening when transcriber is running and recording', async () => {
