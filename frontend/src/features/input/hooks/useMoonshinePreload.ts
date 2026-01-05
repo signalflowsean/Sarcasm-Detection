@@ -8,10 +8,11 @@
  * the user is still looking at the landing page or text input mode.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { isDev } from '../utils/env'
 import {
   preloadMoonshineModel,
+  resetPreloadState,
   setDownloadProgressCallback,
   type DownloadProgress,
 } from './speech/moonshineEngine'
@@ -30,36 +31,63 @@ let preloadStarted = false
 let preloadComplete = false
 let preloadError = false
 
+// Listeners for state changes (to notify React components)
+type StateChangeListener = () => void
+const stateChangeListeners = new Set<StateChangeListener>()
+
+function notifyStateChange() {
+  stateChangeListeners.forEach(listener => listener())
+}
+
 // Check if Moonshine is needed (do this once at module load)
 const needsMoonshine = typeof window !== 'undefined' && !isWebSpeechSupported()
 
-// Start preload immediately at module load (not in React lifecycle)
-// This ensures download starts ASAP, even before React mounts
-if (needsMoonshine && !preloadStarted && !preloadComplete) {
-  log('Module init: Web Speech API not supported - starting preload immediately')
+/**
+ * Start preload (can be called at module init or as a retry)
+ */
+function startPreload(): void {
+  if (preloadStarted || preloadComplete) return
+
+  log('Starting preload...')
   preloadStarted = true
+  preloadError = false
+  notifyStateChange()
 
   preloadMoonshineModel()
     .then(() => {
       log('Preload complete!')
       preloadComplete = true
+      preloadStarted = false
+      notifyStateChange()
     })
     .catch(err => {
       log('Preload failed:', err)
       preloadError = true
       preloadStarted = false // Allow retry
+      notifyStateChange()
     })
+}
+
+// Start preload immediately at module load (not in React lifecycle)
+// This ensures download starts ASAP, even before React mounts
+if (needsMoonshine && !preloadStarted && !preloadComplete) {
+  log('Module init: Web Speech API not supported - starting preload immediately')
+  startPreload()
 }
 
 export type PreloadState = {
   /** Whether preload is currently in progress */
   isLoading: boolean
-  /** Whether preload has completed */
+  /** Whether preload has completed successfully */
   isComplete: boolean
+  /** Whether preload failed (can retry) */
+  hasError: boolean
   /** Download progress (null if not downloading or using Web Speech API) */
   progress: DownloadProgress | null
   /** Whether Moonshine is needed (Web Speech API not available) */
   needsMoonshine: boolean
+  /** Retry preload after failure */
+  retry: () => void
 }
 
 /**
@@ -70,7 +98,30 @@ export function useMoonshinePreload(): PreloadState {
   // Initialize with current module-level state
   const [isLoading, setIsLoading] = useState(preloadStarted && !preloadComplete && !preloadError)
   const [isComplete, setIsComplete] = useState(preloadComplete)
+  const [hasError, setHasError] = useState(preloadError)
   const [progress, setProgress] = useState<DownloadProgress | null>(null)
+
+  // Sync React state with module-level state
+  const syncState = useCallback(() => {
+    setIsLoading(preloadStarted && !preloadComplete && !preloadError)
+    setIsComplete(preloadComplete)
+    setHasError(preloadError)
+  }, [])
+
+  // Retry function to restart preload after failure
+  const retry = useCallback(() => {
+    if (!preloadError) return
+    log('Retrying preload...')
+    // Reset module-level state
+    preloadError = false
+    preloadComplete = false
+    // Reset the moonshine engine's internal preload state
+    resetPreloadState()
+    // Clear progress
+    setProgress(null)
+    // Start fresh preload
+    startPreload()
+  }, [])
 
   useEffect(() => {
     // If Web Speech API is available, no need to preload Moonshine
@@ -78,53 +129,36 @@ export function useMoonshinePreload(): PreloadState {
       return
     }
 
-    // If already complete, update state
+    // Subscribe to state changes
+    stateChangeListeners.add(syncState)
+
+    // Sync initial state
+    syncState()
+
+    // If already complete, we're done
     if (preloadComplete) {
-      setIsComplete(true)
-      setIsLoading(false)
-      return
-    }
-
-    // If preload is in progress, track it
-    // Note: preloadComplete is guaranteed false here (we returned above if true)
-    if (preloadStarted) {
-      setIsLoading(true)
-
-      // Set up progress callback
-      setDownloadProgressCallback(p => {
-        log('Progress update:', p.percent + '%')
-        setProgress(p)
-
-        // Check if complete
-        if (preloadComplete) {
-          setIsComplete(true)
-          setIsLoading(false)
-        }
-      })
-
-      // Poll for completion (in case callback doesn't fire for final state)
-      const checkComplete = setInterval(() => {
-        if (preloadComplete) {
-          setIsComplete(true)
-          setIsLoading(false)
-          clearInterval(checkComplete)
-        }
-        if (preloadError) {
-          setIsLoading(false)
-          clearInterval(checkComplete)
-        }
-      }, 100)
-
       return () => {
-        clearInterval(checkComplete)
+        stateChangeListeners.delete(syncState)
       }
     }
-  }, [])
+
+    // Set up progress callback
+    setDownloadProgressCallback(p => {
+      log('Progress update:', p.percent + '%')
+      setProgress(p)
+    })
+
+    return () => {
+      stateChangeListeners.delete(syncState)
+    }
+  }, [syncState])
 
   return {
     isLoading,
     isComplete,
+    hasError,
     progress,
     needsMoonshine,
+    retry,
   }
 }

@@ -409,6 +409,9 @@
   .audio-recorder__waveform.is-seekable {
     cursor: ew-resize;
   }
+  .audio-recorder__waveform.is-empty canvas {
+    visibility: hidden;
+  }
   .audio-recorder__waveform canvas {
     width: 100%;
     height: 6rem;
@@ -587,10 +590,13 @@
 
   /* Container for speech status - fixed positioning in top-right corner */
   /* Uses fixed positioning to avoid layout shifts on both mobile and desktop */
+  /* Uses safe-area-inset to account for notched devices (iPhone X, etc.) */
   .speech-status--container {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    /* Use max() to ensure at least 1rem spacing, or more if device has safe area insets */
+    /* env() returns 0px on devices without notches, so max() falls back to 1rem */
+    top: max(1rem, env(safe-area-inset-top, 0px));
+    right: max(1rem, env(safe-area-inset-right, 0px));
     z-index: var(--z-popover);
     /* Don't reserve space in layout */
     min-height: 0;
@@ -618,6 +624,47 @@
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: #fca5a5;
+  }
+
+  /* Preload error state - styled to show actionable error with retry */
+  .speech-status--preload-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Apply backdrop-filter when supported for error state */
+  @supports (backdrop-filter: blur(8px)) {
+    .speech-status--preload-error {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+  }
+
+  /* Retry button styling */
+  .speech-status__retry-button {
+    background: rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .speech-status__retry-button:hover {
+    background: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.7);
+  }
+
+  .speech-status__retry-button:active {
+    background: rgba(239, 68, 68, 0.5);
+    transform: scale(0.98);
   }
 
   .speech-status--info {
@@ -3284,9 +3331,10 @@ body:has(.audio-recorder__modal) .detector-jack {
   }
 
   /* Speech status on mobile - inherits top-right fixed positioning from base styles */
-  /* Just adjust max-width and add shadow for mobile */
+  /* Adjust max-width accounting for safe areas on notched devices */
   .mobile-input-controls .speech-status--container {
-    max-width: calc(100% - 2rem);
+    /* Account for both left and right safe areas in max-width calculation */
+    max-width: calc(100% - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
   }
 
   .mobile-input-controls .speech-status--container .speech-status {

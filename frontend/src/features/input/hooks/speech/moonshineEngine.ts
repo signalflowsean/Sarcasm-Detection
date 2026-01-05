@@ -37,6 +37,31 @@ function logError(...args: unknown[]) {
 // Track preload state
 let preloadPromise: Promise<void> | null = null
 
+// Track preload result for debugging/retry logic
+export type PreloadStatus = 'idle' | 'loading' | 'success' | 'partial_failure' | 'failed'
+let preloadStatus: PreloadStatus = 'idle'
+
+/**
+ * Get the current preload status.
+ * - 'idle': preload hasn't started
+ * - 'loading': preload is in progress
+ * - 'success': all model files downloaded successfully
+ * - 'partial_failure': some files failed to download (retry possible)
+ * - 'failed': all files failed to download (retry possible)
+ */
+export function getPreloadStatus(): PreloadStatus {
+  return preloadStatus
+}
+
+/**
+ * Reset preload state to allow a fresh preload attempt.
+ * Use this if you want to force a retry after a partial or complete failure.
+ */
+export function resetPreloadState(): void {
+  preloadPromise = null
+  preloadStatus = 'idle'
+}
+
 // Progress tracking
 export type DownloadProgress = {
   bytesDownloaded: number
@@ -139,6 +164,8 @@ export async function preloadMoonshineModel(): Promise<void> {
   const modelPath = getModelPath()
   log('Preloading model in background:', modelPath)
 
+  preloadStatus = 'loading'
+
   preloadPromise = (async () => {
     try {
       // MoonshineJS models are served from their CDN
@@ -207,14 +234,23 @@ export async function preloadMoonshineModel(): Promise<void> {
         }
       }
 
-      // Warn if all files failed - likely indicates a real problem
+      // Handle failures - reset preloadPromise to allow retry
       if (filesFailed === modelFiles.length) {
+        // All files failed - likely indicates a real problem
         logError(
           `Preload: All ${filesFailed} model files failed to download. ` +
             'This may indicate network issues, CORS problems, or CDN unavailability.'
         )
+        preloadStatus = 'failed'
+        preloadPromise = null // Allow retry
       } else if (filesFailed > 0) {
+        // Partial failure - some files cached but not all
         log(`Preload: ${filesFailed}/${modelFiles.length} files failed to cache`)
+        preloadStatus = 'partial_failure'
+        preloadPromise = null // Allow retry
+      } else {
+        // All files succeeded
+        preloadStatus = 'success'
       }
 
       // Report completion
@@ -229,11 +265,14 @@ export async function preloadMoonshineModel(): Promise<void> {
         })
       }
 
-      log(
-        `Preload: Model files cached successfully (${Math.round(totalBytesDownloaded / 1024 / 1024)}MB total)`
-      )
+      if (filesFailed === 0) {
+        log(
+          `Preload: Model files cached successfully (${Math.round(totalBytesDownloaded / 1024 / 1024)}MB total)`
+        )
+      }
     } catch (error) {
       logError('Preload error:', error)
+      preloadStatus = 'failed'
       preloadPromise = null
       throw error
     }
@@ -246,16 +285,36 @@ export async function preloadMoonshineModel(): Promise<void> {
 // This is a fallback for when there's silence during initialization - VAD needs speech
 // to confirm it's ready. 10 seconds provides headroom for slower devices while still
 // preventing users from being stuck in loading state indefinitely.
-const MAX_LOADING_WAIT_MS = 10000
+const MAX_VAD_WAIT_MS = 10000
+
+// Max time to wait for the entire model loading process (download + initialization).
+// If this timeout fires, we show an error and allow the user to retry.
+// 45 seconds is generous for slow connections but prevents indefinite waiting.
+const MAX_MODEL_LOAD_MS = 45000
 
 export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
   let transcriber: Moonshine.MicrophoneTranscriber | null = null
   let listening = false
   let vadReady = false // Track if VAD has detected speech (system is fully ready)
   let wasStopped = false // Track if stop() was called during start()
-  let loadingTimeoutId: ReturnType<typeof setTimeout> | null = null
+  let vadTimeoutId: ReturnType<typeof setTimeout> | null = null // Timeout for VAD confirmation
+  let modelLoadTimeoutId: ReturnType<typeof setTimeout> | null = null // Timeout for entire model load
   let readyResolve: (() => void) | null = null // Resolve function for ready promise
   let readyResolved = false // Flag to prevent double-resolution of ready promise
+
+  /**
+   * Clear all loading-related timeouts.
+   */
+  function clearAllTimeouts(): void {
+    if (vadTimeoutId) {
+      clearTimeout(vadTimeoutId)
+      vadTimeoutId = null
+    }
+    if (modelLoadTimeoutId) {
+      clearTimeout(modelLoadTimeoutId)
+      modelLoadTimeoutId = null
+    }
+  }
 
   /**
    * Safely resolve the ready promise exactly once.
@@ -287,6 +346,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // Reset flags at start of each attempt
       wasStopped = false
       readyResolved = false
+      readyResolve = null // Clear stale resolve function to prevent race conditions
 
       const modelPath = getModelPath()
       log('Starting with model:', modelPath)
@@ -300,10 +360,8 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
             if (!vadReady) {
               vadReady = true
               listening = true
-              if (loadingTimeoutId) {
-                clearTimeout(loadingTimeoutId)
-                loadingTimeoutId = null
-              }
+              // Clear all timeouts - we're successfully listening
+              clearAllTimeouts()
               log('System ready - first transcript received')
               callbacks.onStatusChange('listening')
               // Resolve the ready promise so startRecording can proceed
@@ -320,10 +378,8 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
             if (!vadReady) {
               vadReady = true
               listening = true // Ensure listening is set
-              if (loadingTimeoutId) {
-                clearTimeout(loadingTimeoutId)
-                loadingTimeoutId = null
-              }
+              // Clear all timeouts - we're successfully listening
+              clearAllTimeouts()
               log('System ready - first transcript received')
               callbacks.onStatusChange('listening')
               // Resolve the ready promise so startRecording can proceed
@@ -336,9 +392,32 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
           onModelLoadStart: () => {
             log('Model loading...')
             callbacks.onStatusChange('loading')
+
+            // Start hard timeout for entire model loading process
+            // This catches cases where model download hangs or fails silently
+            if (modelLoadTimeoutId) clearTimeout(modelLoadTimeoutId)
+            modelLoadTimeoutId = setTimeout(() => {
+              // Only fire if we're still in loading state (not yet listening)
+              if (!vadReady && !listening && transcriber) {
+                logError(
+                  `Model loading timeout (${MAX_MODEL_LOAD_MS / 1000}s) - ` +
+                    'model may have failed to download. Check network connection.'
+                )
+                callbacks.onError(
+                  'Speech model is taking too long to load. Please check your connection and try again.'
+                )
+                callbacks.onStatusChange('error')
+              }
+            }, MAX_MODEL_LOAD_MS)
           },
           onModelLoadComplete: () => {
             log('Model loaded, waiting for VAD...')
+            // Model loaded successfully - clear the hard timeout
+            if (modelLoadTimeoutId) {
+              clearTimeout(modelLoadTimeoutId)
+              modelLoadTimeoutId = null
+            }
+
             // Model is loaded but VAD still needs to initialize
             // Keep 'loading' status until we get the first transcript
             // We track listening state internally (see runtime check after transcriber creation)
@@ -348,14 +427,14 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
             // Fallback: if no transcript received within timeout, transition anyway
             // This prevents getting stuck in loading state if there's silence
-            if (loadingTimeoutId) clearTimeout(loadingTimeoutId)
-            loadingTimeoutId = setTimeout(() => {
+            if (vadTimeoutId) clearTimeout(vadTimeoutId)
+            vadTimeoutId = setTimeout(() => {
               if (!vadReady && listening && transcriber) {
                 // Log a warning - system may not be fully ready but we're proceeding
                 // to avoid leaving users stuck in loading state. This typically fires
                 // when there's silence during initialization (VAD needs speech to confirm ready).
                 logError(
-                  'Loading timeout reached - transitioning to listening without VAD confirmation. ' +
+                  'VAD timeout reached - transitioning to listening without VAD confirmation. ' +
                     'If transcription issues occur, try speaking immediately after clicking record.'
                 )
                 vadReady = true
@@ -363,7 +442,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
                 // Resolve the ready promise so startRecording can proceed
                 resolveReady()
               }
-            }, MAX_LOADING_WAIT_MS)
+            }, MAX_VAD_WAIT_MS)
           },
           onError: (error: Error) => {
             logError('Runtime error:', error)
@@ -416,21 +495,21 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
         callbacks.onStatusChange('loading')
       }
 
-      // Set fallback timeout if not already set by onModelLoadComplete
+      // Set fallback VAD timeout if not already set by onModelLoadComplete
       // This handles the case where model was cached and onModelLoadComplete didn't fire
-      if (!loadingTimeoutId && !vadReady) {
+      if (!vadTimeoutId && !vadReady) {
         log('Setting fallback timeout for cached model scenario')
-        loadingTimeoutId = setTimeout(() => {
+        vadTimeoutId = setTimeout(() => {
           if (!vadReady && listening && transcriber) {
             logError(
-              'Loading timeout reached (cached model) - transitioning to listening without VAD confirmation. ' +
+              'VAD timeout reached (cached model) - transitioning to listening without VAD confirmation. ' +
                 'If transcription issues occur, try speaking immediately after clicking record.'
             )
             vadReady = true
             callbacks.onStatusChange('listening')
             resolveReady()
           }
-        }, MAX_LOADING_WAIT_MS)
+        }, MAX_VAD_WAIT_MS)
       }
 
       // Wait for the system to be fully ready before returning
@@ -444,11 +523,8 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
       // Mark that stop was called - this prevents accessing transcriber
       // if stop() is called while start() is awaiting transcriber.start()
       wasStopped = true
-      // Clear any pending loading timeout
-      if (loadingTimeoutId) {
-        clearTimeout(loadingTimeoutId)
-        loadingTimeoutId = null
-      }
+      // Clear any pending timeouts (both VAD and model load)
+      clearAllTimeouts()
       // Resolve the ready promise if pending (so start() doesn't hang)
       resolveReady()
       if (transcriber) {

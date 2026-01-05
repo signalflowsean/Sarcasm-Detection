@@ -3,7 +3,7 @@
  *
  * Shows download progress for Moonshine model at the app level.
  * Only visible when Moonshine is needed (Web Speech API not available)
- * and the model is still being downloaded.
+ * and the model is still being downloaded or has failed.
  */
 
 import { SPEECH_LOADING_MESSAGE } from '../hooks/constants'
@@ -13,17 +13,44 @@ import { RetroSpinner } from './RetroSpinner'
 
 /**
  * App-level Moonshine preload status indicator.
- * Shows in top-right corner when model is downloading.
+ * Shows in top-right corner when model is downloading or has failed.
  */
 export function MoonshinePreloadStatus() {
-  const { isLoading, isComplete, progress, needsMoonshine } = useMoonshinePreload()
+  const { isLoading, isComplete, hasError, progress, needsMoonshine, retry } = useMoonshinePreload()
 
   // Don't show if:
   // - Web Speech API is available (no Moonshine needed)
   // - Preload is complete
-  // - Not currently loading
-  if (!needsMoonshine || isComplete || !isLoading) {
+  // - Not loading AND not in error state
+  if (!needsMoonshine || isComplete || (!isLoading && !hasError)) {
     return null
+  }
+
+  // Show error state with retry option
+  if (hasError) {
+    return (
+      <output
+        className="speech-status--container"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="moonshine-preload-status"
+      >
+        <div className="speech-status speech-status--preload-error">
+          <span className="speech-status__message">
+            <span className="sr-only">Error: </span>
+            Speech model failed to load
+          </span>
+          <button
+            type="button"
+            className="speech-status__retry-button"
+            onClick={retry}
+            aria-label="Retry loading speech model"
+          >
+            Retry
+          </button>
+        </div>
+      </output>
+    )
   }
 
   // Generate loading message with progress if available
@@ -42,7 +69,7 @@ export function MoonshinePreloadStatus() {
 
   return (
     <output
-      className="speech-status speech-status--container"
+      className="speech-status--container"
       aria-live="polite"
       aria-atomic="true"
       data-testid="moonshine-preload-status"

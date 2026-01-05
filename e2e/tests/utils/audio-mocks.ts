@@ -383,21 +383,36 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
       onstart: (() => void) | null = null;
       private _listening = false;
       private _shouldRestart = true;
+      private _startupTimeoutId: ReturnType<typeof setTimeout> | null = null;
+      private _autoEndTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      private _clearTimeouts() {
+        if (this._startupTimeoutId !== null) {
+          clearTimeout(this._startupTimeoutId);
+          this._startupTimeoutId = null;
+        }
+        if (this._autoEndTimeoutId !== null) {
+          clearTimeout(this._autoEndTimeoutId);
+          this._autoEndTimeoutId = null;
+        }
+      }
 
       start() {
         console.log("[E2E Mock] SpeechRecognition.start()");
+        // Clear any pending timeouts from previous start() calls
+        this._clearTimeouts();
         this._listening = true;
         this._shouldRestart = true;
 
         // Simulate async startup
-        setTimeout(() => {
+        this._startupTimeoutId = setTimeout(() => {
           if (this._listening && this.onstart) {
             this.onstart();
           }
         }, 10);
 
         // Simulate periodic "no-speech" to trigger restart (mimics real behavior)
-        setTimeout(() => {
+        this._autoEndTimeoutId = setTimeout(() => {
           if (this._listening && this._shouldRestart && this.onend) {
             console.log("[E2E Mock] SpeechRecognition auto-ended (simulating)");
             this.onend();
@@ -407,6 +422,7 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
 
       stop() {
         console.log("[E2E Mock] SpeechRecognition.stop()");
+        this._clearTimeouts();
         this._listening = false;
         this._shouldRestart = false;
         if (this.onend) {
@@ -416,6 +432,7 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
 
       abort() {
         console.log("[E2E Mock] SpeechRecognition.abort()");
+        this._clearTimeouts();
         this._listening = false;
         this._shouldRestart = false;
         if (this.onend) {

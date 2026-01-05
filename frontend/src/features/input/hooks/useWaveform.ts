@@ -86,6 +86,77 @@ const MAX_GAIN_BY_LEVEL = {
   LOUD: 2,
 } as const
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Gain Smoothing Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Exponential smoothing is used to prevent jarring jumps in the waveform display.
+// The formula: currentGain += (targetGain - currentGain) * α
+//
+// With requestAnimationFrame (~60fps, 16.7ms per frame):
+// - α=0.3 → 63% of target in ~3 frames (~50ms), 95% in ~10 frames (~167ms)
+// - α=0.1 → 63% of target in ~10 frames (~167ms), 95% in ~30 frames (~500ms)
+//
+// Trade-off: Higher α = more responsive but potentially jittery
+//            Lower α = smoother but can feel sluggish
+//
+// We use ADAPTIVE smoothing: fast attack (silence→speech) for responsiveness,
+// slower release (speech→silence) for visual smoothness.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GAIN_SMOOTHING = {
+  /**
+   * Attack factor: Used when target gain > current gain (audio getting louder).
+   * Higher value = faster response to speech onset.
+   * At 60fps: 0.3 reaches 95% of target in ~170ms
+   */
+  ATTACK: 0.3,
+
+  /**
+   * Release factor: Used when target gain < current gain (audio getting quieter).
+   * Lower value = smoother decay, prevents jitter during natural speech pauses.
+   * At 60fps: 0.08 reaches 95% of target in ~600ms
+   */
+  RELEASE: 0.08,
+} as const
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gain Compression Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// We apply sqrt compression to the calculated gain to reduce dynamic range.
+// This mimics human auditory perception (Weber-Fechner law) where perceived
+// loudness is roughly logarithmic. Without compression:
+//   - A 4x quieter signal needs 4x gain → jarring visual jumps
+//   - A 16x quieter signal needs 16x gain → extreme amplification
+//
+// With sqrt compression:
+//   - 4x quieter → sqrt(4) = 2x compressed gain (smoother)
+//   - 16x quieter → sqrt(16) = 4x compressed gain (still manageable)
+//
+// The VISIBILITY_BOOST compensates for sqrt's gain reduction on typical signals.
+// At baseGain=4 (common for Chrome speech): sqrt(4) * 1.5 = 3x effective gain.
+// This was empirically tuned to fill ~50-60% of canvas height on typical speech.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GAIN_COMPRESSION = {
+  /**
+   * Visibility boost multiplier applied after sqrt compression.
+   *
+   * Rationale: sqrt compression reduces gain (e.g., sqrt(4)=2 instead of 4).
+   * This multiplier compensates to ensure typical speech fills the canvas well.
+   *
+   * Examples with VISIBILITY_BOOST = 1.5:
+   *   baseGain 1  → sqrt(1) * 1.5 = 1.5x  (slight boost for already-good signals)
+   *   baseGain 4  → sqrt(4) * 1.5 = 3.0x  (moderate boost for quiet Chrome speech)
+   *   baseGain 16 → sqrt(16) * 1.5 = 6.0x (strong boost, but not extreme 16x)
+   *
+   * Trade-off: Higher value = more visible waveforms, risk of clipping
+   *            Lower value = subtler waveforms, may appear flat on quiet audio
+   */
+  VISIBILITY_BOOST: 1.5,
+} as const
+
 type Nullable<T> = T | null
 
 type Peaks = {
@@ -183,23 +254,34 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
 
     // ─────────────────────────────────────────────────────────────────────────
     // Normalize peaks to fill canvas (fixes flat waveforms on quiet recordings)
-    // Chrome recordings can be VERY quiet (~0.05 peak), so we use aggressive normalization
+    // Chrome recordings can be VERY quiet (~0.05 peak), so we use normalization.
+    //
+    // However, we must avoid amplifying noise on truly silent recordings.
+    // Trade-off: Too high a threshold = quiet speech looks flat
+    //            Too low a threshold = background noise gets amplified
     // ─────────────────────────────────────────────────────────────────────────
     let peakAmplitude = 0
     for (let i = 0; i < n; i++) {
       peakAmplitude = Math.max(peakAmplitude, Math.abs(min[i]), Math.abs(max[i]))
     }
 
-    // Simple normalization: scale peaks to fill ~60% of canvas
-    const TARGET_AMPLITUDE = 0.6
-    const MAX_SCALE = 30 // High scaling for Chrome's very quiet audio
+    // Normalization constants
+    const TARGET_AMPLITUDE = 0.6 // Target: waveform fills ~60% of canvas height
+    const MAX_SCALE = 15 // Maximum scaling factor (reduced from 30 to limit noise amplification)
+    const NOISE_FLOOR = 0.01 // Minimum peak amplitude (1% of full scale) below which we assume noise
 
     let normScale = 1.0
-    if (peakAmplitude > 0.0001) {
+    if (peakAmplitude >= NOISE_FLOOR) {
+      // Signal is above noise floor - apply normalization
       const idealScale = TARGET_AMPLITUDE / peakAmplitude
       normScale = Math.min(idealScale, MAX_SCALE)
       normScale = Math.max(normScale, 1.0)
+    } else if (peakAmplitude > 0.001) {
+      // Signal is between 0.1% and 1% - apply gentle scaling (max 2x) to show something
+      // This handles very quiet but real audio without amplifying pure noise
+      normScale = Math.min(2.0, TARGET_AMPLITUDE / peakAmplitude)
     }
+    // Below 0.001 (0.1%): leave normScale at 1.0 - this is essentially silence/noise
 
     // Fill shape between min and max (with normalization)
     ctx.beginPath()
@@ -294,12 +376,16 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
       maxAllowedGain = MAX_GAIN_BY_LEVEL.LOUD
     }
 
-    // Apply sqrt compression then cap
-    const compressedGain = Math.sqrt(baseGain) * 1.5
-    const displayGain = Math.max(Math.min(compressedGain, maxAllowedGain), 1.0)
+    // Apply sqrt compression for perceptual scaling, then visibility boost
+    // See GAIN_COMPRESSION constant for detailed rationale
+    const compressedGain = Math.sqrt(baseGain) * GAIN_COMPRESSION.VISIBILITY_BOOST
+    const targetGain = Math.max(Math.min(compressedGain, maxAllowedGain), 1.0)
 
-    // Smooth the gain changes
-    currentGainRef.current += (displayGain - currentGainRef.current) * 0.1
+    // Adaptive smoothing: fast attack (audio getting louder), slow release (getting quieter)
+    // This ensures responsive onset when user starts speaking, but smooth decay during pauses
+    const smoothingFactor =
+      targetGain > currentGainRef.current ? GAIN_SMOOTHING.ATTACK : GAIN_SMOOTHING.RELEASE
+    currentGainRef.current += (targetGain - currentGainRef.current) * smoothingFactor
 
     // Update the Web Audio GainNode
     if (gainNode) {

@@ -98,7 +98,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
   return (
     <div
       ref={containerRef}
-      className={`audio-recorder__waveform${isSeekEnabled ? ' is-seekable' : ''}`}
+      className={`audio-recorder__waveform${isSeekEnabled ? ' is-seekable' : ''}${showEmpty ? ' is-empty' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -109,12 +109,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
       onTouchCancel={onTouchCancel}
       data-testid="waveform"
     >
-      {/* Hide canvas when showing empty state to avoid visual overlap */}
-      <canvas
-        ref={ref}
-        aria-label={label}
-        style={{ visibility: showEmpty ? 'hidden' : 'visible' }}
-      />
+      <canvas ref={ref} aria-label={label} />
       {showPlayhead && !showEmpty && (
         <div
           className="audio-recorder__playhead"

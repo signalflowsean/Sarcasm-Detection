@@ -91,6 +91,10 @@ export function useSpeechRecognition({
       onError: (message: string) => {
         if (isMountedRef.current) {
           setSpeechError(message)
+          // Also set status to 'error' to ensure the error is displayed.
+          // This is defensive: engines should also call onStatusChange('error'),
+          // but we set it here too to guarantee errors are always visible.
+          setSpeechStatus('error')
           onError(message)
         }
       },
@@ -123,8 +127,7 @@ export function useSpeechRecognition({
           setActiveEngine(webSpeech.name)
           await webSpeech.start()
           log('Web Speech API started successfully')
-          isStartingRef.current = false // Success - clear starting flag
-          return
+          return // Success - finally block will clear isStartingRef
         } catch (err) {
           log('Web Speech API failed:', err)
           webSpeechError = err instanceof Error ? err.message : 'Unknown error'
@@ -152,8 +155,7 @@ export function useSpeechRecognition({
           setActiveEngine(moonshine.name)
           await moonshine.start()
           log('MoonshineJS started successfully')
-          isStartingRef.current = false // Success - clear starting flag
-          return
+          return // Success - finally block will clear isStartingRef
         } catch (err) {
           // Check if stop() was called during start() - if so, don't report error
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -169,8 +171,7 @@ export function useSpeechRecognition({
             }
             engineRef.current = null
             setActiveEngine(null)
-            isStartingRef.current = false
-            return
+            return // Cancelled - finally block will clear isStartingRef
           }
 
           log('MoonshineJS failed:', err)
@@ -195,7 +196,7 @@ export function useSpeechRecognition({
           setSpeechError(userErrorMessage)
           onError(userErrorMessage)
           setSpeechStatus('error')
-          return // Explicit return after error - function complete
+          // Error - finally block will clear isStartingRef
         }
       } else {
         log('MoonshineJS not supported (WebAssembly unavailable)')
@@ -219,11 +220,11 @@ export function useSpeechRecognition({
         setSpeechError(userErrorMessage)
         onError(userErrorMessage)
         setSpeechStatus('error')
-        return // Explicit return after error - function complete
+        // Error - finally block will clear isStartingRef
       }
     } finally {
-      // Always clear the starting flag, even if an error occurred
-      // This allows retry attempts after failures
+      // Cleanup: Always clear the starting flag on any exit path (success, error, or cancelled).
+      // This ensures retry attempts are always possible after the function completes.
       isStartingRef.current = false
     }
   }, [createCallbacks, onError])

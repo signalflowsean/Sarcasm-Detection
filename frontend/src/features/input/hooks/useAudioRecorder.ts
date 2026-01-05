@@ -113,6 +113,7 @@ export function useAudioRecorder({
 
   // Track speechStatus in a ref for use in silence detection callback
   const speechStatusRef = useRef(speechStatus)
+  const prevSpeechStatusRef = useRef(speechStatus)
   speechStatusRef.current = speechStatus
   const { startSpeechRecognition, stopSpeechRecognition } = speechControls
 
@@ -164,6 +165,16 @@ export function useAudioRecorder({
   useEffect(() => {
     isRecordingRef.current = state.isRecording
   }, [state.isRecording])
+
+  // Reset silence timer when transitioning out of 'loading' state.
+  // This prevents the ~100ms window between interval ticks from accumulating
+  // time during the loading phase that would be incorrectly counted as silence.
+  useEffect(() => {
+    if (prevSpeechStatusRef.current === 'loading' && speechStatus !== 'loading') {
+      lastTranscriptUpdateRef.current = performance.now()
+    }
+    prevSpeechStatusRef.current = speechStatus
+  }, [speechStatus])
 
   // Ensure isMountedRef is set correctly on mount
   useEffect(() => {
@@ -399,6 +410,11 @@ export function useAudioRecorder({
       }
       // Clean up waveform resources (may have been partially initialized)
       cleanupWaveform()
+      // Clean up speech recognition (safe to call even if not started - internally
+      // handles null engine gracefully). While startSpeechRecognition handles its
+      // own cleanup on failure, this explicit call ensures symmetric cleanup and
+      // guards against any edge cases or future changes.
+      stopSpeechRecognition()
 
       let message =
         err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
@@ -428,6 +444,7 @@ export function useAudioRecorder({
     cleanupWaveform,
     startTimer,
     startSpeechRecognition,
+    stopSpeechRecognition,
     startSilenceDetection,
     computePeaksFromBlob,
     onRecordingStart,

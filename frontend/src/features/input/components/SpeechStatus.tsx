@@ -68,7 +68,9 @@ const SpeechStatus = ({ status, isRecording, errorMessage, onDismiss }: Props) =
     >
       {shouldShow && config && (
         <div className={`speech-status speech-status--${config.variant}`}>
-          {/* Text first, then icon (spinner in top-right corner) */}
+          {/* Layout: message (flex: 1) | icon | dismiss button
+              The entire status bar is positioned in the top-right corner of the screen
+              via .speech-status--container. Icon appears to the right of the message. */}
           <span className="speech-status__message">
             {/* Visually hidden prefix for screen readers */}
             <span className="sr-only">{config.srPrefix} </span>

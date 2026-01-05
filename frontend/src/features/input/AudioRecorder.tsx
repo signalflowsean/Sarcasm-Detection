@@ -44,7 +44,9 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   )
 
   const handleSpeechError = useCallback((message: string) => {
-    // Speech errors are displayed by SpeechStatus component (with dismiss functionality)
+    // Speech errors are displayed by SpeechStatus component (with dismiss functionality).
+    // The useSpeechRecognition hook guarantees that speechStatus is set to 'error' when
+    // this callback fires, so SpeechStatus will show the error message.
     // Don't duplicate to audio-recorder__error - that's for other recorder errors (API, etc.)
     // Log for debugging purposes
     console.warn('[Speech]', message)
