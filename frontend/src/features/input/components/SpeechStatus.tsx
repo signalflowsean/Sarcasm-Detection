@@ -1,4 +1,4 @@
-import { SPEECH_LOADING_MESSAGE } from '../hooks/constants'
+import { SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
 import type { SpeechStatus as SpeechStatusType } from '../hooks/speech'
 import { RetroSpinner } from './RetroSpinner'
 
@@ -22,7 +22,7 @@ const DEFAULT_ERROR_MESSAGE =
 
 const STATUS_CONFIG: Record<'loading' | 'error', StatusConfig> = {
   loading: {
-    message: SPEECH_LOADING_MESSAGE,
+    message: SPEECH_LOADING_DEFAULT_MESSAGE,
     srPrefix: 'Info:',
     icon: '⏳',
     variant: 'info',

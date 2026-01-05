@@ -6,7 +6,7 @@
  * and the model is still being downloaded or has failed.
  */
 
-import { SPEECH_LOADING_MESSAGE } from '../hooks/constants'
+import { MOONSHINE_LOADING_MESSAGE } from '../hooks/constants'
 import { useMoonshinePreload } from '../hooks/useMoonshinePreload'
 import { formatBytes } from '../utils/format'
 import { RetroSpinner } from './RetroSpinner'
@@ -56,7 +56,7 @@ export function MoonshinePreloadStatus() {
   // Generate loading message with progress if available
   const getMessage = () => {
     if (!progress || progress.percent === 0) {
-      return SPEECH_LOADING_MESSAGE
+      return MOONSHINE_LOADING_MESSAGE
     }
     if (progress.percent >= 100) {
       return 'Initializing Speech Recognition...'
@@ -64,7 +64,7 @@ export function MoonshinePreloadStatus() {
     // Show progress percentage and size
     const downloaded = formatBytes(progress.bytesDownloaded)
     const total = formatBytes(progress.totalBytes)
-    return `${SPEECH_LOADING_MESSAGE} (${progress.percent}% • ${downloaded}/${total})`
+    return `${MOONSHINE_LOADING_MESSAGE} (${progress.percent}% • ${downloaded}/${total})`
   }
 
   return (

@@ -62,6 +62,36 @@ For sarcasm detection, **accuracy is critical** because prosodic analysis depend
 - Models are served from Moonshine CDN, independent of your app deployment
 - Re-download is only required when **changing models** (e.g., tiny → base)
 
+### Timeout Configuration
+
+The app includes configurable timeouts to prevent hanging on slow connections:
+
+**Default Timeouts:**
+
+- **Model Download**: 30 minutes (accommodates 2 Mbps connections at ~27 minutes for base model)
+- **VAD Initialization**: 10 seconds (fallback when there's silence)
+
+**When to Adjust Timeouts:**
+
+If users experience timeout errors, adjust these environment variables (see `frontend/env.example`):
+
+```bash
+# For very slow connections (< 2 Mbps)
+VITE_MOONSHINE_MODEL_TIMEOUT_MS=2700000  # 45 minutes
+
+# For fast connections (reduce timeout to fail faster)
+VITE_MOONSHINE_MODEL_TIMEOUT_MS=300000   # 5 minutes
+```
+
+**Timeout Recommendations by Connection:**
+
+| Connection Speed | Recommended Timeout   |
+| ---------------- | --------------------- |
+| **< 2 Mbps**     | 45 minutes (2700000)  |
+| **2-10 Mbps**    | 30 minutes (1800000)  |
+| **10+ Mbps**     | 10 minutes (600000)   |
+| **50+ Mbps**     | 5 minutes (300000)    |
+
 ### Mobile Considerations
 
 For mobile users (the primary use case for prosodic sarcasm detection):

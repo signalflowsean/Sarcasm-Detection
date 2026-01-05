@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { isDev } from '../utils/env'
 
+// Cache environment variable at module level
+// This is set at build time and never changes during execution
+const ENV_DEFAULT_MODEL = import.meta.env.VITE_MOONSHINE_MODEL || 'model/base'
+
 /**
  * ModelSelector - Dev-mode only dropdown for testing different Moonshine models
  *
@@ -12,10 +16,9 @@ import { isDev } from '../utils/env'
  * across page reloads. The default value comes from VITE_MOONSHINE_MODEL env var.
  */
 export function ModelSelector() {
-  const envDefault = import.meta.env.VITE_MOONSHINE_MODEL || 'model/base'
   const [selectedModel, setSelectedModel] = useState(() => {
     // Check localStorage first, then env default
-    return localStorage.getItem('moonshine_model_override') || envDefault
+    return localStorage.getItem('moonshine_model_override') || ENV_DEFAULT_MODEL
   })
 
   const [isDismissed, setIsDismissed] = useState(() => {

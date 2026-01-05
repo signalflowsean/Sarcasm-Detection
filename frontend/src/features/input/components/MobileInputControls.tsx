@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DetectionMode } from '../../meter/components/DetectionModeSwitch'
 import { useDetection } from '../../meter/hooks/useDetection'
 import { NO_TEXT_RESPONSE_ID, sendLexicalText, sendProsodicAudio } from '../apiService'
-import { AUTO_STOP_COUNTDOWN_START_MS, SPEECH_LOADING_MESSAGE } from '../hooks/constants'
+import { AUTO_STOP_COUNTDOWN_START_MS, SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
 import { useSpeechRecognition } from '../hooks/speech'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useDevLoadingOverride } from '../hooks/useDevLoadingOverride'
@@ -422,7 +422,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
   const textareaPlaceholder = (() => {
     if (isProsodic) {
       return speechStatus === 'loading'
-        ? SPEECH_LOADING_MESSAGE
+        ? SPEECH_LOADING_DEFAULT_MESSAGE
         : 'Transcription will appear here...'
     }
     return 'Type something here and send it to the detector...'
@@ -497,7 +497,7 @@ const MobileInputControls = ({ detectionMode }: MobileInputControlsProps) => {
             showEmpty={
               (isProsodic && !state.isRecording && !state.audioUrl) || speechStatus === 'loading'
             }
-            emptyMessage={speechStatus === 'loading' ? SPEECH_LOADING_MESSAGE : ''}
+            emptyMessage={speechStatus === 'loading' ? SPEECH_LOADING_DEFAULT_MESSAGE : ''}
           />
           {/* Only show countdown message when auto-stop is imminent - overlaid on waveform */}
           {isProsodic &&

@@ -1,7 +1,14 @@
 /**
- * Format bytes into a human-readable string (e.g., "150 MB")
+ * Format bytes into a human-readable string with appropriate unit (B, KB, MB, GB, TB)
  * Handles edge cases: negative numbers, NaN, and Infinity return "0 B"
- * Shows one decimal place for values under 10 KB/MB for better precision
+ * Shows one decimal place for values under 10 in each unit for better precision
+ *
+ * Examples:
+ * - 512 → "512 B"
+ * - 2048 → "2 KB"
+ * - 5.5 * 1024 → "5.5 KB"
+ * - 150 * 1024 * 1024 → "150 MB"
+ * - 1.5 * 1024 * 1024 * 1024 → "1.5 GB"
  */
 export function formatBytes(bytes: number): string {
   // Handle invalid inputs: NaN, Infinity, negative numbers
@@ -9,15 +16,25 @@ export function formatBytes(bytes: number): string {
     return '0 B'
   }
 
-  if (bytes < 1024) {
+  // Define units and thresholds
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const threshold = 1024
+
+  // Bytes - no conversion needed
+  if (bytes < threshold) {
     return `${Math.round(bytes)} B`
   }
 
-  if (bytes < 1024 * 1024) {
-    const kb = bytes / 1024
-    return kb < 10 ? `${kb.toFixed(1)} KB` : `${Math.round(kb)} KB`
+  // Find the appropriate unit
+  let unitIndex = 0
+  let value = bytes
+
+  while (value >= threshold && unitIndex < units.length - 1) {
+    value /= threshold
+    unitIndex++
   }
 
-  const mb = bytes / (1024 * 1024)
-  return mb < 10 ? `${mb.toFixed(1)} MB` : `${Math.round(mb)} MB`
+  // Format with 1 decimal place for values under 10, otherwise round
+  const formatted = value < 10 ? value.toFixed(1) : Math.round(value).toString()
+  return `${formatted} ${units[unitIndex]}`
 }

@@ -84,6 +84,12 @@ export function setDownloadProgressCallback(callback: ProgressCallback | null): 
   progressCallback = callback
 }
 
+// Cache environment variables at module level
+// These are set at build time and never change during execution
+const ENV_MOONSHINE_MODEL = import.meta.env.VITE_MOONSHINE_MODEL
+const ENV_VAD_TIMEOUT_MS = import.meta.env.VITE_MOONSHINE_VAD_TIMEOUT_MS
+const ENV_MODEL_TIMEOUT_MS = import.meta.env.VITE_MOONSHINE_MODEL_TIMEOUT_MS
+
 /**
  * Get the model path to use for Moonshine.
  */
@@ -94,8 +100,9 @@ function getModelPath(): string {
     if (override) return override
   }
   // Use env variable or default to base model
-  const envModel = import.meta.env.VITE_MOONSHINE_MODEL
-  return typeof envModel === 'string' && envModel.trim() ? envModel.trim() : 'model/base'
+  return typeof ENV_MOONSHINE_MODEL === 'string' && ENV_MOONSHINE_MODEL.trim()
+    ? ENV_MOONSHINE_MODEL.trim()
+    : 'model/base'
 }
 
 /**
@@ -204,6 +211,8 @@ export async function preloadMoonshineModel(): Promise<void> {
       let estimatedTotalBytes = getEstimatedModelSize(modelPath)
       // Track if we've updated the estimate from actual Content-Length
       let hasActualSizeEstimate = false
+      // Track if encoder succeeded - only use decoder estimate if encoder wasn't available
+      let encoderSucceeded = false
       let filesCompleted = 0
 
       // Report initial progress
@@ -227,25 +236,25 @@ export async function preloadMoonshineModel(): Promise<void> {
 
           const fileBytes = await fetchWithProgress(file, (bytesReceived, totalBytes) => {
             if (progressCallback) {
-              // Update estimated total based on actual Content-Length from first file with valid size
-              // This provides a more accurate estimate than the hardcoded model-based fallback
-              if (!hasActualSizeEstimate && totalBytes > 0) {
-                if (file.includes('encoder')) {
-                  // encoder.onnx is typically the largest, ~60% of total
-                  estimatedTotalBytes = Math.round(totalBytes / 0.6)
-                  hasActualSizeEstimate = true
-                  log(
-                    `Preload: Updated size estimate based on encoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
-                  )
-                } else if (file.includes('decoder')) {
-                  // decoder_model_merged.onnx is typically ~40% of total
-                  estimatedTotalBytes = Math.round(totalBytes / 0.4)
-                  hasActualSizeEstimate = true
-                  log(
-                    `Preload: Updated size estimate based on decoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
-                  )
-                }
+              // Update estimated total based on actual Content-Length from encoder only
+              // Priority: encoder estimate > model-based fallback > decoder estimate
+              //
+              // Rationale: The encoder is ~60% of total and the dominant file, making it
+              // the most representative for extrapolation. The model-based fallback (derived
+              // from observed model sizes) is more reliable than extrapolating from the
+              // smaller decoder file (~40% of total). Only use encoder-based estimates.
+              if (!hasActualSizeEstimate && totalBytes > 0 && file.includes('encoder')) {
+                // encoder.onnx is typically the largest, ~60% of total
+                // This is the most accurate Content-Length-based estimate
+                estimatedTotalBytes = Math.round(totalBytes / 0.6)
+                hasActualSizeEstimate = true
+                log(
+                  `Preload: Updated size estimate based on encoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+                )
               }
+              // Note: We intentionally skip decoder-based estimates as they are less accurate
+              // than the model-based fallback. If encoder fails or has no Content-Length,
+              // we keep using the model-based estimate.
 
               progressCallback({
                 bytesDownloaded: totalBytesDownloaded + bytesReceived,
@@ -261,6 +270,11 @@ export async function preloadMoonshineModel(): Promise<void> {
             }
           })
 
+          // Mark encoder as succeeded for logging purposes
+          if (file.includes('encoder')) {
+            encoderSucceeded = true
+          }
+
           totalBytesDownloaded += fileBytes
           filesCompleted++
           log(`Preload: Cached ${fileName} (${Math.round(fileBytes / 1024 / 1024)}MB)`)
@@ -275,8 +289,11 @@ export async function preloadMoonshineModel(): Promise<void> {
 
       // Log whether we used actual size estimate or fell back to model-based estimate
       if (!hasActualSizeEstimate && filesFailed < modelFiles.length) {
+        const reason = encoderSucceeded
+          ? 'encoder had no Content-Length header'
+          : 'encoder download failed or not attempted'
         log(
-          `Preload: No Content-Length headers available, using model-based size estimate: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+          `Preload: Using model-based size estimate (${reason}): ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
         )
       }
 
@@ -329,26 +346,36 @@ export async function preloadMoonshineModel(): Promise<void> {
 
 /**
  * Get timeout configuration from environment variables with fallback defaults.
+ *
+ * IMPORTANT: Model download times vary significantly based on connection speed:
+ * - Fast connection (50+ Mbps): ~1 minute
+ * - Average connection (10 Mbps): ~5 minutes
+ * - Slow connection (2 Mbps): ~27 minutes (400MB × 8 bits/byte ÷ 2 Mbps ÷ 60 s/min)
+ *
+ * For slow connections, increase the timeout by setting environment variables:
+ * - VITE_MOONSHINE_MODEL_TIMEOUT_MS: Model download timeout (default: 30 minutes)
+ * - VITE_MOONSHINE_VAD_TIMEOUT_MS: VAD initialization timeout (default: 10 seconds)
+ *
+ * Example for very slow connections (add to .env):
+ *   VITE_MOONSHINE_MODEL_TIMEOUT_MS=2700000  # 45 minutes
  */
 function getTimeoutConfig(): { vadWaitMs: number; modelLoadMs: number } {
   // Default: 10 seconds for VAD initialization (fallback when there's silence)
   const defaultVadWait = 10000
-  // Default: 120 seconds (2 minutes) for model loading to accommodate slow connections
-  // The base model is ~400MB, so on a 2 Mbps connection this takes ~25 minutes.
-  // 2 minutes is still optimistic but more reasonable than 45 seconds.
-  const defaultModelLoad = 120000
-
-  const vadWaitEnv = import.meta.env.VITE_MOONSHINE_VAD_TIMEOUT_MS
-  const modelLoadEnv = import.meta.env.VITE_MOONSHINE_MODEL_TIMEOUT_MS
+  // Default: 30 minutes for model loading to accommodate slow connections
+  // The base model is ~400MB. On a 2 Mbps connection, this takes ~27 minutes.
+  // On a 10 Mbps connection, this takes ~5 minutes.
+  // 30 minutes provides a reasonable buffer for slow connections.
+  const defaultModelLoad = 1800000 // 30 minutes in milliseconds
 
   const vadWaitMs =
-    typeof vadWaitEnv === 'string' && vadWaitEnv.trim()
-      ? parseInt(vadWaitEnv.trim(), 10)
+    typeof ENV_VAD_TIMEOUT_MS === 'string' && ENV_VAD_TIMEOUT_MS.trim()
+      ? parseInt(ENV_VAD_TIMEOUT_MS.trim(), 10)
       : defaultVadWait
 
   const modelLoadMs =
-    typeof modelLoadEnv === 'string' && modelLoadEnv.trim()
-      ? parseInt(modelLoadEnv.trim(), 10)
+    typeof ENV_MODEL_TIMEOUT_MS === 'string' && ENV_MODEL_TIMEOUT_MS.trim()
+      ? parseInt(ENV_MODEL_TIMEOUT_MS.trim(), 10)
       : defaultModelLoad
 
   // Validate parsed values
@@ -386,29 +413,25 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
   }
 
   /**
-   * Safely resolve the ready promise exactly once.
+   * Safely resolve the ready promise exactly once (idempotent).
    *
-   * This function is idempotent and safe to call multiple times.
-   * While JavaScript is single-threaded (preventing true race conditions),
-   * we use a guard pattern to ensure the promise is resolved exactly once
-   * even if multiple callbacks fire in rapid succession.
+   * This function can be called multiple times without side effects.
+   * JavaScript is single-threaded, so we don't have true race conditions,
+   * but multiple code paths (onTranscriptionCommitted, onTranscriptionUpdated,
+   * VAD timeout) may attempt to resolve the same promise.
    *
-   * The resolve function itself acts as both the guard and the action.
-   * By capturing and clearing it atomically, we prevent any edge cases
-   * where the function might be called twice.
+   * The guard pattern ensures idempotency: only the first call resolves
+   * the promise, subsequent calls are no-ops.
    */
   function resolveReady(): void {
-    // Capture and clear the resolve function atomically
-    // This ensures even if called multiple times in the same event loop tick,
-    // only the first call will have a non-null resolve function to call
+    // Check if already resolved or never initialized
     const resolve = readyResolve
     if (!resolve) {
-      // Already resolved or never initialized
-      return
+      return // Already resolved or not yet set up
     }
 
-    // Clear the resolve function before calling it
-    // This makes the operation idempotent - subsequent calls will early-return above
+    // Clear the resolve function to make this operation idempotent
+    // Any subsequent calls will early-return above
     readyResolve = null
 
     // Now safe to call resolve - even if this throws, we won't call it again
@@ -431,7 +454,7 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
       // Reset flags at start of each attempt
       wasStopped = false
-      readyResolve = null // Clear stale resolve function to prevent race conditions
+      readyResolve = null // Clear stale resolve function to ensure clean state
 
       const modelPath = getModelPath()
       log('Starting with model:', modelPath)
@@ -484,12 +507,14 @@ export function createMoonshineEngine(callbacks: SpeechEngineCallbacks): SpeechE
             modelLoadTimeoutId = setTimeout(() => {
               // Only fire if we're still in loading state (not yet listening)
               if (!vadReady && !listening && transcriber) {
+                const timeoutMinutes = Math.round(timeouts.modelLoadMs / 60000)
                 logError(
-                  `Model loading timeout (${timeouts.modelLoadMs / 1000}s) - ` +
-                    'model may have failed to download. Check network connection.'
+                  `Model loading timeout (${timeoutMinutes} minutes) - ` +
+                    'model may have failed to download or connection is too slow. Check network connection.'
                 )
                 callbacks.onError(
-                  'Speech model is taking too long to load. Please check your connection and try again.'
+                  `Speech model download timed out after ${timeoutMinutes} minutes. ` +
+                    'Please check your connection speed and try again.'
                 )
                 callbacks.onStatusChange('error')
               }

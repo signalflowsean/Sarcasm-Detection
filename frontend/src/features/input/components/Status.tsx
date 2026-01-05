@@ -1,4 +1,4 @@
-import { AUTO_STOP_COUNTDOWN_START_MS, SPEECH_LOADING_MESSAGE } from '../hooks/constants'
+import { AUTO_STOP_COUNTDOWN_START_MS, SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
 import type { SpeechStatus } from '../hooks/speech'
 
 type Props = {
@@ -34,7 +34,7 @@ const Status = ({
 
   if (isRecording) {
     if (isLoading) {
-      statusText = SPEECH_LOADING_MESSAGE
+      statusText = SPEECH_LOADING_DEFAULT_MESSAGE
       statusClass += ' audio-recorder__status--loading'
     } else if (showCountdown) {
       const secondsRemaining = Math.ceil(autoStopCountdown / 1000)

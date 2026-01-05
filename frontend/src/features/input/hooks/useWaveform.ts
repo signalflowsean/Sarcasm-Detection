@@ -164,31 +164,37 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     }
     // Below 0.001 (0.1%): leave normScale at 1.0 - this is essentially silence/noise
 
-    // Fill shape between min and max (with normalization)
+    // Pre-compute normalized values to avoid redundant calculations
+    // This significantly improves performance for large datasets (512-2048 bins)
+    const normalizedMax = new Float32Array(n)
+    const normalizedMin = new Float32Array(n)
+    for (let i = 0; i < n; i++) {
+      normalizedMax[i] = max[i] * normScale
+      normalizedMin[i] = min[i] * normScale
+    }
+
+    // Fill shape between min and max (using pre-computed normalized values)
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const normalizedMax = max[i] * normScale
-      const yTop = ((1 - normalizedMax) * height) / 2
+      const yTop = ((1 - normalizedMax[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, yTop)
       else ctx.lineTo(x, yTop)
     }
     for (let i = n - 1; i >= 0; i--) {
       const x = i * step
-      const normalizedMin = min[i] * normScale
-      const yBot = ((1 - normalizedMin) * height) / 2
+      const yBot = ((1 - normalizedMin[i]) * height) / 2
       ctx.lineTo(x, yBot)
     }
     ctx.closePath()
     ctx.fillStyle = 'rgba(59,130,246,0.25)'
     ctx.fill()
 
-    // Draw outline on top (with normalization)
+    // Draw outline on top (using pre-computed normalized values)
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const normalizedMax = max[i] * normScale
-      const y = ((1 - normalizedMax) * height) / 2
+      const y = ((1 - normalizedMax[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
     }

@@ -1,4 +1,4 @@
-import { SPEECH_LOADING_MESSAGE } from '../hooks/constants'
+import { SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
 import type { SpeechStatus } from '../hooks/speech'
 import { isMobileBrowser } from '../utils'
 import Controls from './Controls'
@@ -68,13 +68,14 @@ const RecorderContent = ({
     'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
 
   // Show loading message in placeholder when Moonshine model is loading
-  const placeholder = speechStatus === 'loading' ? SPEECH_LOADING_MESSAGE : 'Speak to transcribe…'
+  const placeholder =
+    speechStatus === 'loading' ? SPEECH_LOADING_DEFAULT_MESSAGE : 'Speak to transcribe…'
 
   // Use appropriate messaging for the empty waveform state
   // Show loading message when Moonshine model is loading
   const emptyMessage =
     speechStatus === 'loading'
-      ? SPEECH_LOADING_MESSAGE
+      ? SPEECH_LOADING_DEFAULT_MESSAGE
       : isMobile
         ? 'Tap Microphone to Record'
         : 'Click Microphone to Record'
