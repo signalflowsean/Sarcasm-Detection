@@ -1,17 +1,17 @@
 /**
  * Web Speech API Speech Recognition Engine
  *
- * Fallback speech-to-text engine using the browser's native Web Speech API.
- * Used when MoonshineJS fails or isn't available.
+ * Primary speech-to-text engine using the browser's native Web Speech API.
+ * Falls back to MoonshineJS when not available (Firefox, Opera, etc.).
  *
  * Pros:
  * - No model download required
  * - Fast startup
- * - Good accuracy (uses cloud services)
+ * - Best accuracy (uses cloud services)
  *
  * Cons:
  * - Requires internet connection
- * - Not available in all browsers (Firefox, some mobile)
+ * - Not available in all browsers (Firefox, Opera, some mobile)
  * - May have privacy implications (sends audio to cloud)
  */
 
@@ -65,19 +65,75 @@ function getSpeechRecognition(): SpeechRecognitionType | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
+/**
+ * Check if Web Speech API is supported in the current browser.
+ * This can be called before creating an engine to determine if preloading
+ * Moonshine is needed.
+ *
+ * Dev override: localStorage.setItem('force_moonshine', 'true') to force
+ * Moonshine mode even on browsers with Web Speech API (for testing).
+ * To disable: localStorage.removeItem('force_moonshine')
+ */
+export function isWebSpeechSupported(): boolean {
+  // Dev override: force Moonshine mode for testing
+  // Only works in dev mode to prevent accidentally shipping with it enabled
+  if (
+    isDev() &&
+    typeof window !== 'undefined' &&
+    localStorage.getItem('force_moonshine') === 'true'
+  ) {
+    // Always warn when override is active, even in dev mode, so developers know it's enabled
+    console.warn(
+      '%c[WebSpeech] DEVELOPER OVERRIDE ACTIVE',
+      'color: orange; font-weight: bold',
+      '\n' +
+        'Web Speech API detection is being bypassed via localStorage.force_moonshine = "true"\n' +
+        'This forces the app to use Moonshine instead of Web Speech API.\n' +
+        'To disable: localStorage.removeItem("force_moonshine") or set to "false"\n' +
+        'Note: This override only works in development mode.'
+    )
+    return false
+  }
+
+  const SpeechRecognition = getSpeechRecognition()
+  if (!SpeechRecognition) return false
+
+  // Light-weight check: verify prototype has expected methods without instantiating
+  // This avoids creating objects that might have cleanup concerns
+  if (typeof SpeechRecognition.prototype?.start !== 'function') {
+    return false
+  }
+
+  // Final check: verify constructor doesn't throw
+  // Some browsers (Firefox, Edge, Opera) have the constructor but it throws
+  // when you try to use it. We must instantiate to detect this.
+  try {
+    const test = new SpeechRecognition()
+    // Explicitly null the reference to aid garbage collection.
+    // Note: An unstarted SpeechRecognition has no active resources,
+    // so GC is sufficient for cleanup. abort() is unnecessary and may throw.
+    void test // Prevent unused variable warning
+    return true
+  } catch {
+    // Constructor threw - API not actually supported
+    return false
+  }
+}
+
 type RecognitionState = 'idle' | 'starting' | 'listening' | 'ending' | 'restarting'
 
 export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechEngine {
   let recognition: InstanceType<SpeechRecognitionType> | null = null
   let listening = false
   let shouldRestart = false
-  let state: RecognitionState = 'idle' // State machine to prevent race conditions
+  let state: RecognitionState = 'idle' // State machine to prevent issues from interleaved callback execution
 
   return {
     name: 'Web Speech API',
 
     isSupported(): boolean {
-      return getSpeechRecognition() !== null
+      // Reuse the standalone function to avoid code duplication
+      return isWebSpeechSupported()
     },
 
     async start(): Promise<void> {
@@ -94,6 +150,10 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
 
       state = 'starting'
       log('Starting...')
+      // Set 'loading' status to give users feedback while connecting to cloud services.
+      // Although Web Speech API doesn't download a model, there's still a brief delay
+      // while the browser connects to the cloud recognition service. This is especially
+      // noticeable on slower connections.
       callbacks.onStatusChange('loading')
 
       recognition = new SpeechRecognition()
@@ -185,18 +245,18 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
         listening = false
 
         // Capture the current recognition instance and state atomically
-        // to avoid race conditions if start() is called while this handler is executing
+        // to prevent issues if start() is called while this handler is executing
         const currentRecognition = recognition
         const wasListening = state === 'listening' || state === 'restarting'
 
-        // Transition to ending state to prevent concurrent operations
+        // Transition to ending state to prevent interleaved operations
         state = 'ending'
 
         // Auto-restart if we didn't intentionally stop
         // Web Speech API tends to stop after silence
         if (shouldRestart && currentRecognition && wasListening) {
           // Double-check that this is still the current instance and we're still in ending state
-          // (prevents race condition if start() or stop() was called during handler execution)
+          // (prevents issues if start() or stop() was called during handler execution)
           if (recognition === currentRecognition && state === 'ending') {
             state = 'restarting'
             log('Auto-restarting...')
@@ -216,7 +276,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
               state = 'idle'
             }
           } else {
-            // Race condition detected: recognition instance changed or state changed
+            // State changed during execution: recognition instance or state was modified by another code path
             log('Restart skipped due to state change', {
               recognitionChanged: recognition !== currentRecognition,
               state,

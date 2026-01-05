@@ -1,22 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ModelMetrics } from './telemetry'
+import {
+  clearMetrics,
+  getNetworkSpeedEstimate,
+  trackModelPerformance,
+  viewMetrics,
+} from './telemetry'
 
-// Mock import.meta.env at module level
-// @ts-expect-error - Accessing import.meta.env for testing
-const originalDev = import.meta.env.DEV
+// Mock the env utility - import.meta.env can't be mocked with vi.stubEnv()
+vi.mock('./env', () => ({
+  isDev: vi.fn(() => true), // Default to dev mode, tests can override
+  isProd: vi.fn(() => false),
+}))
 
-// Helper to set the mode for tests
-function setTestMode(mode: 'development' | 'production') {
-  // @ts-expect-error - Mocking import.meta.env for testing
-  import.meta.env.DEV = mode === 'development'
-}
-
-// Dynamic imports to respect mocked environment
-async function getModule() {
-  const { trackModelPerformance, viewMetrics, clearMetrics, getNetworkSpeedEstimate } =
-    await import('./telemetry')
-  return { trackModelPerformance, viewMetrics, clearMetrics, getNetworkSpeedEstimate }
-}
+import * as envUtils from './env'
 
 describe('telemetry', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>
@@ -27,7 +24,7 @@ describe('telemetry', () => {
 
   beforeEach(() => {
     // Default to dev mode for most tests
-    setTestMode('development')
+    vi.mocked(envUtils.isDev).mockReturnValue(true)
 
     // Mock console methods
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -55,9 +52,6 @@ describe('telemetry', () => {
   })
 
   afterEach(() => {
-    // Restore original mode
-    // @ts-expect-error - Restoring original import.meta.env
-    import.meta.env.DEV = originalDev
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
@@ -74,8 +68,6 @@ describe('telemetry', () => {
     }
 
     it('should store metrics in localStorage in dev mode', async () => {
-      const { trackModelPerformance } = await getModule()
-
       trackModelPerformance(mockMetrics)
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
@@ -89,8 +81,7 @@ describe('telemetry', () => {
     })
 
     it('should not store metrics in production mode', async () => {
-      setTestMode('production')
-      const { trackModelPerformance } = await getModule()
+      vi.mocked(envUtils.isDev).mockReturnValue(false)
 
       trackModelPerformance(mockMetrics)
 
@@ -98,8 +89,6 @@ describe('telemetry', () => {
     })
 
     it('should append to existing metrics', async () => {
-      const { trackModelPerformance } = await getModule()
-
       const firstMetrics: ModelMetrics = {
         ...mockMetrics,
         modelName: 'model/tiny',
@@ -119,8 +108,6 @@ describe('telemetry', () => {
     })
 
     it('should trim to last 100 metrics', async () => {
-      const { trackModelPerformance } = await getModule()
-
       // Create 105 metrics
       const manyMetrics = Array.from({ length: 105 }, (_, i) => ({
         ...mockMetrics,
@@ -137,8 +124,6 @@ describe('telemetry', () => {
     })
 
     it('should handle localStorage errors gracefully', async () => {
-      const { trackModelPerformance } = await getModule()
-
       // Make localStorage.setItem throw
       vi.mocked(localStorage.setItem).mockImplementationOnce(() => {
         throw new Error('QuotaExceededError')
@@ -151,8 +136,6 @@ describe('telemetry', () => {
     })
 
     it('should handle corrupted localStorage data', async () => {
-      const { trackModelPerformance } = await getModule()
-
       // Set invalid JSON in localStorage
       localStorageMock['moonshine_metrics'] = 'invalid json {'
 
@@ -163,8 +146,6 @@ describe('telemetry', () => {
 
   describe('viewMetrics', () => {
     it('should return empty array when no metrics exist', async () => {
-      const { viewMetrics } = await getModule()
-
       const result = viewMetrics()
 
       expect(result).toEqual([])
@@ -174,8 +155,6 @@ describe('telemetry', () => {
     })
 
     it('should display metrics table when metrics exist', async () => {
-      const { viewMetrics } = await getModule()
-
       const metrics: ModelMetrics[] = [
         {
           modelName: 'model/tiny',
@@ -206,8 +185,6 @@ describe('telemetry', () => {
     })
 
     it('should calculate summary statistics correctly', async () => {
-      const { viewMetrics } = await getModule()
-
       const metrics: ModelMetrics[] = [
         {
           modelName: 'model/tiny',
@@ -251,8 +228,6 @@ describe('telemetry', () => {
     })
 
     it('should handle metrics with errors', async () => {
-      const { viewMetrics } = await getModule()
-
       const metrics: ModelMetrics[] = [
         {
           modelName: 'model/base',
@@ -274,8 +249,7 @@ describe('telemetry', () => {
     })
 
     it('should not display metrics in production mode', async () => {
-      setTestMode('production')
-      const { viewMetrics } = await getModule()
+      vi.mocked(envUtils.isDev).mockReturnValue(false)
 
       const result = viewMetrics()
 
@@ -285,8 +259,6 @@ describe('telemetry', () => {
     })
 
     it('should handle corrupted localStorage data', async () => {
-      const { viewMetrics } = await getModule()
-
       localStorageMock['moonshine_metrics'] = 'invalid json'
 
       const result = viewMetrics()
@@ -296,8 +268,6 @@ describe('telemetry', () => {
     })
 
     it('should handle missing optional fields', async () => {
-      const { viewMetrics } = await getModule()
-
       const metrics: ModelMetrics[] = [
         {
           modelName: 'model/tiny',
@@ -321,8 +291,6 @@ describe('telemetry', () => {
 
   describe('clearMetrics', () => {
     it('should clear metrics from localStorage in dev mode', async () => {
-      const { clearMetrics } = await getModule()
-
       localStorageMock['moonshine_metrics'] = JSON.stringify([
         { modelName: 'model/tiny', loadTimeMs: 1000 },
       ])
@@ -335,8 +303,7 @@ describe('telemetry', () => {
     })
 
     it('should not clear metrics in production mode', async () => {
-      setTestMode('production')
-      const { clearMetrics } = await getModule()
+      vi.mocked(envUtils.isDev).mockReturnValue(false)
 
       clearMetrics()
 
@@ -347,8 +314,6 @@ describe('telemetry', () => {
 
   describe('getNetworkSpeedEstimate', () => {
     it('should return network speed from navigator.connection', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       const mockConnection = { downlink: 50.5 }
       vi.stubGlobal('navigator', {
         connection: mockConnection,
@@ -360,8 +325,6 @@ describe('telemetry', () => {
     })
 
     it('should return network speed from navigator.mozConnection', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       const mockConnection = { downlink: 25.3 }
       vi.stubGlobal('navigator', {
         mozConnection: mockConnection,
@@ -373,8 +336,6 @@ describe('telemetry', () => {
     })
 
     it('should return network speed from navigator.webkitConnection', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       const mockConnection = { downlink: 100 }
       vi.stubGlobal('navigator', {
         webkitConnection: mockConnection,
@@ -386,8 +347,6 @@ describe('telemetry', () => {
     })
 
     it('should return undefined when connection API is not available', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       vi.stubGlobal('navigator', {})
 
       const result = getNetworkSpeedEstimate()
@@ -396,8 +355,6 @@ describe('telemetry', () => {
     })
 
     it('should return undefined when downlink is not available', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       const mockConnection = { effectiveType: '4g' }
       vi.stubGlobal('navigator', {
         connection: mockConnection,
@@ -409,8 +366,6 @@ describe('telemetry', () => {
     })
 
     it('should handle zero downlink speed', async () => {
-      const { getNetworkSpeedEstimate } = await getModule()
-
       const mockConnection = { downlink: 0 }
       vi.stubGlobal('navigator', {
         connection: mockConnection,
@@ -424,8 +379,6 @@ describe('telemetry', () => {
 
   describe('edge cases', () => {
     it('should handle very large transcript lengths', async () => {
-      const { trackModelPerformance } = await getModule()
-
       const metrics: ModelMetrics = {
         modelName: 'model/base',
         loadTimeMs: 5000,
@@ -442,8 +395,6 @@ describe('telemetry', () => {
     })
 
     it('should handle metrics with very old timestamps', async () => {
-      const { viewMetrics } = await getModule()
-
       const metrics: ModelMetrics = {
         modelName: 'model/tiny',
         loadTimeMs: 1000,
@@ -462,8 +413,6 @@ describe('telemetry', () => {
     })
 
     it('should handle extremely slow load times', async () => {
-      const { trackModelPerformance } = await getModule()
-
       const metrics: ModelMetrics = {
         modelName: 'model/base',
         loadTimeMs: 300000, // 5 minutes

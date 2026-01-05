@@ -98,7 +98,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
   return (
     <div
       ref={containerRef}
-      className={`audio-recorder__waveform${isSeekEnabled ? ' is-seekable' : ''}`}
+      className={`audio-recorder__waveform${isSeekEnabled ? ' is-seekable' : ''}${showEmpty ? ' is-empty' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -110,7 +110,7 @@ const Waveform = forwardRef<HTMLCanvasElement, Props>(function Waveform(
       data-testid="waveform"
     >
       <canvas ref={ref} aria-label={label} />
-      {showPlayhead && (
+      {showPlayhead && !showEmpty && (
         <div
           className="audio-recorder__playhead"
           style={{ left: `${Math.min(100, Math.max(0, playheadPercent * 100))}%` }}

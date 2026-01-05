@@ -1,4 +1,5 @@
-import { AUTO_STOP_COUNTDOWN_START_MS } from '../hooks/constants'
+import { AUTO_STOP_COUNTDOWN_START_MS, SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
+import type { SpeechStatus } from '../hooks/speech'
 
 type Props = {
   isRecording: boolean
@@ -6,9 +7,18 @@ type Props = {
   hasAudio: boolean
   duration: string
   autoStopCountdown: number | null
+  speechStatus?: SpeechStatus
 }
 
-const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown }: Props) => {
+const Status = ({
+  isRecording,
+  isPlaying,
+  hasAudio,
+  duration,
+  autoStopCountdown,
+  speechStatus,
+}: Props) => {
+  const isLoading = speechStatus === 'loading'
   const shouldShow = isRecording || hasAudio
 
   let statusText = ''
@@ -17,12 +27,16 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown 
   // Show countdown if we're in the auto-stop countdown window
   const showCountdown =
     isRecording &&
+    !isLoading &&
     autoStopCountdown !== null &&
     autoStopCountdown > 0 &&
     autoStopCountdown <= AUTO_STOP_COUNTDOWN_START_MS
 
   if (isRecording) {
-    if (showCountdown) {
+    if (isLoading) {
+      statusText = SPEECH_LOADING_DEFAULT_MESSAGE
+      statusClass += ' audio-recorder__status--loading'
+    } else if (showCountdown) {
       const secondsRemaining = Math.ceil(autoStopCountdown / 1000)
       statusText = `Auto-stopping recording in ${secondsRemaining}… `
       statusClass += ' audio-recorder__status--countdown'
@@ -48,7 +62,9 @@ const Status = ({ isRecording, isPlaying, hasAudio, duration, autoStopCountdown 
       {shouldShow ? (
         <>
           {statusText}
-          {!showCountdown && <span className="audio-recorder__status__duration">{duration}</span>}
+          {!showCountdown && !isLoading && (
+            <span className="audio-recorder__status__duration">{duration}</span>
+          )}
         </>
       ) : (
         // Render invisible placeholder to maintain consistent height

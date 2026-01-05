@@ -1,6 +1,42 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useRafInterval } from '../hooks'
 import { isDev } from '../utils/env'
+import {
+  applyGainSmoothing,
+  calculateMaxAllowedGain,
+  calculateMaxDeviation,
+  calculateTargetGain,
+} from '../utils/waveformGain'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-Gain Normalization
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// These thresholds and gain calculations address a significant browser discrepancy
+// in Web Audio API behavior. When reading audio data via AnalyserNode.getByteTimeDomainData():
+//
+// - Chrome produces VERY quiet audio signals:
+//   • Silence/noise: deviation 0-2 from center (128)
+//   • Normal speech: deviation 2-10 from center
+//   • Loud speech: deviation 10-15 from center
+//
+// - Firefox produces much louder audio signals:
+//   • Silence/noise: deviation 0-5 from center
+//   • Normal speech: deviation 20-50 from center
+//   • Loud speech: deviation 50+ from center
+//
+// Without normalization, Chrome waveforms appear nearly flat while Firefox
+// waveforms fill the canvas. The strategy applies higher gain to quieter
+// signals (Chrome) and lower gain to louder signals (Firefox) to achieve
+// consistent visual amplitude across browsers.
+//
+// Values were determined empirically by testing on Chrome 120+ and Firefox 120+
+// with various microphones (built-in laptop, USB headset, professional condenser).
+//
+// The gain calculation logic is extracted to utils/waveformGain.ts with comprehensive
+// unit tests to prevent regressions when tuning these empirical values or when
+// browser behavior changes.
+// ─────────────────────────────────────────────────────────────────────────────
 
 type Nullable<T> = T | null
 
@@ -29,12 +65,18 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
   // Web Audio API refs for live waveform
   const audioContextRef = useRef<Nullable<AudioContext>>(null)
   const analyserRef = useRef<Nullable<AnalyserNode>>(null)
+  const gainNodeRef = useRef<Nullable<GainNode>>(null) // For boosting quiet signals
   const dataArrayRef = useRef<Nullable<Uint8Array>>(null)
 
   // Waveform data refs
   const lastWaveformRef = useRef<Uint8Array | null>(null)
   const peaksRef = useRef<Peaks | null>(null)
   const peaksComputationIdRef = useRef<number>(0)
+
+  // Range-based noise gate + auto-gain for consistent waveform display across browsers
+  // Chrome often has very low amplitude (range 1-2), Firefox has higher (range 20-50+)
+  // We use range (max-min) to detect signal vs noise and apply appropriate gain
+  const currentGainRef = useRef<number>(1.0) // Current display gain (smoothed)
 
   // Shared AudioContext for decoding (avoids hitting browser limits)
   const decodingAudioContextRef = useRef<Nullable<AudioContext>>(null)
@@ -91,28 +133,68 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     const n = Math.min(min.length, max.length)
     const step = width / n
 
-    // Fill shape between min and max
+    // ─────────────────────────────────────────────────────────────────────────
+    // Normalize peaks to fill canvas (fixes flat waveforms on quiet recordings)
+    // Chrome recordings can be VERY quiet (~0.05 peak), so we use normalization.
+    //
+    // However, we must avoid amplifying noise on truly silent recordings.
+    // Trade-off: Too high a threshold = quiet speech looks flat
+    //            Too low a threshold = background noise gets amplified
+    // ─────────────────────────────────────────────────────────────────────────
+    let peakAmplitude = 0
+    for (let i = 0; i < n; i++) {
+      peakAmplitude = Math.max(peakAmplitude, Math.abs(min[i]), Math.abs(max[i]))
+    }
+
+    // Normalization constants
+    const TARGET_AMPLITUDE = 0.6 // Target: waveform fills ~60% of canvas height
+    const MAX_SCALE = 15 // Maximum scaling factor (reduced from 30 to limit noise amplification)
+    const NOISE_FLOOR = 0.01 // Minimum peak amplitude (1% of full scale) below which we assume noise
+
+    let normScale = 1.0
+    if (peakAmplitude >= NOISE_FLOOR) {
+      // Signal is above noise floor - apply normalization
+      const idealScale = TARGET_AMPLITUDE / peakAmplitude
+      normScale = Math.min(idealScale, MAX_SCALE)
+      normScale = Math.max(normScale, 1.0)
+    } else if (peakAmplitude > 0.001) {
+      // Signal is between 0.1% and 1% - apply gentle scaling (max 2x) to show something
+      // This handles very quiet but real audio without amplifying pure noise
+      normScale = Math.min(2.0, TARGET_AMPLITUDE / peakAmplitude)
+    }
+    // Below 0.001 (0.1%): leave normScale at 1.0 - this is essentially silence/noise
+
+    // Pre-compute normalized values to avoid redundant calculations
+    // This significantly improves performance for large datasets (512-2048 bins)
+    const normalizedMax = new Float32Array(n)
+    const normalizedMin = new Float32Array(n)
+    for (let i = 0; i < n; i++) {
+      normalizedMax[i] = max[i] * normScale
+      normalizedMin[i] = min[i] * normScale
+    }
+
+    // Fill shape between min and max (using pre-computed normalized values)
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const yTop = ((1 - max[i]) * height) / 2
+      const yTop = ((1 - normalizedMax[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, yTop)
       else ctx.lineTo(x, yTop)
     }
     for (let i = n - 1; i >= 0; i--) {
       const x = i * step
-      const yBot = ((1 - min[i]) * height) / 2
+      const yBot = ((1 - normalizedMin[i]) * height) / 2
       ctx.lineTo(x, yBot)
     }
     ctx.closePath()
     ctx.fillStyle = 'rgba(59,130,246,0.25)'
     ctx.fill()
 
-    // Draw outline on top
+    // Draw outline on top (using pre-computed normalized values)
     ctx.beginPath()
     for (let i = 0; i < n; i++) {
       const x = i * step
-      const y = ((1 - max[i]) * height) / 2
+      const y = ((1 - normalizedMax[i]) * height) / 2
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
     }
@@ -125,6 +207,7 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     const canvas = canvasRef.current
     const analyser = analyserRef.current
     const dataArray = dataArrayRef.current
+    const gainNode = gainNodeRef.current
     if (!canvas || !analyser || !dataArray) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
@@ -137,12 +220,56 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     analyser.getByteTimeDomainData(temp)
     dataArray.set(temp)
     lastWaveformRef.current = temp.slice()
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Auto-Gain Normalization with Smooth Noise Floor:
+    // Chrome produces VERY quiet audio (deviation 1-2 for speech!)
+    // Firefox produces louder audio (deviation 20-50+)
+    //
+    // Strategy: Continuous gain curve that ramps up smoothly
+    // - Very low deviation (1-2): Low gain (1-3x) - mostly noise, slight boost
+    // - Medium deviation (3-10): Medium gain (3-6x) - Chrome speech
+    // - High deviation (10+): Minimal gain (1-2x) - Firefox speech
+    //
+    // See waveformGain.ts for detailed implementation and unit tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Calculate maximum deviation from center (128)
+    const maxDeviation = calculateMaxDeviation(temp)
+
+    // Target: waveform fills ~40% of canvas height
+    const TARGET_PEAK_DEVIATION = height * 0.2 // 20% above/below center = 40% total
+
+    // Calculate base gain needed
+    const baseGain = TARGET_PEAK_DEVIATION / maxDeviation
+
+    // Get maximum allowed gain based on deviation level (see waveformGain.ts)
+    const maxAllowedGain = calculateMaxAllowedGain(maxDeviation)
+
+    // Calculate target gain with sqrt compression and visibility boost
+    const targetGain = calculateTargetGain(baseGain, maxAllowedGain)
+
+    // Apply adaptive smoothing: fast attack, slow release
+    currentGainRef.current = applyGainSmoothing(currentGainRef.current, targetGain)
+
+    // Update the Web Audio GainNode
+    if (gainNode) {
+      gainNode.gain.value = Math.max(currentGainRef.current, 1.0)
+    }
+
+    // Use smoothed gain for display
+    const finalGain = currentGainRef.current
+
+    // Draw the waveform with applied gain
     ctx.beginPath()
     const sliceWidth = width / dataArray.length
     let x = 0
     for (let i = 0; i < dataArray.length; i++) {
-      const v = dataArray[i] / 128.0
-      const y = (v * height) / 2
+      // Center around 128, apply smoothed gain, then offset to canvas center
+      const deviation = (dataArray[i] - 128) * finalGain
+      // Clamp to prevent drawing outside canvas
+      const clampedDeviation = Math.max(-height / 2, Math.min(height / 2, deviation))
+      const y = height / 2 - clampedDeviation
       if (i === 0) ctx.moveTo(x, y)
       else ctx.lineTo(x, y)
       x += sliceWidth
@@ -227,11 +354,26 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     const AudioCtx = (w.AudioContext || w.webkitAudioContext) as typeof AudioContext
     const audioCtx = new AudioCtx()
     const source = audioCtx.createMediaStreamSource(stream)
+
+    // Create a GainNode to boost quiet signals (especially on Chrome)
+    // This is placed between the source and analyser to amplify before analysis
+    const gainNode = audioCtx.createGain()
+    gainNode.gain.value = 1.0 // Start at 1x, will be adjusted dynamically
+
     const analyser = audioCtx.createAnalyser()
     analyser.fftSize = 2048
+    // Adjust the analyser's decibel range for better sensitivity
+    // Default is -100 to -30, we use a wider range for quiet signals
+    analyser.minDecibels = -90
+    analyser.maxDecibels = -10
+
     const bufferLength = analyser.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
-    source.connect(analyser)
+
+    // Chain: source -> gainNode -> analyser
+    source.connect(gainNode)
+    gainNode.connect(analyser)
+
     try {
       await audioCtx.resume()
     } catch {
@@ -239,7 +381,11 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     }
     audioContextRef.current = audioCtx
     analyserRef.current = analyser
+    gainNodeRef.current = gainNode
     dataArrayRef.current = dataArray
+
+    // Reset auto-gain for new recording
+    currentGainRef.current = 1.0
   }, [])
 
   const cleanupWaveform = useCallback(() => {
@@ -248,6 +394,7 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
       audioContextRef.current = null
     }
     analyserRef.current = null
+    gainNodeRef.current = null
     dataArrayRef.current = null
   }, [])
 
@@ -348,6 +495,8 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     invalidatePeaks()
     lastWaveformRef.current = null
     peaksRef.current = null
+    // Reset auto-gain for next recording
+    currentGainRef.current = 1.0
     clearCanvas()
   }, [invalidatePeaks, clearCanvas])
 

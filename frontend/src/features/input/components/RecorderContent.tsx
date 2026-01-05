@@ -1,3 +1,4 @@
+import { SPEECH_LOADING_DEFAULT_MESSAGE } from '../hooks/constants'
 import type { SpeechStatus } from '../hooks/speech'
 import { isMobileBrowser } from '../utils'
 import Controls from './Controls'
@@ -66,14 +67,18 @@ const RecorderContent = ({
   const transcriptDescription =
     'Transcript area: Speech-to-text is available. When you record audio by pressing the microphone button, your speech will be automatically transcribed and displayed here in real-time.'
 
-  // Show loading indicator in placeholder when model is loading (mobile only)
-  // On desktop, keep placeholder stable to prevent visual flicker
+  // Show loading message in placeholder when Moonshine model is loading
   const placeholder =
-    isMobile && speechStatus === 'loading' ? 'Loading speech model...' : 'Speak to transcribe…'
+    speechStatus === 'loading' ? SPEECH_LOADING_DEFAULT_MESSAGE : 'Speak to transcribe…'
 
-  // Use mobile-appropriate messaging for the empty waveform state
-  // Consistent with keyboard shortcut visibility (both use isMobileBrowser())
-  const emptyMessage = isMobile ? 'Tap Microphone to Record' : 'Click Microphone to Record'
+  // Use appropriate messaging for the empty waveform state
+  // Show loading message when Moonshine model is loading
+  const emptyMessage =
+    speechStatus === 'loading'
+      ? SPEECH_LOADING_DEFAULT_MESSAGE
+      : isMobile
+        ? 'Tap Microphone to Record'
+        : 'Click Microphone to Record'
 
   return (
     <div className="audio-recorder" aria-live="polite" data-testid="audio-recorder">
@@ -82,7 +87,7 @@ const RecorderContent = ({
           ref={micRef}
           isRecording={isRecording}
           shouldFlash={shouldFlashMic}
-          disabled={isPlaying || sending}
+          disabled={isPlaying || sending || speechStatus === 'loading'}
           onClick={onMicClick}
           onKeyDown={onMicKeyDown}
         />
@@ -92,6 +97,7 @@ const RecorderContent = ({
           hasAudio={!!audioSrc}
           duration={durationLabel}
           autoStopCountdown={autoStopCountdown}
+          speechStatus={speechStatus}
         />
       </div>
 
@@ -101,7 +107,7 @@ const RecorderContent = ({
         playheadPercent={playheadPercent}
         isSeekEnabled={isSeekEnabled}
         onSeekPercent={onSeekPercent}
-        showEmpty={!isRecording && !audioSrc}
+        showEmpty={(!isRecording && !audioSrc) || speechStatus === 'loading'}
         emptyMessage={emptyMessage}
       />
 

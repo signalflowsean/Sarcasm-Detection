@@ -62,6 +62,36 @@ For sarcasm detection, **accuracy is critical** because prosodic analysis depend
 - Models are served from Moonshine CDN, independent of your app deployment
 - Re-download is only required when **changing models** (e.g., tiny → base)
 
+### Timeout Configuration
+
+The app includes configurable timeouts to prevent hanging on slow connections:
+
+**Default Timeouts:**
+
+- **Model Download**: 30 minutes (accommodates 2 Mbps connections at ~27 minutes for base model)
+- **VAD Initialization**: 10 seconds (fallback when there's silence)
+
+**When to Adjust Timeouts:**
+
+If users experience timeout errors, adjust these environment variables (see `frontend/env.example`):
+
+```bash
+# For very slow connections (< 2 Mbps)
+VITE_MOONSHINE_MODEL_TIMEOUT_MS=2700000  # 45 minutes
+
+# For fast connections (reduce timeout to fail faster)
+VITE_MOONSHINE_MODEL_TIMEOUT_MS=300000   # 5 minutes
+```
+
+**Timeout Recommendations by Connection:**
+
+| Connection Speed | Recommended Timeout   |
+| ---------------- | --------------------- |
+| **< 2 Mbps**     | 45 minutes (2700000)  |
+| **2-10 Mbps**    | 30 minutes (1800000)  |
+| **10+ Mbps**     | 10 minutes (600000)   |
+| **50+ Mbps**     | 5 minutes (300000)    |
+
 ### Mobile Considerations
 
 For mobile users (the primary use case for prosodic sarcasm detection):
@@ -247,6 +277,41 @@ Change environment variable in Railway:
 - Models are cached independently from your app code
 - Only model changes require re-download, not every deployment
 
+## Current Optimizations
+
+### Download Progress Indicator ✅
+
+The app now shows real-time download progress during model loading:
+
+- Percentage downloaded (e.g., "Loading Speech To Text Model... (45% • 180MB/400MB)")
+- Visual progress bar
+- File-by-file progress tracking
+
+This helps users understand that something is happening during the initial ~40-60 second download.
+
+### CDN Distribution ✅
+
+Models are already served from Moonshine's global CDN (`https://download.moonshine.ai/`):
+
+- Geographic distribution for faster downloads
+- High availability
+- Automatic edge caching
+
+### Background Preloading ✅
+
+For browsers without Web Speech API (Firefox, Opera, etc.):
+
+- Model download starts automatically when the page loads
+- User sees "Loading Speech To Text Model..." indicator
+- By the time user clicks record, model may already be cached
+
+### Recording Timing ✅
+
+Recording (timer, MediaRecorder) only starts AFTER the model is fully loaded and ready:
+
+- No more recordings that show "41 seconds" when the user only spoke for 5 seconds
+- Timer starts at 0:00 when the model is ready
+
 ## Future Optimizations (Phase 2)
 
 Potential improvements being considered:
@@ -255,6 +320,11 @@ Potential improvements being considered:
 2. **Progressive Loading**: Load tiny first, upgrade to base in background
 3. **Model Streaming**: Download models in chunks for better perceived performance
 4. **Analytics Integration**: Track real-world performance to optimize defaults
+5. **WebGPU Acceleration**: Use GPU for faster inference when available
+   - Note: Requires support from @moonshine-ai/moonshine-js library
+   - Currently uses WASM/CPU execution providers
+   - WebGPU is available in Chrome 113+, Edge 113+
+   - Would provide significant speedup for model inference (not download)
 
 See main README TODO section for Phase 2 planning details.
 

@@ -44,15 +44,25 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
   )
 
   const handleSpeechError = useCallback((message: string) => {
-    setErrorRef.current(message)
+    // Speech errors are displayed by SpeechStatus component (with dismiss functionality).
+    // The useSpeechRecognition hook guarantees that speechStatus is set to 'error' when
+    // this callback fires, so SpeechStatus will show the error message.
+    // Don't duplicate to audio-recorder__error - that's for other recorder errors (API, etc.)
+    // Log for debugging purposes
+    console.warn('[Speech]', message)
   }, [])
 
-  const { startSpeechRecognition, stopSpeechRecognition, speechStatus, resetSpeechStatus } =
-    useSpeechRecognition({
-      isRecordingRef,
-      onTranscriptUpdate: handleTranscriptUpdate,
-      onError: handleSpeechError,
-    })
+  const {
+    startSpeechRecognition,
+    stopSpeechRecognition,
+    speechStatus,
+    speechError,
+    resetSpeechStatus,
+  } = useSpeechRecognition({
+    isRecordingRef,
+    onTranscriptUpdate: handleTranscriptUpdate,
+    onError: handleSpeechError,
+  })
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Waveform hook (needs isRecording state, but we don't have it yet)
@@ -86,6 +96,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       startSpeechRecognition,
       stopSpeechRecognition,
     },
+    speechStatus,
     onRecordingStart: () => {
       setHasEverRecorded(true)
     },
@@ -330,6 +341,7 @@ const AudioRecorder = ({ onClose }: AudioRecorderProps = {}) => {
       <SpeechStatus
         status={displaySpeechStatus}
         isRecording={state.isRecording}
+        errorMessage={speechError}
         onDismiss={resetSpeechStatus}
       />
       {state.error && (

@@ -38,15 +38,10 @@ declare module '@moonshine-ai/moonshine-js' {
     /** Stop listening and transcribing */
     stop(): void
 
-    /** Check if currently listening */
-    isListening(): boolean
+    // Note: isListening() method does NOT exist in @moonshine-ai/moonshine-js v0.1.29
+    // despite being documented. Track listening state internally instead.
   }
 
-  /**
-   * FileTranscriber handles transcription of audio files/blobs.
-   */
-  export class FileTranscriber {
-    constructor(model: string, callbacks?: TranscriberCallbacks)
-    transcribe(audioData: Blob | ArrayBuffer): Promise<string>
-  }
+  // Note: FileTranscriber is documented but does NOT exist in @moonshine-ai/moonshine-js v0.1.29
+  // If you need file transcription, use MicrophoneTranscriber with audio input
 }

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { MEDIA_QUERIES } from './breakpoints'
 import InputContainer from './features/input/InputContainer'
 import CableOverlay from './features/input/components/CableOverlay'
+import MoonshinePreloadStatus from './features/input/components/MoonshinePreloadStatus'
 import { useMediaQuery } from './features/input/hooks'
 import MeterSection from './features/meter'
 import { RouteSync } from './features/meter/RouteSync'
@@ -46,6 +47,8 @@ const App = () => {
   return (
     <DetectionProvider>
       <RouteSync />
+      {/* App-level Moonshine preload - starts download immediately for browsers that need it */}
+      <MoonshinePreloadStatus />
       <main data-testid="app-main">
         <section className="stack">
           <div className="title-group">
