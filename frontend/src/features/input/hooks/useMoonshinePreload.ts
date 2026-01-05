@@ -42,6 +42,9 @@ function notifyStateChange() {
 // Check if Moonshine is needed (do this once at module load)
 const needsMoonshine = typeof window !== 'undefined' && !isWebSpeechSupported()
 
+// Check if we're in a test environment (Vitest sets MODE to 'test')
+const isTestEnvironment = typeof import.meta.env !== 'undefined' && import.meta.env.MODE === 'test'
+
 /**
  * Start preload (can be called at module init or as a retry)
  */
@@ -70,7 +73,8 @@ function startPreload(): void {
 
 // Start preload immediately at module load (not in React lifecycle)
 // This ensures download starts ASAP, even before React mounts
-if (needsMoonshine && !preloadStarted && !preloadComplete) {
+// Skip in test environments to avoid side effects and network requests during tests
+if (needsMoonshine && !preloadStarted && !preloadComplete && !isTestEnvironment) {
   log('Module init: Web Speech API not supported - starting preload immediately')
   startPreload()
 }
@@ -110,7 +114,7 @@ export function useMoonshinePreload(): PreloadState {
 
   // Retry function to restart preload after failure
   const retry = useCallback(() => {
-    if (!preloadError) return
+    if (!hasError) return
     log('Retrying preload...')
     // Reset module-level state
     preloadError = false
@@ -121,7 +125,7 @@ export function useMoonshinePreload(): PreloadState {
     setProgress(null)
     // Start fresh preload
     startPreload()
-  }, [])
+  }, [hasError])
 
   useEffect(() => {
     // If Web Speech API is available, no need to preload Moonshine
@@ -139,6 +143,7 @@ export function useMoonshinePreload(): PreloadState {
     if (preloadComplete) {
       return () => {
         stateChangeListeners.delete(syncState)
+        setDownloadProgressCallback(null)
       }
     }
 
@@ -150,6 +155,7 @@ export function useMoonshinePreload(): PreloadState {
 
     return () => {
       stateChangeListeners.delete(syncState)
+      setDownloadProgressCallback(null)
     }
   }, [syncState])
 
