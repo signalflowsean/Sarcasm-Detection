@@ -426,8 +426,13 @@ export function createMockMicrophoneTranscriber(
     }
 
     // Note: isListening() method does NOT exist in @moonshine-ai/moonshine-js v0.1.29
-    // despite being documented. We intentionally omit it from the mock to match
-    // the real library behavior and catch any code that incorrectly uses it.
+    // (verified via library testing and documentation). We intentionally omit it from
+    // the mock to match the real library behavior.
+    //
+    // The SpeechEngine wrapper implements isListening() by tracking state internally
+    // (see moonshineEngine.ts lines 653-659). Production code includes a runtime check
+    // (moonshineEngine.ts line 569) to log if this method becomes available in future
+    // library versions.
   };
 }
 

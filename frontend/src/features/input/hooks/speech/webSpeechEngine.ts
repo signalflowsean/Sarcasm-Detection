@@ -72,10 +72,26 @@ function getSpeechRecognition(): SpeechRecognitionType | null {
  *
  * Dev override: localStorage.setItem('force_moonshine', 'true') to force
  * Moonshine mode even on browsers with Web Speech API (for testing).
+ * To disable: localStorage.removeItem('force_moonshine')
  */
 export function isWebSpeechSupported(): boolean {
   // Dev override: force Moonshine mode for testing
-  if (typeof window !== 'undefined' && localStorage.getItem('force_moonshine') === 'true') {
+  // Only works in dev mode to prevent accidentally shipping with it enabled
+  if (
+    isDev() &&
+    typeof window !== 'undefined' &&
+    localStorage.getItem('force_moonshine') === 'true'
+  ) {
+    // Always warn when override is active, even in dev mode, so developers know it's enabled
+    console.warn(
+      '%c[WebSpeech] DEVELOPER OVERRIDE ACTIVE',
+      'color: orange; font-weight: bold',
+      '\n' +
+        'Web Speech API detection is being bypassed via localStorage.force_moonshine = "true"\n' +
+        'This forces the app to use Moonshine instead of Web Speech API.\n' +
+        'To disable: localStorage.removeItem("force_moonshine") or set to "false"\n' +
+        'Note: This override only works in development mode.'
+    )
     return false
   }
 
@@ -110,7 +126,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
   let recognition: InstanceType<SpeechRecognitionType> | null = null
   let listening = false
   let shouldRestart = false
-  let state: RecognitionState = 'idle' // State machine to prevent race conditions
+  let state: RecognitionState = 'idle' // State machine to prevent issues from interleaved callback execution
 
   return {
     name: 'Web Speech API',
@@ -229,18 +245,18 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
         listening = false
 
         // Capture the current recognition instance and state atomically
-        // to avoid race conditions if start() is called while this handler is executing
+        // to prevent issues if start() is called while this handler is executing
         const currentRecognition = recognition
         const wasListening = state === 'listening' || state === 'restarting'
 
-        // Transition to ending state to prevent concurrent operations
+        // Transition to ending state to prevent interleaved operations
         state = 'ending'
 
         // Auto-restart if we didn't intentionally stop
         // Web Speech API tends to stop after silence
         if (shouldRestart && currentRecognition && wasListening) {
           // Double-check that this is still the current instance and we're still in ending state
-          // (prevents race condition if start() or stop() was called during handler execution)
+          // (prevents issues if start() or stop() was called during handler execution)
           if (recognition === currentRecognition && state === 'ending') {
             state = 'restarting'
             log('Auto-restarting...')
@@ -260,7 +276,7 @@ export function createWebSpeechEngine(callbacks: SpeechEngineCallbacks): SpeechE
               state = 'idle'
             }
           } else {
-            // Race condition detected: recognition instance changed or state changed
+            // State changed during execution: recognition instance or state was modified by another code path
             log('Restart skipped due to state change', {
               recognitionChanged: recognition !== currentRecognition,
               state,

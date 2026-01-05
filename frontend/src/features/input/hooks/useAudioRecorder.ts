@@ -830,7 +830,10 @@ export function useAudioRecorder({
       // Stop all media tracks
       if (mediaStreamRef.current) {
         try {
-          mediaStreamRef.current.getTracks().forEach(track => track.stop())
+          const tracks = mediaStreamRef.current.getTracks()
+          if (tracks) {
+            tracks.forEach(track => track.stop())
+          }
           mediaStreamRef.current = null
         } catch (err) {
           if (isDev()) {

@@ -209,9 +209,9 @@ export async function preloadMoonshineModel(): Promise<void> {
       let totalBytesDownloaded = 0
       // Use model-specific size estimate as initial value
       let estimatedTotalBytes = getEstimatedModelSize(modelPath)
-      // Track if we've updated the estimate from actual Content-Length
-      let hasActualSizeEstimate = false
-      // Track if encoder succeeded - only use decoder estimate if encoder wasn't available
+      // Track which estimate source we're using: 'model' | 'encoder' | 'decoder'
+      let estimateSource: 'model' | 'encoder' | 'decoder' = 'model'
+      // Track if encoder succeeded - for logging purposes
       let encoderSucceeded = false
       let filesCompleted = 0
 
@@ -236,25 +236,31 @@ export async function preloadMoonshineModel(): Promise<void> {
 
           const fileBytes = await fetchWithProgress(file, (bytesReceived, totalBytes) => {
             if (progressCallback) {
-              // Update estimated total based on actual Content-Length from encoder only
-              // Priority: encoder estimate > model-based fallback > decoder estimate
+              // Update estimated total based on actual Content-Length
+              // Priority: encoder estimate > decoder estimate > model-based fallback
               //
-              // Rationale: The encoder is ~60% of total and the dominant file, making it
-              // the most representative for extrapolation. The model-based fallback (derived
-              // from observed model sizes) is more reliable than extrapolating from the
-              // smaller decoder file (~40% of total). Only use encoder-based estimates.
-              if (!hasActualSizeEstimate && totalBytes > 0 && file.includes('encoder')) {
-                // encoder.onnx is typically the largest, ~60% of total
-                // This is the most accurate Content-Length-based estimate
-                estimatedTotalBytes = Math.round(totalBytes / 0.6)
-                hasActualSizeEstimate = true
-                log(
-                  `Preload: Updated size estimate based on encoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
-                )
+              // Rationale: The encoder (~60% of total) is the largest file and most
+              // representative for extrapolation. If encoder fails or has no Content-Length,
+              // use decoder (~40% of total) which is still more accurate than a hardcoded
+              // model size. Only fall back to model-based estimate if neither provides
+              // Content-Length.
+              if (totalBytes > 0) {
+                if (estimateSource === 'model' && file.includes('encoder')) {
+                  // Encoder is ~60% of total - most accurate estimate
+                  estimatedTotalBytes = Math.round(totalBytes / 0.6)
+                  estimateSource = 'encoder'
+                  log(
+                    `Preload: Updated size estimate based on encoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+                  )
+                } else if (estimateSource === 'model' && file.includes('decoder')) {
+                  // Decoder is ~40% of total - better than model-based fallback
+                  estimatedTotalBytes = Math.round(totalBytes / 0.4)
+                  estimateSource = 'decoder'
+                  log(
+                    `Preload: Updated size estimate based on decoder: ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+                  )
+                }
               }
-              // Note: We intentionally skip decoder-based estimates as they are less accurate
-              // than the model-based fallback. If encoder fails or has no Content-Length,
-              // we keep using the model-based estimate.
 
               progressCallback({
                 bytesDownloaded: totalBytesDownloaded + bytesReceived,
@@ -287,14 +293,20 @@ export async function preloadMoonshineModel(): Promise<void> {
         }
       }
 
-      // Log whether we used actual size estimate or fell back to model-based estimate
-      if (!hasActualSizeEstimate && filesFailed < modelFiles.length) {
-        const reason = encoderSucceeded
-          ? 'encoder had no Content-Length header'
-          : 'encoder download failed or not attempted'
-        log(
-          `Preload: Using model-based size estimate (${reason}): ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
-        )
+      // Log which estimate source was used
+      if (filesFailed < modelFiles.length) {
+        if (estimateSource === 'model') {
+          const reason = encoderSucceeded
+            ? 'encoder had no Content-Length header'
+            : 'encoder download failed or not attempted'
+          log(
+            `Preload: Using model-based size estimate (${reason}): ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+          )
+        } else if (estimateSource === 'decoder') {
+          log(
+            `Preload: Used decoder-based size estimate (encoder unavailable): ${Math.round(estimatedTotalBytes / 1024 / 1024)}MB`
+          )
+        }
       }
 
       // Handle failures - reset preloadPromise to allow retry

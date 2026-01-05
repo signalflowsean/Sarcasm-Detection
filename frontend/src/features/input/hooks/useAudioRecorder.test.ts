@@ -80,7 +80,7 @@ describe('useAudioRecorder', () => {
       resetWaveform: vi.fn(),
     }
 
-    // Mock sp  eech controls
+    // Mock speech controls
     mockSpeechControls = {
       startSpeechRecognition: vi.fn().mockResolvedValue(undefined),
       stopSpeechRecognition: vi.fn(),
