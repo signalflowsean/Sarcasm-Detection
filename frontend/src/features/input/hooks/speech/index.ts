@@ -180,9 +180,18 @@ export function useSpeechRecognition({
 
           // Both engines failed - set error state
           const moonshineError = errorMessage
+
+          // Always log technical details to console for debugging (even in production)
+          // This helps with diagnosing user-reported issues without exposing details in UI
+          console.error(
+            `${LOG_PREFIX} Both speech recognition engines failed:`,
+            `\n- Web Speech API: ${webSpeechError}`,
+            `\n- MoonshineJS: ${moonshineError}`
+          )
+
           let userErrorMessage: string
           if (isDev()) {
-            // In development, include technical details for debugging
+            // In development, include technical details in UI for debugging
             const errorParts = ['Speech recognition failed.']
             if (webSpeechError) {
               errorParts.push(`Web Speech API: ${webSpeechError}`)
@@ -190,7 +199,7 @@ export function useSpeechRecognition({
             errorParts.push(`MoonshineJS: ${moonshineError}`)
             userErrorMessage = errorParts.join(' ')
           } else {
-            // In production, show user-friendly message only
+            // In production, show user-friendly message in UI only
             userErrorMessage = 'Speech recognition failed. Please try again or use text input.'
           }
           setSpeechError(userErrorMessage)
@@ -202,10 +211,18 @@ export function useSpeechRecognition({
         log('MoonshineJS not supported (WebAssembly unavailable)')
         engineRef.current = null
         setActiveEngine(null)
+
         // Both engines unavailable - set error state
+        // Always log technical details to console for debugging (even in production)
+        console.error(
+          `${LOG_PREFIX} No speech recognition engines available:`,
+          `\n- Web Speech API: ${webSpeechError}`,
+          '\n- MoonshineJS: not supported (WebAssembly unavailable)'
+        )
+
         let userErrorMessage: string
         if (isDev()) {
-          // In development, include technical details for debugging
+          // In development, include technical details in UI for debugging
           const errorParts = ['Speech recognition is not available in this browser.']
           if (webSpeechError) {
             errorParts.push(`Web Speech API: ${webSpeechError}`)
@@ -213,7 +230,7 @@ export function useSpeechRecognition({
           errorParts.push('MoonshineJS: not supported (WebAssembly unavailable)')
           userErrorMessage = errorParts.join(' ')
         } else {
-          // In production, show user-friendly message only
+          // In production, show user-friendly message in UI only
           userErrorMessage =
             'Speech recognition is not available in this browser. Please use text input.'
         }

@@ -229,7 +229,7 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
         if (this.state === "inactive") return;
         this.state = "inactive";
 
-        setTimeout(() => {
+        window.setTimeout(() => {
           const base64 = (window as unknown as { __testAudioBase64: string })
             .__testAudioBase64;
           const binaryString = atob(base64);
@@ -383,8 +383,10 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
       onstart: (() => void) | null = null;
       private _listening = false;
       private _shouldRestart = true;
-      private _startupTimeoutId: ReturnType<typeof setTimeout> | null = null;
-      private _autoEndTimeoutId: ReturnType<typeof setTimeout> | null = null;
+      // Explicit number type since this code runs in browser context (via addInitScript)
+      // where setTimeout returns a number, not a Node.js Timeout object
+      private _startupTimeoutId: number | null = null;
+      private _autoEndTimeoutId: number | null = null;
 
       private _clearTimeouts() {
         if (this._startupTimeoutId !== null) {
@@ -405,14 +407,15 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
         this._shouldRestart = true;
 
         // Simulate async startup
-        this._startupTimeoutId = setTimeout(() => {
+        // Use window.setTimeout to explicitly use browser API (returns number)
+        this._startupTimeoutId = window.setTimeout(() => {
           if (this._listening && this.onstart) {
             this.onstart();
           }
         }, 10);
 
         // Simulate periodic "no-speech" to trigger restart (mimics real behavior)
-        this._autoEndTimeoutId = setTimeout(() => {
+        this._autoEndTimeoutId = window.setTimeout(() => {
           if (this._listening && this._shouldRestart && this.onend) {
             console.log("[E2E Mock] SpeechRecognition auto-ended (simulating)");
             this.onend();
@@ -426,7 +429,7 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
         this._listening = false;
         this._shouldRestart = false;
         if (this.onend) {
-          setTimeout(() => this.onend?.(), 10);
+          window.setTimeout(() => this.onend?.(), 10);
         }
       }
 
@@ -436,7 +439,7 @@ export async function injectAudioMocks(page: Page, audioBase64: string) {
         this._listening = false;
         this._shouldRestart = false;
         if (this.onend) {
-          setTimeout(() => this.onend?.(), 10);
+          window.setTimeout(() => this.onend?.(), 10);
         }
       }
     }
@@ -640,7 +643,7 @@ export async function injectAudioMocksWithMoonshine(
           if (this.state === "inactive") return;
           this.state = "inactive";
 
-          setTimeout(() => {
+          window.setTimeout(() => {
             const base64 = (window as unknown as { __testAudioBase64: string })
               .__testAudioBase64;
             const binaryString = atob(base64);
@@ -821,7 +824,7 @@ export async function injectAudioMocksWithMoonshine(
           }
 
           // Simulate model loading delay
-          await new Promise((resolve) => setTimeout(resolve, loadDelay));
+          await new Promise((resolve) => window.setTimeout(resolve, loadDelay));
 
           this._listening = true;
 
@@ -907,14 +910,14 @@ export async function injectAudioMocksWithMoonshine(
           this._shouldRestart = true;
 
           // Simulate async startup
-          setTimeout(() => {
+          window.setTimeout(() => {
             if (this._listening && this.onstart) {
               this.onstart();
             }
           }, 10);
 
           // Simulate periodic "no-speech" to trigger restart (mimics real behavior)
-          setTimeout(() => {
+          window.setTimeout(() => {
             if (this._listening && this._shouldRestart && this.onend) {
               console.log(
                 "[E2E Mock] SpeechRecognition auto-ended (simulating)",
@@ -929,7 +932,7 @@ export async function injectAudioMocksWithMoonshine(
           this._listening = false;
           this._shouldRestart = false;
           if (this.onend) {
-            setTimeout(() => this.onend?.(), 10);
+            window.setTimeout(() => this.onend?.(), 10);
           }
         }
 
@@ -938,7 +941,7 @@ export async function injectAudioMocksWithMoonshine(
           this._listening = false;
           this._shouldRestart = false;
           if (this.onend) {
-            setTimeout(() => this.onend?.(), 10);
+            window.setTimeout(() => this.onend?.(), 10);
           }
         }
       }

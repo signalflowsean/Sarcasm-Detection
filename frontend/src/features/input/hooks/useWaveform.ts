@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useRafInterval } from '../hooks'
 import { isDev } from '../utils/env'
+import {
+  applyGainSmoothing,
+  calculateMaxAllowedGain,
+  calculateMaxDeviation,
+  calculateTargetGain,
+} from '../utils/waveformGain'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Auto-Gain Normalization Constants
+// Auto-Gain Normalization
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// These thresholds address a significant browser discrepancy in Web Audio API
-// behavior. When reading audio data via AnalyserNode.getByteTimeDomainData():
+// These thresholds and gain calculations address a significant browser discrepancy
+// in Web Audio API behavior. When reading audio data via AnalyserNode.getByteTimeDomainData():
 //
 // - Chrome produces VERY quiet audio signals:
 //   • Silence/noise: deviation 0-2 from center (128)
@@ -20,142 +26,17 @@ import { isDev } from '../utils/env'
 //   • Loud speech: deviation 50+ from center
 //
 // Without normalization, Chrome waveforms appear nearly flat while Firefox
-// waveforms fill the canvas. The strategy below applies higher gain to quieter
+// waveforms fill the canvas. The strategy applies higher gain to quieter
 // signals (Chrome) and lower gain to louder signals (Firefox) to achieve
 // consistent visual amplitude across browsers.
 //
 // Values were determined empirically by testing on Chrome 120+ and Firefox 120+
 // with various microphones (built-in laptop, USB headset, professional condenser).
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Audio deviation thresholds (from center value of 128 in Uint8 [0-255] range).
- * These define the boundaries between noise/quiet/medium/loud signal levels.
- */
-const DEVIATION_THRESHOLDS = {
-  /**
-   * Max deviation for "very quiet" signals (likely noise or very quiet Chrome audio).
-   * Chrome speech typically starts above this threshold.
-   */
-  VERY_QUIET: 2,
-
-  /**
-   * Max deviation for "quiet" signals (typical Chrome speech range).
-   * Chrome normal speech falls in the 2-5 range.
-   */
-  QUIET: 5,
-
-  /**
-   * Max deviation for "medium" signals (loud Chrome or quiet Firefox).
-   * Firefox normal speech typically exceeds this.
-   */
-  MEDIUM: 15,
-} as const
-
-/**
- * Maximum gain multipliers for each signal level.
- * Higher gain for quiet signals (Chrome), lower for loud signals (Firefox).
- *
- * The asymmetric values compensate for the ~10-20x amplitude difference
- * between Chrome and Firefox audio data.
- */
-const MAX_GAIN_BY_LEVEL = {
-  /**
-   * Very quiet signals (deviation ≤ 2): Allow up to 8x gain.
-   * Provides significant boost for Chrome's quiet output while avoiding
-   * over-amplification of pure noise (which stays below this threshold).
-   */
-  VERY_QUIET: 8,
-
-  /**
-   * Quiet signals (deviation ≤ 5): Allow up to 6x gain.
-   * Typical Chrome speech range - moderate boost to fill canvas.
-   */
-  QUIET: 6,
-
-  /**
-   * Medium signals (deviation ≤ 15): Allow up to 4x gain.
-   * Covers loud Chrome speech and quiet Firefox speech.
-   */
-  MEDIUM: 4,
-
-  /**
-   * Loud signals (deviation > 15): Allow up to 2x gain.
-   * Firefox typically falls here - minimal boost needed as signal is already strong.
-   */
-  LOUD: 2,
-} as const
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Gain Smoothing Configuration
-// ─────────────────────────────────────────────────────────────────────────────
 //
-// Exponential smoothing is used to prevent jarring jumps in the waveform display.
-// The formula: currentGain += (targetGain - currentGain) * α
-//
-// With requestAnimationFrame (~60fps, 16.7ms per frame):
-// - α=0.3 → 63% of target in ~3 frames (~50ms), 95% in ~10 frames (~167ms)
-// - α=0.1 → 63% of target in ~10 frames (~167ms), 95% in ~30 frames (~500ms)
-//
-// Trade-off: Higher α = more responsive but potentially jittery
-//            Lower α = smoother but can feel sluggish
-//
-// We use ADAPTIVE smoothing: fast attack (silence→speech) for responsiveness,
-// slower release (speech→silence) for visual smoothness.
+// The gain calculation logic is extracted to utils/waveformGain.ts with comprehensive
+// unit tests to prevent regressions when tuning these empirical values or when
+// browser behavior changes.
 // ─────────────────────────────────────────────────────────────────────────────
-
-const GAIN_SMOOTHING = {
-  /**
-   * Attack factor: Used when target gain > current gain (audio getting louder).
-   * Higher value = faster response to speech onset.
-   * At 60fps: 0.3 reaches 95% of target in ~170ms
-   */
-  ATTACK: 0.3,
-
-  /**
-   * Release factor: Used when target gain < current gain (audio getting quieter).
-   * Lower value = smoother decay, prevents jitter during natural speech pauses.
-   * At 60fps: 0.08 reaches 95% of target in ~600ms
-   */
-  RELEASE: 0.08,
-} as const
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Gain Compression Configuration
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// We apply sqrt compression to the calculated gain to reduce dynamic range.
-// This mimics human auditory perception (Weber-Fechner law) where perceived
-// loudness is roughly logarithmic. Without compression:
-//   - A 4x quieter signal needs 4x gain → jarring visual jumps
-//   - A 16x quieter signal needs 16x gain → extreme amplification
-//
-// With sqrt compression:
-//   - 4x quieter → sqrt(4) = 2x compressed gain (smoother)
-//   - 16x quieter → sqrt(16) = 4x compressed gain (still manageable)
-//
-// The VISIBILITY_BOOST compensates for sqrt's gain reduction on typical signals.
-// At baseGain=4 (common for Chrome speech): sqrt(4) * 1.5 = 3x effective gain.
-// This was empirically tuned to fill ~50-60% of canvas height on typical speech.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const GAIN_COMPRESSION = {
-  /**
-   * Visibility boost multiplier applied after sqrt compression.
-   *
-   * Rationale: sqrt compression reduces gain (e.g., sqrt(4)=2 instead of 4).
-   * This multiplier compensates to ensure typical speech fills the canvas well.
-   *
-   * Examples with VISIBILITY_BOOST = 1.5:
-   *   baseGain 1  → sqrt(1) * 1.5 = 1.5x  (slight boost for already-good signals)
-   *   baseGain 4  → sqrt(4) * 1.5 = 3.0x  (moderate boost for quiet Chrome speech)
-   *   baseGain 16 → sqrt(16) * 1.5 = 6.0x (strong boost, but not extreme 16x)
-   *
-   * Trade-off: Higher value = more visible waveforms, risk of clipping
-   *            Lower value = subtler waveforms, may appear flat on quiet audio
-   */
-  VISIBILITY_BOOST: 1.5,
-} as const
 
 type Nullable<T> = T | null
 
@@ -343,17 +224,12 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     // - Very low deviation (1-2): Low gain (1-3x) - mostly noise, slight boost
     // - Medium deviation (3-10): Medium gain (3-6x) - Chrome speech
     // - High deviation (10+): Minimal gain (1-2x) - Firefox speech
+    //
+    // See waveformGain.ts for detailed implementation and unit tests
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Find min/max to calculate deviation from center (128)
-    let minVal = 255,
-      maxVal = 0
-    for (let i = 0; i < temp.length; i++) {
-      if (temp[i] < minVal) minVal = temp[i]
-      if (temp[i] > maxVal) maxVal = temp[i]
-    }
-
-    const maxDeviation = Math.max(maxVal - 128, 128 - minVal, 1) // Avoid division by zero
+    // Calculate maximum deviation from center (128)
+    const maxDeviation = calculateMaxDeviation(temp)
 
     // Target: waveform fills ~40% of canvas height
     const TARGET_PEAK_DEVIATION = height * 0.2 // 20% above/below center = 40% total
@@ -361,31 +237,14 @@ export function useWaveform({ isRecording }: UseWaveformOptions) {
     // Calculate base gain needed
     const baseGain = TARGET_PEAK_DEVIATION / maxDeviation
 
-    // Apply gain curve based on deviation level:
-    // - Low deviation: allow higher gain (Chrome needs it)
-    // - High deviation: cap gain lower (Firefox doesn't need much)
-    // See DEVIATION_THRESHOLDS and MAX_GAIN_BY_LEVEL constants for detailed explanation
-    let maxAllowedGain: number
-    if (maxDeviation <= DEVIATION_THRESHOLDS.VERY_QUIET) {
-      maxAllowedGain = MAX_GAIN_BY_LEVEL.VERY_QUIET
-    } else if (maxDeviation <= DEVIATION_THRESHOLDS.QUIET) {
-      maxAllowedGain = MAX_GAIN_BY_LEVEL.QUIET
-    } else if (maxDeviation <= DEVIATION_THRESHOLDS.MEDIUM) {
-      maxAllowedGain = MAX_GAIN_BY_LEVEL.MEDIUM
-    } else {
-      maxAllowedGain = MAX_GAIN_BY_LEVEL.LOUD
-    }
+    // Get maximum allowed gain based on deviation level (see waveformGain.ts)
+    const maxAllowedGain = calculateMaxAllowedGain(maxDeviation)
 
-    // Apply sqrt compression for perceptual scaling, then visibility boost
-    // See GAIN_COMPRESSION constant for detailed rationale
-    const compressedGain = Math.sqrt(baseGain) * GAIN_COMPRESSION.VISIBILITY_BOOST
-    const targetGain = Math.max(Math.min(compressedGain, maxAllowedGain), 1.0)
+    // Calculate target gain with sqrt compression and visibility boost
+    const targetGain = calculateTargetGain(baseGain, maxAllowedGain)
 
-    // Adaptive smoothing: fast attack (audio getting louder), slow release (getting quieter)
-    // This ensures responsive onset when user starts speaking, but smooth decay during pauses
-    const smoothingFactor =
-      targetGain > currentGainRef.current ? GAIN_SMOOTHING.ATTACK : GAIN_SMOOTHING.RELEASE
-    currentGainRef.current += (targetGain - currentGainRef.current) * smoothingFactor
+    // Apply adaptive smoothing: fast attack, slow release
+    currentGainRef.current = applyGainSmoothing(currentGainRef.current, targetGain)
 
     // Update the Web Audio GainNode
     if (gainNode) {

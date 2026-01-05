@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clamp01 } from '../utils'
+import { isDev } from '../utils/env'
 import { AUTO_STOP_COUNTDOWN_START_MS, AUTO_STOP_SILENCE_THRESHOLD_MS } from './constants'
 
 type Nullable<T> = T | null
@@ -48,10 +49,10 @@ export type UseAudioRecorderOptions = {
   /**
    * Current speech recognition status from useSpeechRecognition hook.
    *
-   * REQUIRED: This prop is critical for correct auto-stop behavior.
-   * The silence detection timer pauses when status is 'loading' to prevent
-   * premature auto-stop while the speech recognition model/VAD initializes.
-   * Without this, recordings may auto-stop before speech recognition is ready.
+   * This prop is critical for correct auto-stop behavior. The silence detection
+   * timer pauses when status is 'loading' to prevent premature auto-stop while
+   * the speech recognition model/VAD initializes. Without this, recordings may
+   * auto-stop before speech recognition is ready.
    */
   speechStatus: SpeechStatus
   /** Callback when recording successfully starts */
@@ -401,20 +402,41 @@ export function useAudioRecorder({
       // Clean up any resources that were acquired before the error occurred
       // This is critical for errors in setupWaveform or startSpeechRecognition
       // which happen after getUserMedia succeeds but before recording starts
+      //
+      // Each cleanup is wrapped in try-catch to ensure all cleanups are attempted
+      // even if one fails, preventing secondary errors from masking the original error
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop())
-        mediaStreamRef.current = null
+        try {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop())
+          mediaStreamRef.current = null
+        } catch (cleanupErr) {
+          if (isDev()) {
+            console.error('Error stopping media tracks:', cleanupErr)
+          }
+        }
       }
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current = null
       }
       // Clean up waveform resources (may have been partially initialized)
-      cleanupWaveform()
+      try {
+        cleanupWaveform()
+      } catch (cleanupErr) {
+        if (isDev()) {
+          console.error('Error cleaning up waveform:', cleanupErr)
+        }
+      }
       // Clean up speech recognition (safe to call even if not started - internally
       // handles null engine gracefully). While startSpeechRecognition handles its
       // own cleanup on failure, this explicit call ensures symmetric cleanup and
       // guards against any edge cases or future changes.
-      stopSpeechRecognition()
+      try {
+        stopSpeechRecognition()
+      } catch (cleanupErr) {
+        if (isDev()) {
+          console.error('Error stopping speech recognition:', cleanupErr)
+        }
+      }
 
       let message =
         err instanceof Error ? err.message : 'Microphone permission denied or unavailable'
@@ -454,23 +476,64 @@ export function useAudioRecorder({
     if (!state.isRecording) return
 
     // Stop speech recognition FIRST to release any microphone access it may have
-    stopSpeechRecognition()
+    // Wrap each cleanup in try-catch to ensure all cleanups are attempted
+    try {
+      stopSpeechRecognition()
+    } catch (err) {
+      if (isDev()) {
+        console.error('Error stopping speech recognition:', err)
+      }
+    }
 
     // Stop silence detection
-    stopSilenceDetection()
+    try {
+      stopSilenceDetection()
+    } catch (err) {
+      if (isDev()) {
+        console.error('Error stopping silence detection:', err)
+      }
+    }
 
     const mr = mediaRecorderRef.current
-    if (mr && mr.state !== 'inactive') mr.stop()
+    if (mr && mr.state !== 'inactive') {
+      try {
+        mr.stop()
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error stopping MediaRecorder:', err)
+        }
+      }
+    }
     mediaRecorderRef.current = null
 
     // Stop MediaStream tracks after speech recognition is stopped
     if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(t => t.stop())
-      mediaStreamRef.current = null
+      try {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop())
+        mediaStreamRef.current = null
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error stopping media tracks:', err)
+        }
+      }
     }
 
-    cleanupWaveform()
-    stopTimer()
+    try {
+      cleanupWaveform()
+    } catch (err) {
+      if (isDev()) {
+        console.error('Error cleaning up waveform:', err)
+      }
+    }
+
+    try {
+      stopTimer()
+    } catch (err) {
+      if (isDev()) {
+        console.error('Error stopping timer:', err)
+      }
+    }
+
     // Only update state if component is still mounted (safety check)
     if (isMountedRef.current) {
       setState(s => ({ ...s, isRecording: false }))
@@ -497,26 +560,74 @@ export function useAudioRecorder({
     // Stop recording if active
     if (state.isRecording) {
       // Stop speech recognition FIRST to release any microphone access it may have
-      stopSpeechRecognition()
+      // Wrap each cleanup in try-catch to ensure all cleanups are attempted
+      try {
+        stopSpeechRecognition()
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error stopping speech recognition:', err)
+        }
+      }
 
       // Stop silence detection
-      stopSilenceDetection()
+      try {
+        stopSilenceDetection()
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error stopping silence detection:', err)
+        }
+      }
 
       const mr = mediaRecorderRef.current
-      if (mr && mr.state !== 'inactive') mr.stop()
+      if (mr && mr.state !== 'inactive') {
+        try {
+          mr.stop()
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error stopping MediaRecorder:', err)
+          }
+        }
+      }
       mediaRecorderRef.current = null
 
       // Stop MediaStream tracks after speech recognition is stopped
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(t => t.stop())
-        mediaStreamRef.current = null
+        try {
+          mediaStreamRef.current.getTracks().forEach(t => t.stop())
+          mediaStreamRef.current = null
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error stopping media tracks:', err)
+          }
+        }
       }
 
-      cleanupWaveform()
-      stopTimer()
+      try {
+        cleanupWaveform()
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error cleaning up waveform:', err)
+        }
+      }
+
+      try {
+        stopTimer()
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error stopping timer:', err)
+        }
+      }
     }
 
-    if (state.audioUrl) URL.revokeObjectURL(state.audioUrl)
+    if (state.audioUrl) {
+      try {
+        URL.revokeObjectURL(state.audioUrl)
+      } catch (err) {
+        if (isDev()) {
+          console.error('Error revoking object URL:', err)
+        }
+      }
+    }
 
     setState(s => ({
       ...s,
@@ -529,7 +640,15 @@ export function useAudioRecorder({
       autoStopCountdown: null,
     }))
     setPlayback({ isPlaying: false, playbackMs: 0, audioDurationMs: 0 })
-    resetWaveform()
+
+    try {
+      resetWaveform()
+    } catch (err) {
+      if (isDev()) {
+        console.error('Error resetting waveform:', err)
+      }
+    }
+
     isStartingRecordingRef.current = false
   }, [
     state.isRecording,
@@ -671,27 +790,55 @@ export function useAudioRecorder({
 
   useEffect(() => {
     return () => {
+      // Wrap each cleanup in try-catch to ensure all cleanups are attempted during unmount
       // Stop silence detection timer FIRST to prevent it from triggering after unmount
       if (silenceDetectionIntervalRef.current != null) {
-        clearInterval(silenceDetectionIntervalRef.current)
-        silenceDetectionIntervalRef.current = null
+        try {
+          clearInterval(silenceDetectionIntervalRef.current)
+          silenceDetectionIntervalRef.current = null
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error clearing silence detection interval:', err)
+          }
+        }
       }
 
       // Stop timer if running
       if (timerIntervalRef.current != null) {
-        clearInterval(timerIntervalRef.current)
-        timerIntervalRef.current = null
+        try {
+          clearInterval(timerIntervalRef.current)
+          timerIntervalRef.current = null
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error clearing timer interval:', err)
+          }
+        }
       }
+
       // Stop media recorder if active
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop()
-        mediaRecorderRef.current = null
+        try {
+          mediaRecorderRef.current.stop()
+          mediaRecorderRef.current = null
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error stopping MediaRecorder on unmount:', err)
+          }
+        }
       }
+
       // Stop all media tracks
       if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop())
-        mediaStreamRef.current = null
+        try {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop())
+          mediaStreamRef.current = null
+        } catch (err) {
+          if (isDev()) {
+            console.error('Error stopping media tracks on unmount:', err)
+          }
+        }
       }
+
       // Note: stopSpeechRecognition and cleanupWaveform should be called by parent
       isStartingRecordingRef.current = false
     }
