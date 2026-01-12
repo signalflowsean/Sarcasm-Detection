@@ -1,6 +1,6 @@
 # Web framework
 Flask==3.0.0
-flask-cors==4.0.0
+flask-cors==6.0.2
 flask-limiter==3.5.0
 gunicorn==21.2.0
 
