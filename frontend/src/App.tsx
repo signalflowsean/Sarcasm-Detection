@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { MEDIA_QUERIES } from './breakpoints'
 import InputContainer from './features/input/InputContainer'
+import BrowserSupportModal from './features/input/components/BrowserSupportModal'
 import CableOverlay from './features/input/components/CableOverlay'
 import MoonshinePreloadStatus from './features/input/components/MoonshinePreloadStatus'
 import { useMediaQuery } from './features/input/hooks'
@@ -66,6 +67,7 @@ const App = () => {
         <MeterSection />
         <CableOverlay />
         <FirstTimeOverlay />
+        <BrowserSupportModal />
       </main>
     </DetectionProvider>
   )

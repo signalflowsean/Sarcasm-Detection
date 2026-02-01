@@ -318,6 +318,22 @@ The app uses [Moonshine](https://www.moonshine.ai/) for on-device speech-to-text
 
 See [`frontend/docs/MOONSHINE_MODELS.md`](frontend/docs/MOONSHINE_MODELS.md) for detailed model comparison, performance metrics, and selection guidance.
 
+### Developer Shortcuts
+
+In development mode (`npm run dev`), the following keyboard shortcuts are available for testing and debugging:
+
+| Key | Action                                              | Notes                                                |
+| --- | --------------------------------------------------- | ---------------------------------------------------- |
+| `H` | Trigger test detection                              | Sends a random sarcastic phrase to the API           |
+| `J` | Toggle speech-to-text loading spinner               | Cycles spinner on/off                                |
+| `B` | Cycle browser support modal                         | Cycles: hidden → Chrome Android → Firefox → hidden   |
+
+**Notes:**
+
+- Shortcuts only work in dev mode (disabled in production builds)
+- Shortcuts are ignored when focus is in a text input or textarea
+- Check browser console for status messages when toggling
+
 ### Running Tests
 
 **Backend (pytest):**

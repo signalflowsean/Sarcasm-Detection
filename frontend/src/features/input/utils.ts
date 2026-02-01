@@ -65,3 +65,29 @@ export const isMobileBrowser = (): boolean => {
   const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
   return isMobileUA || isIPadOS || (isTouchDevice && window.innerWidth < 1024)
 }
+
+/**
+ * Detects if the current browser is Chrome on Android.
+ * Used to show unsupported browser warning (speech-to-text doesn't work on Chrome for Android).
+ * Excludes Edge, Opera, and Samsung Browser which also contain "Chrome" in UA.
+ */
+export const isChromeAndroid = (): boolean => {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  const isAndroid = /Android/i.test(ua)
+  const isChrome = /Chrome\//i.test(ua)
+  // Exclude other Chromium-based browsers that include "Chrome" in UA
+  const isEdge = /Edg\//i.test(ua)
+  const isOpera = /OPR\//i.test(ua)
+  const isSamsung = /SamsungBrowser/i.test(ua)
+  return isAndroid && isChrome && !isEdge && !isOpera && !isSamsung
+}
+
+/**
+ * Detects if the current browser is Firefox (any platform).
+ * Used to show degraded experience warning (speech-to-text quality is lower on Firefox).
+ */
+export const isFirefox = (): boolean => {
+  if (typeof navigator === 'undefined') return false
+  return /Firefox\//i.test(navigator.userAgent)
+}
